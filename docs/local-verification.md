@@ -39,13 +39,21 @@ Verified on 2026-08-27 at
   passed remote schema lint;
 - two isolated sandboxes and four synthetic demo identities were provisioned;
 - public signup and anonymous table access were denied;
-- Owner and Member claims both resolved the expected tenant and five-tool
-  initial profile;
-- neither initial profile exposed publish or rollback before their required
-  state transitions;
-- native `get_attention` returned the three synthetic non-PII fixtures; and
-- both logouts unregistered the active profile and left zero active leases.
+- Owner completed evidence, fixed Action Plan, acknowledgement without
+  communication, draft, exact preview, human approval, and native publish;
+- publish consumed its one-shot approval and exposed the published reads and
+  immutable version history;
+- the public human page and both public tools returned the same canonical
+  version and Saturday hours;
+- a second publish followed by rollback created version 3 and restored version
+  1 content on both public surfaces;
+- Member created and previewed a draft but never discovered publish or rollback;
+- role changes and both logouts unregistered the previous tool profile;
+- the explicit hosted-pool verifier proved two concurrent isolated leases,
+  third-request exhaustion, direct cross-tenant Data API denial, expiry and
+  release denial, clean reuse, and zero active leases afterward.
 
-The complete publish/parity/rollback production recording, ChatGPT-hosted
-evaluation, Chrome 149+ smoke, and submission freeze remain explicit release
-gates.
+Chrome 151.0.0.0 passed the human workflow smoke, but its tested profile did not
+expose the WebMCP runtime. A Chrome profile with WebMCP enabled, repository
+visibility/public evidence, the video, and the judging-period freeze remain the
+explicit pre-submission gates.

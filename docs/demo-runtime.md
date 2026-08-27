@@ -40,3 +40,11 @@ the script's local-only fallback password; hosted environments require
 
 Provisioning is an explicit environment operation. It is not run by build,
 tests, deployment, or GitHub Actions.
+
+## Hosted verification
+
+`npm run demo:verify-hosted` verifies the configured two-slot hosted pool with
+real synthetic JWT sessions. It proves concurrent organization isolation,
+capacity exhaustion, cross-tenant Data API denial, expiry and release denial,
+and clean slot reuse. The command requires `.env.hosted.local`, refuses to
+start while a non-expired lease is active, and releases every lease it creates.
