@@ -13,7 +13,11 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run build",
+    "test": "npm run test:db && npm run test:integration",
+    "test:db": "npx supabase test db",
+    "test:integration": "node --test tests/integration/*.test.mjs",
     "supabase:start": "npx supabase start",
+    "supabase:reset": "npx supabase db reset --local --yes",
     "supabase:stop": "npx supabase stop",
     "supabase:status": "npx supabase status"
   },

@@ -6,8 +6,9 @@ data, or internal documentation from the private Kurogrid Portal.
 
 ## Status
 
-Gate 0 foundation. The application shell and local Supabase configuration are
-ready; the product workflow is specified but not yet implemented.
+Gate 1 identity foundation. The repository now contains a local-only tenant
+schema, explicit grants and RLS, cookie-based Supabase SSR clients, and a
+minimal authenticated workspace. WebMCP tools are not implemented yet.
 
 ## Demo contract
 
@@ -38,13 +39,20 @@ npm run dev
 Copy the local publishable key printed by `supabase status` into `.env.local`.
 No hosted project is required for local development.
 
+The local stack uses ports `56320`–`56329` to avoid colliding with the default
+Supabase CLI range.
+
 ## Verification
 
 ```bash
 npm run check
+npm run supabase:reset
+npm test
 ```
 
-Database and tenant-boundary tests will be added with the first migration.
+`npm test` runs focused pgTAP policy tests and application-level Data API tests
+with valid users from separate organizations. Tests require the local Supabase
+stack; they do not use GitHub Actions or a hosted project.
 
 ## License
 

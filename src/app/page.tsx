@@ -20,7 +20,7 @@ export default function Home() {
           <span className="mark" aria-hidden="true">K</span>
           <span>Kurogrid <b>WebMCP</b></span>
         </a>
-        <span className="status"><i /> Baseline greenfield</span>
+        <span className="status"><i /> Gate 1 · identity foundation</span>
       </header>
 
       <section className="hero shell" id="top">
@@ -64,7 +64,7 @@ export default function Home() {
 
       <footer className="shell">
         <span>Kurogrid WebMCP</span>
-        <span>Gate 0 · foundation in progress</span>
+        <span>Gate 1 · tenant isolation in progress</span>
       </footer>
     </main>
   );

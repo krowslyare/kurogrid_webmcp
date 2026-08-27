@@ -9,10 +9,15 @@
 
 ## Gate 1 — identity and isolation
 
-- Minimal organization and membership schema
-- Authenticated server clients and role-aware navigation
-- RLS plus direct Data API/RPC negative tests across two organizations
+- Minimal organization, membership, and audit schema
+- Cookie-based Supabase SSR clients using verified JWT claims
+- Owner/member workspace resolved through RLS
+- RLS plus direct Data API negative tests across two organizations
 - Two concurrently isolated demo sessions and defined exhaustion behavior
+
+Current status: schema, SSR clients, role-aware workspace, pgTAP coverage, and
+direct Data API isolation tests are implemented. Sandbox allocation and its
+exhaustion contract remain for the demo-runtime gate.
 
 ## Gate 2 — evidence and planning
 
