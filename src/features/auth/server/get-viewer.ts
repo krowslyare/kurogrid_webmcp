@@ -27,6 +27,7 @@ export async function getViewer(): Promise<Viewer | null> {
     .select(
       "organization_id, role, organizations!inner(id, name, slug)",
     )
+    .eq("user_id", claimsData.claims.sub)
     .order("created_at", { ascending: true });
 
   if (membershipsError) {
