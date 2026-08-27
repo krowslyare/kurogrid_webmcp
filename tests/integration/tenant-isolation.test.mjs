@@ -170,6 +170,17 @@ test("anonymous requests hold no Data API table grant", async () => {
   assert.equal(error?.code, "42501");
 });
 
+test("public account registration is disabled", async () => {
+  const { data, error } = await anonymous.auth.signUp({
+    email: `uninvited-${runId}@example.test`,
+    password,
+  });
+
+  assert.equal(data.user, null);
+  assert.equal(data.session, null);
+  assert.match(error?.message ?? "", /signups? not allowed/i);
+});
+
 test("owner A sees only organization A", async () => {
   const { data, error } = await clients.ownerA
     .from("organizations")
