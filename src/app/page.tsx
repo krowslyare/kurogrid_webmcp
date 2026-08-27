@@ -21,7 +21,7 @@ export default function Home() {
           <span>Kurogrid <b>WebMCP</b></span>
         </a>
         <div className="nav-actions">
-          <span className="status"><i /> Gate 5 · local implementation complete</span>
+          <span className="status"><i /> Hosted demo · release smoke passed</span>
           <a className="demo-link" href="/demo">Open isolated demo</a>
         </div>
       </header>
@@ -67,7 +67,7 @@ export default function Home() {
 
       <footer className="shell">
         <span>Kurogrid WebMCP</span>
-        <span>Local gates complete · hosted release pending</span>
+        <span>Hosted Supabase + Vercel · release smoke passed</span>
       </footer>
     </main>
   );

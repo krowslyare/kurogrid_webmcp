@@ -1,4 +1,4 @@
-# Local verification evidence
+# Verification evidence
 
 Verified on 2026-08-27 against local Supabase and the Codex in-app browser's
 native WebMCP host.
@@ -30,6 +30,22 @@ native WebMCP host.
 - leaving the workspace unregistered its tools; logout released the lease and
   left zero active local leases.
 
-Hosted Supabase, deployment, ChatGPT-hosted evaluation, Chrome 149+, and
-submission freeze remain explicit release operations, not inferred from this
-local evidence.
+## Hosted release smoke
+
+Verified on 2026-08-27 at
+[`kurogrid-webmcp.vercel.app`](https://kurogrid-webmcp.vercel.app):
+
+- the linked hosted database applied exactly the four repository migrations and
+  passed remote schema lint;
+- two isolated sandboxes and four synthetic demo identities were provisioned;
+- public signup and anonymous table access were denied;
+- Owner and Member claims both resolved the expected tenant and five-tool
+  initial profile;
+- neither initial profile exposed publish or rollback before their required
+  state transitions;
+- native `get_attention` returned the three synthetic non-PII fixtures; and
+- both logouts unregistered the active profile and left zero active leases.
+
+The complete publish/parity/rollback production recording, ChatGPT-hosted
+evaluation, Chrome 149+ smoke, and submission freeze remain explicit release
+gates.

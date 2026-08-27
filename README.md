@@ -8,7 +8,9 @@ data, or internal documentation from the private Kurogrid Portal.
 
 Gates 1–5 are implemented: tenant isolation, synthetic evidence and the fixed
 Action Plan, exact site publication, direct native WebMCP registration, and an
-isolated lease-backed demo pool. Hosted release operations remain pending.
+isolated lease-backed demo pool. The hosted demo is live at
+[kurogrid-webmcp.vercel.app](https://kurogrid-webmcp.vercel.app); its initial
+Owner/Member release smoke passes against the dedicated hosted Supabase project.
 
 ## Demo contract
 
