@@ -41,7 +41,19 @@ consequence previews, exact one-shot Owner approval, immutable versions,
 idempotent publish/rollback, and the published-only public read contract are
 implemented. Native WebMCP registration remains isolated to the next gate.
 
-## Gate 4 — release audit
+## Gate 4 — native WebMCP
+
+- Direct `document.modelContext.registerTool()` integration
+- AbortSignal-driven unregister/register lifecycle
+- Dynamic public, Member, and Owner capability profiles
+- Server-side reauthorization for every tool execution
+- Published human and agent reads resolved from one canonical version
+
+Current status: the ten-tool P0 catalog, state-derived role profiles, native
+registration lifecycle, same-origin execution endpoint, and Access Center are
+implemented against the pinned upstream specification.
+
+## Gate 5 — demo and release audit
 
 - Browser and accessibility QA
 - Secret, provenance, dependency, and license review

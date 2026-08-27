@@ -13,6 +13,7 @@ import {
   rollbackSiteVersion,
   saveSiteDraft,
 } from "@/features/publication/server/actions";
+import { WebMcpRegistrar } from "@/features/webmcp/client/webmcp-registrar";
 import type { Json } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -119,6 +120,37 @@ export default async function OrganizationWorkspacePage({ params }: PageProps) {
     });
   }
 
+  const draftIds = drafts.map((draft) => draft.id);
+  const { data: activeApprovals, error: approvalsError } = draftIds.length
+    ? await supabase
+        .from("publish_approvals")
+        .select("id, draft_id, draft_revision, expires_at")
+        .in("draft_id", draftIds)
+        .is("consumed_at", null)
+        .gt("expires_at", new Date().toISOString())
+    : { data: [], error: null };
+
+  if (approvalsError) {
+    throw new Error("Unable to load exact approval state.", {
+      cause: approvalsError,
+    });
+  }
+
+  const capabilityContextKey = JSON.stringify([
+    membership.role,
+    attention.map((item) => [item.id, item.status, item.revision]),
+    plans.map((plan) => plan.id),
+    drafts.map((draft) => [draft.id, draft.revision]),
+    sites.map((site) => site.published_version_id),
+    versions.map((version) => version.id),
+    activeApprovals.map((approval) => [
+      approval.id,
+      approval.draft_id,
+      approval.draft_revision,
+      approval.expires_at,
+    ]),
+  ]);
+
   return (
     <main className="workspace-shell">
       <header className="workspace-nav">
@@ -128,6 +160,11 @@ export default async function OrganizationWorkspacePage({ params }: PageProps) {
         </Link>
         <span className="role-badge">{membership.role}</span>
       </header>
+
+      <WebMcpRegistrar
+        organizationSlug={organizationSlug}
+        contextKey={capabilityContextKey}
+      />
 
       <section className="workspace-heading compact-heading">
         <p className="kicker">Evidence, not a CRM</p>
