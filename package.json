@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Public-safe WebMCP challenge implementation for Kurogrid.",
   "engines": {
-    "node": ">=24 <27"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "next dev",
@@ -22,7 +22,8 @@
     "supabase:reset": "npx supabase db reset --local --yes",
     "supabase:stop": "npx supabase stop",
     "supabase:status": "npx supabase status",
-    "demo:provision": "node --env-file-if-exists=.env.local scripts/provision-demo.mjs"
+    "demo:provision": "node --env-file-if-exists=.env.local scripts/provision-demo.mjs",
+    "demo:verify-hosted": "node --env-file=.env.hosted.local scripts/verify-hosted-demo.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

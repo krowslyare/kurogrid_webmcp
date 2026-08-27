@@ -9,8 +9,9 @@ data, or internal documentation from the private Kurogrid Portal.
 Gates 1–5 are implemented: tenant isolation, synthetic evidence and the fixed
 Action Plan, exact site publication, direct native WebMCP registration, and an
 isolated lease-backed demo pool. The hosted demo is live at
-[kurogrid-webmcp.vercel.app](https://kurogrid-webmcp.vercel.app); its initial
-Owner/Member release smoke passes against the dedicated hosted Supabase project.
+[kurogrid-webmcp.vercel.app](https://kurogrid-webmcp.vercel.app); its
+Owner/Member workflow, parity, rollback, and isolation gates pass against the
+dedicated hosted Supabase project.
 
 ## Demo contract
 
@@ -28,8 +29,8 @@ See [public scope](docs/public-scope.md), [architecture](docs/architecture.md),
 
 ## Local development
 
-Requirements: Node 24 LTS (Node 26 is also accepted), npm, Docker, and the
-Supabase CLI.
+Requirements: Node 24 LTS, npm, Docker, and the Supabase CLI. The repository
+pins the Node major used by the submission deployment.
 
 ```bash
 cp .env.example .env.local
@@ -58,6 +59,11 @@ npm test
 application-level Data API/RPC tests with valid users from separate
 organizations. Tests require the local Supabase stack; they do not use GitHub
 Actions or a hosted project.
+
+Maintainers can run the destructive synthetic hosted-pool gate explicitly with
+`npm run demo:verify-hosted`. It requires `.env.hosted.local`, refuses to run
+against a busy pool, and finishes with zero active leases. It is never part of
+build, test, or deployment.
 
 ## License
 
