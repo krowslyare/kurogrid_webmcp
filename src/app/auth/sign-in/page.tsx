@@ -21,17 +21,17 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   return (
     <main className="auth-shell">
       <section className="auth-card" aria-labelledby="sign-in-title">
-        <Link className="brand" href="/" aria-label="Kurogrid WebMCP, inicio">
+        <Link className="brand" href="/" aria-label="Kurogrid WebMCP, home">
           <span className="mark" aria-hidden="true">K</span>
           <span>Kurogrid <b>WebMCP</b></span>
         </Link>
 
         <div className="auth-heading">
           <p className="kicker">Tenant-aware workspace</p>
-          <h1 id="sign-in-title">Ingresar a la demo</h1>
+          <h1 id="sign-in-title">Sign in to the demo</h1>
           <p>
-            Las cuentas son sintéticas y se provisionan por sandbox. No hay
-            registro público en este gate.
+            Accounts are synthetic and provisioned per sandbox. Public sign-up
+            is intentionally unavailable.
           </p>
         </div>
 
@@ -50,7 +50,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           </label>
 
           <label>
-            Contraseña
+            Password
             <input
               autoComplete="current-password"
               minLength={8}
@@ -62,11 +62,11 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
           {hasError ? (
             <p className="form-error" role="alert">
-              No pudimos validar esas credenciales.
+              Those credentials could not be verified.
             </p>
           ) : null}
 
-          <button type="submit">Ingresar</button>
+          <button type="submit">Sign in</button>
         </form>
       </section>
     </main>

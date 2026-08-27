@@ -6,9 +6,9 @@ data, or internal documentation from the private Kurogrid Portal.
 
 ## Status
 
-Gates 1–4 are implemented: tenant isolation, synthetic evidence and the fixed
-Action Plan, exact site publication, and direct native WebMCP registration.
-The final private-repository gate is demo sandboxing and release evidence.
+Gates 1–5 are implemented: tenant isolation, synthetic evidence and the fixed
+Action Plan, exact site publication, direct native WebMCP registration, and an
+isolated lease-backed demo pool. Hosted release operations remain pending.
 
 ## Demo contract
 
@@ -22,7 +22,7 @@ The P0 story is deliberately narrow:
 6. List versions and roll back safely.
 
 See [public scope](docs/public-scope.md), [architecture](docs/architecture.md),
-and [security](docs/security.md).
+[security](docs/security.md), and [demo runtime](docs/demo-runtime.md).
 
 ## Local development
 
@@ -33,11 +33,13 @@ Supabase CLI.
 cp .env.example .env.local
 npm install
 npm run supabase:start
+npm run demo:provision
 npm run dev
 ```
 
-Copy the local publishable key printed by `supabase status` into `.env.local`.
-No hosted project is required for local development.
+Copy the local publishable and secret keys printed by `supabase status` into
+`.env.local`, then set a demo access code and demo-user password. No hosted
+project is required for local development.
 
 The local stack uses ports `56320`–`56329` to avoid colliding with the default
 Supabase CLI range.

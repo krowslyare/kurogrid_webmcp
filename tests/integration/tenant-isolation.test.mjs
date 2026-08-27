@@ -61,6 +61,8 @@ const ids = {
   attentionB: randomUUID(),
   siteA: randomUUID(),
   siteB: randomUUID(),
+  sandboxA: randomUUID(),
+  sandboxB: randomUUID(),
 };
 const emails = {
   ownerA: `owner-a-${runId}@example.test`,
@@ -608,4 +610,178 @@ test("draft publication is exact, owner-only, idempotent, public, and reversible
   assert.equal(restoredPublicVersion.data[0].version_id, rollback.data);
   assert.equal(restoredPublicVersion.data[0].version_number, 3);
   assert.deepEqual(restoredPublicVersion.data[0].content, siteContent);
+});
+
+test("demo pool isolates two leases, reports exhaustion, and resets on reuse", async () => {
+  await admin.from("demo_leases").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await admin.from("demo_sandboxes").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  const { error: configError } = await admin
+    .from("demo_runtime_config")
+    .update({ capacity: 2 })
+    .eq("singleton", true);
+  expectNoError(configError, "configure demo capacity");
+  const { error: sandboxMemberError } = await admin
+    .from("organization_memberships")
+    .insert({
+      organization_id: ids.organizationB,
+      user_id: ids.outsider,
+      role: "member",
+    });
+  expectNoError(sandboxMemberError, "create sandbox B member");
+  const { error: sandboxesError } = await admin.from("demo_sandboxes").insert([
+    {
+      id: ids.sandboxA,
+      slot_number: 1,
+      organization_id: ids.organizationA,
+      owner_user_id: ids.ownerA,
+      member_user_id: ids.memberA,
+    },
+    {
+      id: ids.sandboxB,
+      slot_number: 2,
+      organization_id: ids.organizationB,
+      owner_user_id: ids.ownerB,
+      member_user_id: ids.outsider,
+    },
+  ]);
+  expectNoError(sandboxesError, "create demo sandboxes");
+
+  const hashes = ["a".repeat(64), "b".repeat(64), "c".repeat(64), "d".repeat(64)];
+  const concurrentClaims = await Promise.all(
+    hashes.slice(0, 2).map(async (leaseTokenHash) => ({
+      leaseTokenHash,
+      result: await admin.rpc("claim_demo_sandbox", {
+        p_lease_token_hash: leaseTokenHash,
+        p_requested_role: "owner",
+      }),
+    })),
+  );
+  concurrentClaims.forEach(({ result }, index) => {
+    expectNoError(result.error, `claim concurrent demo slot ${index + 1}`);
+  });
+  concurrentClaims.sort(
+    (left, right) =>
+      left.result.data[0].slot_number - right.result.data[0].slot_number,
+  );
+  const [{ result: first, leaseTokenHash: firstHash }] = concurrentClaims;
+  const { result: second, leaseTokenHash: secondHash } = concurrentClaims[1];
+
+  assert.equal(first.data[0].slot_number, 1);
+  assert.equal(second.data[0].slot_number, 2);
+  assert.notEqual(first.data[0].organization_slug, second.data[0].organization_slug);
+
+  const ownerAClaims = await clients.ownerA.auth.getClaims();
+  const ownerBClaims = await clients.ownerB.auth.getClaims();
+  expectNoError(ownerAClaims.error, "read owner A session claims");
+  expectNoError(ownerBClaims.error, "read owner B session claims");
+  const ownerASessionId = ownerAClaims.data.claims.session_id;
+  const ownerBSessionId = ownerBClaims.data.claims.session_id;
+  assert.equal(typeof ownerASessionId, "string");
+  assert.equal(typeof ownerBSessionId, "string");
+
+  const wrongUserBinding = await admin.rpc("bind_demo_sandbox_session", {
+    p_lease_token_hash: firstHash,
+    p_auth_session_id: ownerBSessionId,
+    p_user_id: ids.ownerB,
+  });
+  expectNoError(wrongUserBinding.error, "reject wrong demo user binding");
+  assert.equal(wrongUserBinding.data, false);
+
+  const firstBound = await admin.rpc("bind_demo_sandbox_session", {
+    p_lease_token_hash: firstHash,
+    p_auth_session_id: ownerASessionId,
+    p_user_id: ids.ownerA,
+  });
+  const secondBound = await admin.rpc("bind_demo_sandbox_session", {
+    p_lease_token_hash: secondHash,
+    p_auth_session_id: ownerBSessionId,
+    p_user_id: ids.ownerB,
+  });
+  expectNoError(firstBound.error, "bind first demo session");
+  expectNoError(secondBound.error, "bind second demo session");
+  assert.equal(firstBound.data, true);
+  assert.equal(secondBound.data, true);
+
+  const activeOwnerRead = await clients.ownerA
+    .from("organizations")
+    .select("id")
+    .eq("id", ids.organizationA);
+  expectNoError(activeOwnerRead.error, "active lease owner read");
+  assert.deepEqual(activeOwnerRead.data, [{ id: ids.organizationA }]);
+
+  const exhausted = await admin.rpc("claim_demo_sandbox", {
+    p_lease_token_hash: hashes[2],
+    p_requested_role: "owner",
+  });
+  assert.equal(exhausted.data, null);
+  assert.equal(exhausted.error?.message, "demo_capacity_exhausted");
+
+  const anonymousClaim = await anonymous.rpc("claim_demo_sandbox", {
+    p_lease_token_hash: "e".repeat(64),
+    p_requested_role: "owner",
+  });
+  assert.equal(anonymousClaim.data, null);
+  assert.equal(anonymousClaim.error?.code, "42501");
+
+  const expiredLease = await admin
+    .from("demo_leases")
+    .update({
+      leased_at: new Date(Date.now() - 120_000).toISOString(),
+      expires_at: new Date(Date.now() - 60_000).toISOString(),
+    })
+    .eq("lease_token_hash", secondHash);
+  expectNoError(expiredLease.error, "expire second demo lease");
+
+  const expiredOwnerRead = await clients.ownerB
+    .from("organizations")
+    .select("id")
+    .eq("id", ids.organizationB);
+  expectNoError(expiredOwnerRead.error, "expired lease owner read");
+  assert.deepEqual(expiredOwnerRead.data, []);
+
+  const released = await admin.rpc("release_demo_sandbox", {
+    p_lease_token_hash: firstHash,
+  });
+  expectNoError(released.error, "release first demo slot");
+  assert.equal(released.data, true);
+
+  const releasedOwnerRead = await clients.ownerA
+    .from("organizations")
+    .select("id")
+    .eq("id", ids.organizationA);
+  expectNoError(releasedOwnerRead.error, "released lease owner read");
+  assert.deepEqual(releasedOwnerRead.data, []);
+
+  const reused = await admin.rpc("claim_demo_sandbox", {
+    p_lease_token_hash: hashes[3],
+    p_requested_role: "member",
+  });
+  expectNoError(reused.error, "reuse released demo slot");
+  assert.equal(reused.data[0].slot_number, 1);
+
+  const memberAClaims = await clients.memberA.auth.getClaims();
+  expectNoError(memberAClaims.error, "read member A session claims");
+  const memberASessionId = memberAClaims.data.claims.session_id;
+  assert.equal(typeof memberASessionId, "string");
+  const reusedBound = await admin.rpc("bind_demo_sandbox_session", {
+    p_lease_token_hash: hashes[3],
+    p_auth_session_id: memberASessionId,
+    p_user_id: ids.memberA,
+  });
+  expectNoError(reusedBound.error, "bind reused demo session");
+  assert.equal(reusedBound.data, true);
+
+  const reusedMemberRead = await clients.memberA
+    .from("organizations")
+    .select("id")
+    .eq("id", ids.organizationA);
+  expectNoError(reusedMemberRead.error, "reused member lease read");
+  assert.deepEqual(reusedMemberRead.data, [{ id: ids.organizationA }]);
+
+  const { count, error } = await admin
+    .from("attention_items")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", ids.organizationA);
+  expectNoError(error, "count reset attention fixtures");
+  assert.equal(count, 3);
 });

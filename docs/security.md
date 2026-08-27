@@ -39,3 +39,14 @@ stale WebMCP registrations before exposing the new capability set.
 Policy tests run at two boundaries: pgTAP validates grants and RLS in Postgres;
 Data API integration tests authenticate real synthetic users and prove that a
 valid JWT from organization A cannot reach organization B.
+
+## Demo boundary
+
+Sandbox allocation is not a public database capability. `/demo` verifies a
+server-side access code, calls a service-only lease RPC, signs in one synthetic
+identity, and stores only a random lease token in an HttpOnly same-site cookie.
+The database stores the token hash and binds the lease to the Supabase Auth
+`session_id`. Tenant RLS requires that active binding for demo identities, so an
+expired or released lease cannot retain access through an otherwise valid JWT.
+Allocation uses row locks and never falls back to an occupied tenant;
+exhaustion is a visible unavailable state.
