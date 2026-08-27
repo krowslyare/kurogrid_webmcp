@@ -1,0 +1,2 @@
+-- Gate 1 creates test-specific synthetic identities inside isolated test runs.
+-- Shared product fixtures begin in Gate 2.

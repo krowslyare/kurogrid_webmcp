@@ -19,6 +19,11 @@ mutate organization B through UI routes, Data API requests, or RPC calls.
   fix their `search_path`, revoke public execution, and check membership.
 - Secret and service-role keys never reach browser bundles.
 
+Gate 1 uses one reviewed `SECURITY DEFINER` membership predicate in the
+unexposed `private` schema to avoid recursive membership policies. It fixes an
+empty `search_path`, resolves `auth.uid()` internally, and is executable only
+by authenticated and service roles.
+
 ## Mutating tools
 
 Tool arguments are untrusted input. Mutations require schema validation,
@@ -28,3 +33,7 @@ draft revision. Every accepted or rejected high-risk mutation is auditable.
 
 Logout, role changes, organization switches, and resource transitions abort
 stale WebMCP registrations before exposing the new capability set.
+
+Policy tests run at two boundaries: pgTAP validates grants and RLS in Postgres;
+Data API integration tests authenticate real synthetic users and prove that a
+valid JWT from organization A cannot reach organization B.
