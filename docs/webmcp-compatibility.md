@@ -22,7 +22,10 @@ requires one. Authentication and authorization remain application concerns;
 the presence of WebMCP does not grant additional access.
 
 On 2026-08-27 the human workflow passed in Chrome 151.0.0.0, but the tested
-Chrome profile exposed neither `navigator.modelContext` nor
-`window.ModelContext`. Native registration therefore remains an explicit smoke
-gate in a Chrome profile where the WebMCP runtime is enabled. The application
-correctly kept the human UI functional and reported the missing capability.
+Chrome profile exposed neither the current `document.modelContext` API nor the
+deprecated `navigator.modelContext` API. Native registration therefore remains
+an explicit smoke gate after enabling
+`chrome://flags/#enable-webmcp-testing` and relaunching Chrome, as documented by
+[Chrome for Developers](https://developer.chrome.com/docs/ai/webmcp/). The
+application correctly kept the human UI functional and reported the missing
+capability.
