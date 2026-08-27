@@ -24,7 +24,7 @@ only after explicit approval.
 - [x] Human page and public `get_opening_hours` return the same version.
 - [x] Rollback creates a new immutable version and updates both surfaces.
 - [x] Real ChatGPT in-app browser smoke passes.
-- [ ] Chrome 149+ with the WebMCP runtime enabled passes native-tool smoke.
+- [ ] Chrome 149+ with `#enable-webmcp-testing` enabled passes native-tool smoke.
 
 ## Public-safety audit
 

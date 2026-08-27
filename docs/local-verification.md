@@ -54,6 +54,7 @@ Verified on 2026-08-27 at
   release denial, clean reuse, and zero active leases afterward.
 
 Chrome 151.0.0.0 passed the human workflow smoke, but its tested profile did not
-expose the WebMCP runtime. A Chrome profile with WebMCP enabled, repository
-visibility/public evidence, the video, and the judging-period freeze remain the
-explicit pre-submission gates.
+expose `document.modelContext`. Enable
+`chrome://flags/#enable-webmcp-testing`, relaunch Chrome, and repeat the native
+smoke. Repository visibility/public evidence, the video, and the judging-period
+freeze remain the other explicit pre-submission gates.
