@@ -36,6 +36,11 @@ fixtures and WebMCP lifecycle behavior remain deliberately outside this gate.
 - Idempotent publish, canonical version parity, version listing, and rollback
 - Public-site WebMCP tools derived only from the published version
 
+Current status: structured drafts, optimistic revision checks, deterministic
+consequence previews, exact one-shot Owner approval, immutable versions,
+idempotent publish/rollback, and the published-only public read contract are
+implemented. Native WebMCP registration remains isolated to the next gate.
+
 ## Gate 4 — release audit
 
 - Browser and accessibility QA

@@ -59,12 +59,27 @@ const ids = {
   organizationB: randomUUID(),
   attentionA: randomUUID(),
   attentionB: randomUUID(),
+  siteA: randomUUID(),
+  siteB: randomUUID(),
 };
 const emails = {
   ownerA: `owner-a-${runId}@example.test`,
   memberA: `member-a-${runId}@example.test`,
   ownerB: `owner-b-${runId}@example.test`,
   outsider: `outsider-${runId}@example.test`,
+};
+
+const siteContent = {
+  headline: "Care that stays open when demand shifts",
+  summary: "A synthetic veterinary demo with published business hours.",
+  opening_hours: { weekdays: "08:00–18:00", saturday: "09:00–14:00" },
+  cta_label: "Book a visit",
+};
+
+const revisedSiteContent = {
+  ...siteContent,
+  headline: "Weekend care, now clearly published",
+  opening_hours: { weekdays: "08:00–18:00", weekend: "09:00–14:00" },
 };
 
 const admin = supabaseClient(apiUrl, secretKey);
@@ -107,6 +122,20 @@ before(async () => {
       },
     ]);
   expectNoError(organizationsError, "create organizations");
+
+  const { error: sitesError } = await admin.from("sites").insert([
+    {
+      id: ids.siteA,
+      organization_id: ids.organizationA,
+      slug: `alpha-site-${runId}`,
+    },
+    {
+      id: ids.siteB,
+      organization_id: ids.organizationB,
+      slug: `bravo-site-${runId}`,
+    },
+  ]);
+  expectNoError(sitesError, "create sites");
 
   const { error: membershipsError } = await admin
     .from("organization_memberships")
@@ -378,4 +407,131 @@ test("lead acknowledgement records intent without communication", async () => {
     source: "fixture",
     metric: "weekend_inquiry",
   });
+});
+
+test("draft publication is exact, owner-only, idempotent, public, and reversible", async () => {
+  const draftResult = await clients.memberA.rpc("create_or_patch_site_draft", {
+    p_site_id: ids.siteA,
+    p_expected_revision: 0,
+    p_content: siteContent,
+  });
+  expectNoError(draftResult.error, "member creates draft");
+  assert.equal(draftResult.data.revision, 1);
+
+  const crossTenant = await clients.ownerA.rpc("create_or_patch_site_draft", {
+    p_site_id: ids.siteB,
+    p_expected_revision: 0,
+    p_content: siteContent,
+  });
+  assert.equal(crossTenant.data, null);
+  assert.equal(crossTenant.error?.code, "42501");
+
+  const preview = await clients.memberA.rpc("preview_publish_consequences", {
+    p_draft_id: draftResult.data.id,
+  });
+  expectNoError(preview.error, "member previews consequences");
+  assert.equal(preview.data.draft_revision, 1);
+  assert.deepEqual(preview.data.agent_surface.published_tools, [
+    "get_opening_hours",
+  ]);
+
+  const memberApproval = await clients.memberA.rpc("approve_site_draft", {
+    p_draft_id: draftResult.data.id,
+    p_expected_revision: 1,
+    p_consequence_hash: preview.data.consequence_hash,
+  });
+  assert.equal(memberApproval.data, null);
+  assert.equal(memberApproval.error?.code, "42501");
+
+  const approval = await clients.ownerA.rpc("approve_site_draft", {
+    p_draft_id: draftResult.data.id,
+    p_expected_revision: 1,
+    p_consequence_hash: preview.data.consequence_hash,
+  });
+  expectNoError(approval.error, "owner approves exact preview");
+
+  const publishKey = randomUUID();
+  const published = await clients.ownerA.rpc("publish_site_draft", {
+    p_draft_id: draftResult.data.id,
+    p_expected_revision: 1,
+    p_approval_id: approval.data,
+    p_consequence_hash: preview.data.consequence_hash,
+    p_idempotency_key: publishKey,
+  });
+  const publishRetry = await clients.ownerA.rpc("publish_site_draft", {
+    p_draft_id: draftResult.data.id,
+    p_expected_revision: 1,
+    p_approval_id: approval.data,
+    p_consequence_hash: preview.data.consequence_hash,
+    p_idempotency_key: publishKey,
+  });
+  expectNoError(published.error, "publish approved draft");
+  expectNoError(publishRetry.error, "retry publish");
+  assert.equal(publishRetry.data, published.data);
+
+  const publicVersion = await anonymous.rpc("get_published_site", {
+    p_slug: `alpha-site-${runId}`,
+  });
+  expectNoError(publicVersion.error, "read public site");
+  assert.equal(publicVersion.data[0].version_id, published.data);
+  assert.deepEqual(publicVersion.data[0].content, siteContent);
+
+  const stalePatch = await clients.memberA.rpc("create_or_patch_site_draft", {
+    p_site_id: ids.siteA,
+    p_expected_revision: 0,
+    p_content: revisedSiteContent,
+  });
+  assert.equal(stalePatch.data, null);
+  assert.equal(stalePatch.error?.code, "40001");
+
+  const revisedDraft = await clients.memberA.rpc("create_or_patch_site_draft", {
+    p_site_id: ids.siteA,
+    p_expected_revision: 1,
+    p_content: revisedSiteContent,
+  });
+  expectNoError(revisedDraft.error, "update draft at expected revision");
+
+  const revisedPreview = await clients.ownerA.rpc("preview_publish_consequences", {
+    p_draft_id: draftResult.data.id,
+  });
+  expectNoError(revisedPreview.error, "preview revised draft");
+  const revisedApproval = await clients.ownerA.rpc("approve_site_draft", {
+    p_draft_id: draftResult.data.id,
+    p_expected_revision: 2,
+    p_consequence_hash: revisedPreview.data.consequence_hash,
+  });
+  expectNoError(revisedApproval.error, "approve revised draft");
+  const secondVersion = await clients.ownerA.rpc("publish_site_draft", {
+    p_draft_id: draftResult.data.id,
+    p_expected_revision: 2,
+    p_approval_id: revisedApproval.data,
+    p_consequence_hash: revisedPreview.data.consequence_hash,
+    p_idempotency_key: randomUUID(),
+  });
+  expectNoError(secondVersion.error, "publish revised draft");
+
+  const rollbackKey = randomUUID();
+  const rollback = await clients.ownerA.rpc("rollback_site_version", {
+    p_site_id: ids.siteA,
+    p_target_version_id: published.data,
+    p_idempotency_key: rollbackKey,
+  });
+  const rollbackRetry = await clients.ownerA.rpc("rollback_site_version", {
+    p_site_id: ids.siteA,
+    p_target_version_id: published.data,
+    p_idempotency_key: rollbackKey,
+  });
+  expectNoError(rollback.error, "rollback to first version");
+  expectNoError(rollbackRetry.error, "retry rollback");
+  assert.equal(rollbackRetry.data, rollback.data);
+  assert.notEqual(rollback.data, published.data);
+  assert.notEqual(rollback.data, secondVersion.data);
+
+  const restoredPublicVersion = await anonymous.rpc("get_published_site", {
+    p_slug: `alpha-site-${runId}`,
+  });
+  expectNoError(restoredPublicVersion.error, "read rolled back public site");
+  assert.equal(restoredPublicVersion.data[0].version_id, rollback.data);
+  assert.equal(restoredPublicVersion.data[0].version_number, 3);
+  assert.deepEqual(restoredPublicVersion.data[0].content, siteContent);
 });
