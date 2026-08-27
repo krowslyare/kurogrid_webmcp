@@ -28,20 +28,42 @@ function objectInput(input: unknown) {
   return input as Record<string, unknown>;
 }
 
-function stringInput(input: Record<string, unknown>, name: string) {
+function exactInputKeys(
+  input: Record<string, unknown>,
+  expectedKeys: readonly string[],
+) {
+  const actualKeys = Object.keys(input).sort();
+  const sortedExpectedKeys = [...expectedKeys].sort();
+
+  if (
+    actualKeys.length !== sortedExpectedKeys.length
+    || actualKeys.some((key, index) => key !== sortedExpectedKeys[index])
+  ) {
+    throw new Error("tool_input_shape_mismatch");
+  }
+}
+
+function uuidInput(input: Record<string, unknown>, name: string) {
   const value = input[name];
 
-  if (typeof value !== "string" || !value) {
+  if (
+    typeof value !== "string"
+    || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value)
+  ) {
     throw new Error(`invalid_${name}`);
   }
 
   return value;
 }
 
-function integerInput(input: Record<string, unknown>, name: string) {
+function integerInput(
+  input: Record<string, unknown>,
+  name: string,
+  minimum: number,
+) {
   const value = input[name];
 
-  if (!Number.isInteger(value)) {
+  if (!Number.isInteger(value) || (value as number) < minimum) {
     throw new Error(`invalid_${name}`);
   }
 
@@ -90,6 +112,7 @@ export async function executeWebMcpTool(request: ToolRequest) {
 
   switch (request.name) {
     case "get_attention": {
+      exactInputKeys(input, []);
       const { data, error } = await supabase
         .from("attention_items")
         .select("id, kind, title, summary, evidence, status, revision, created_at")
@@ -100,24 +123,27 @@ export async function executeWebMcpTool(request: ToolRequest) {
     }
 
     case "create_action_plan": {
+      exactInputKeys(input, ["attention_item_id", "idempotency_key"]);
       const { data, error } = await supabase.rpc("create_action_plan", {
-        p_attention_item_id: stringInput(input, "attention_item_id"),
-        p_idempotency_key: stringInput(input, "idempotency_key"),
+        p_attention_item_id: uuidInput(input, "attention_item_id"),
+        p_idempotency_key: uuidInput(input, "idempotency_key"),
       });
       if (error) throw error;
       return { action_plan_id: data, capabilities_changed: true };
     }
 
     case "acknowledge_lead_attention": {
+      exactInputKeys(input, ["attention_item_id", "expected_revision"]);
       const { data, error } = await supabase.rpc("acknowledge_lead_attention", {
-        p_attention_item_id: stringInput(input, "attention_item_id"),
-        p_expected_revision: integerInput(input, "expected_revision"),
+        p_attention_item_id: uuidInput(input, "attention_item_id"),
+        p_expected_revision: integerInput(input, "expected_revision", 1),
       });
       if (error) throw error;
       return { revision: data, acknowledged: true, communication_sent: false, capabilities_changed: true };
     }
 
     case "get_site_content":
+      exactInputKeys(input, []);
       return {
         site_slug: capabilities.siteSlug,
         draft: capabilities.scope === "authenticated" ? capabilities.draft ?? null : undefined,
@@ -125,6 +151,7 @@ export async function executeWebMcpTool(request: ToolRequest) {
       };
 
     case "create_or_patch_site_draft": {
+      exactInputKeys(input, ["content", "expected_revision"]);
       if (!capabilities.siteId) throw new Error("site_unavailable");
       const content = input["content"];
       if (!content || typeof content !== "object" || Array.isArray(content)) {
@@ -132,7 +159,7 @@ export async function executeWebMcpTool(request: ToolRequest) {
       }
       const { data, error } = await supabase.rpc("create_or_patch_site_draft", {
         p_site_id: capabilities.siteId,
-        p_expected_revision: integerInput(input, "expected_revision"),
+        p_expected_revision: integerInput(input, "expected_revision", 0),
         p_content: content as Json,
       });
       if (error) throw error;
@@ -140,6 +167,7 @@ export async function executeWebMcpTool(request: ToolRequest) {
     }
 
     case "preview_publish_consequences": {
+      exactInputKeys(input, []);
       if (!capabilities.draft) throw new Error("draft_unavailable");
       const { data, error } = await supabase.rpc("preview_publish_consequences", {
         p_draft_id: capabilities.draft.id,
@@ -149,6 +177,7 @@ export async function executeWebMcpTool(request: ToolRequest) {
     }
 
     case "publish_site_draft": {
+      exactInputKeys(input, ["idempotency_key"]);
       if (!capabilities.draft || !capabilities.activeApproval) {
         throw new Error("exact_owner_approval_required");
       }
@@ -157,13 +186,14 @@ export async function executeWebMcpTool(request: ToolRequest) {
         p_expected_revision: capabilities.draft.revision,
         p_approval_id: capabilities.activeApproval.id,
         p_consequence_hash: capabilities.activeApproval.consequenceHash,
-        p_idempotency_key: stringInput(input, "idempotency_key"),
+        p_idempotency_key: uuidInput(input, "idempotency_key"),
       });
       if (error) throw error;
       return { published_version_id: data, capabilities_changed: true };
     }
 
     case "get_opening_hours": {
+      exactInputKeys(input, []);
       const content = publishedContent(capabilities);
       return {
         version_id: capabilities.published!.versionId,
@@ -172,21 +202,26 @@ export async function executeWebMcpTool(request: ToolRequest) {
     }
 
     case "list_site_versions":
+      exactInputKeys(input, []);
       return {
         published_version_id: capabilities.published?.versionId ?? null,
         versions: capabilities.versions,
       };
 
     case "rollback_site_version": {
+      exactInputKeys(input, ["idempotency_key", "target_version_id"]);
       if (!capabilities.siteId) throw new Error("site_unavailable");
-      const targetVersionId = stringInput(input, "target_version_id");
+      const targetVersionId = uuidInput(input, "target_version_id");
       if (!capabilities.versions.some((version) => version.id === targetVersionId)) {
         throw new Error("target_version_unavailable");
+      }
+      if (capabilities.published?.versionId === targetVersionId) {
+        throw new Error("target_version_already_published");
       }
       const { data, error } = await supabase.rpc("rollback_site_version", {
         p_site_id: capabilities.siteId,
         p_target_version_id: targetVersionId,
-        p_idempotency_key: stringInput(input, "idempotency_key"),
+        p_idempotency_key: uuidInput(input, "idempotency_key"),
       });
       if (error) throw error;
       return { published_version_id: data, capabilities_changed: true };

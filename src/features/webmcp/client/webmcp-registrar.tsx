@@ -36,83 +36,97 @@ export function WebMcpRegistrar({ organizationSlug, siteSlug, contextKey }: Prop
         disposed = true;
       };
     }
+    const activeModelContext = modelContext;
 
     let generation = 0;
     let registrationController = new AbortController();
 
     async function refresh() {
       const currentGeneration = ++generation;
-      const search = new URLSearchParams();
-      if (organizationSlug) search.set("organizationSlug", organizationSlug);
-      if (siteSlug) search.set("siteSlug", siteSlug);
+      try {
+        const search = new URLSearchParams();
+        if (organizationSlug) search.set("organizationSlug", organizationSlug);
+        if (siteSlug) search.set("siteSlug", siteSlug);
 
-      const response = await fetch(`/api/webmcp/capabilities?${search}`, {
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        throw new Error("capability_resolution_failed");
-      }
-
-      const payload = (await response.json()) as {
-        definitions: WebMcpToolDefinition[];
-      };
-
-      if (disposed || currentGeneration !== generation) return;
-
-      registrationController.abort();
-      registrationController = new AbortController();
-
-      await Promise.all(
-        payload.definitions.map((definition) =>
-          modelContext!.registerTool(
-            {
-              ...definition,
-              async execute(input, options) {
-                const executeResponse = await fetch("/api/webmcp/execute", {
-                  method: "POST",
-                  headers: { "content-type": "application/json" },
-                  body: JSON.stringify({
-                    name: definition.name,
-                    input,
-                    organizationSlug,
-                    siteSlug,
-                  }),
-                  signal: options.signal,
-                });
-                const result = await executeResponse.json();
-
-                if (!executeResponse.ok) {
-                  throw new Error(result.error ?? "tool_execution_failed");
-                }
-
-                if (result.capabilities_changed) {
-                  router.refresh();
-                  void refresh();
-                }
-
-                return result;
-              },
-            },
-            { signal: registrationController.signal },
-          ),
-        ),
-      );
-
-      if (!disposed && currentGeneration === generation) {
-        setState({
-          status: "active",
-          names: payload.definitions.map((definition) => definition.name),
+        const response = await fetch(`/api/webmcp/capabilities?${search}`, {
+          cache: "no-store",
+          credentials: "same-origin",
         });
+
+        if (!response.ok) {
+          throw new Error("capability_resolution_failed");
+        }
+
+        const payload = (await response.json()) as {
+          definitions: WebMcpToolDefinition[];
+        };
+
+        if (disposed || currentGeneration !== generation) return;
+
+        registrationController.abort();
+        const nextController = new AbortController();
+        registrationController = nextController;
+
+        try {
+          await Promise.all(
+            payload.definitions.map((definition) =>
+              activeModelContext.registerTool(
+                {
+                  ...definition,
+                  async execute(input, options) {
+                    const executeResponse = await fetch("/api/webmcp/execute", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
+                      credentials: "same-origin",
+                      body: JSON.stringify({
+                        name: definition.name,
+                        input,
+                        organizationSlug,
+                        siteSlug,
+                      }),
+                      signal: options.signal,
+                    });
+                    const result = await executeResponse.json();
+
+                    if (!executeResponse.ok) {
+                      throw new Error(result.error ?? "tool_execution_failed");
+                    }
+
+                    if (result.capabilities_changed) {
+                      router.refresh();
+                      void refresh();
+                    }
+
+                    return result;
+                  },
+                },
+                { signal: nextController.signal },
+              ),
+            ),
+          );
+        } catch (error) {
+          nextController.abort();
+          throw error;
+        }
+
+        if (!disposed && currentGeneration === generation) {
+          setState({
+            status: "active",
+            names: payload.definitions.map((definition) => definition.name),
+          });
+        }
+      } catch {
+        if (!disposed && currentGeneration === generation) {
+          registrationController.abort();
+          setState({ status: "error", names: [] });
+        }
       }
     }
 
     queueMicrotask(() => {
       if (!disposed) setState({ status: "checking", names: [] });
     });
-    void refresh().catch(() => {
-      if (!disposed) setState({ status: "error", names: [] });
-    });
+    void refresh();
 
     return () => {
       disposed = true;

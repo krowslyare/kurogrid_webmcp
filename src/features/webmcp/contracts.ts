@@ -127,7 +127,17 @@ const definitions: Record<WebMcpToolName, WebMcpToolDefinition> = {
           properties: {
             headline: { type: "string", minLength: 1, maxLength: 100 },
             summary: { type: "string", minLength: 1, maxLength: 300 },
-            opening_hours: { type: "object", additionalProperties: { type: "string" } },
+            opening_hours: {
+              type: "object",
+              minProperties: 1,
+              maxProperties: 7,
+              propertyNames: { pattern: "^[a-z][a-z0-9_]{0,31}$" },
+              additionalProperties: {
+                type: "string",
+                minLength: 1,
+                maxLength: 40,
+              },
+            },
             cta_label: { type: "string", minLength: 1, maxLength: 40 },
           },
           required: ["headline", "summary", "opening_hours", "cta_label"],
