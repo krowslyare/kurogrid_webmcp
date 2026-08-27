@@ -214,6 +214,7 @@ export type Database = {
       }
       demo_leases: {
         Row: {
+          auth_session_id: string | null
           expires_at: string
           id: string
           lease_token_hash: string
@@ -223,6 +224,7 @@ export type Database = {
           sandbox_id: string
         }
         Insert: {
+          auth_session_id?: string | null
           expires_at: string
           id?: string
           lease_token_hash: string
@@ -232,6 +234,7 @@ export type Database = {
           sandbox_id: string
         }
         Update: {
+          auth_session_id?: string | null
           expires_at?: string
           id?: string
           lease_token_hash?: string
@@ -655,6 +658,14 @@ export type Database = {
           slot_number: number
           user_email: string
         }[]
+      }
+      bind_demo_sandbox_session: {
+        Args: {
+          p_auth_session_id: string
+          p_lease_token_hash: string
+          p_user_id: string
+        }
+        Returns: boolean
       }
       create_action_plan: {
         Args: { p_attention_item_id: string; p_idempotency_key: string }

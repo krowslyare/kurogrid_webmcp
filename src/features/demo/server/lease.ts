@@ -16,13 +16,16 @@ export async function releaseCurrentDemoLease() {
   const cookieStore = await cookies();
   const leaseToken = cookieStore.get(DEMO_LEASE_COOKIE)?.value;
 
-  if (!leaseToken || !process.env.SUPABASE_SECRET_KEY) {
+  if (!leaseToken) {
     return;
   }
 
-  const admin = createAdminClient();
-  await admin.rpc("release_demo_sandbox", {
-    p_lease_token_hash: hashDemoLeaseToken(leaseToken),
-  });
+  if (process.env.SUPABASE_SECRET_KEY) {
+    const admin = createAdminClient();
+    await admin.rpc("release_demo_sandbox", {
+      p_lease_token_hash: hashDemoLeaseToken(leaseToken),
+    });
+  }
+
   cookieStore.delete(DEMO_LEASE_COOKIE);
 }

@@ -13,10 +13,18 @@ create table public.demo_sandboxes (
   slot_number smallint not null unique check (slot_number > 0),
   organization_id uuid not null unique
     references public.organizations(id) on delete cascade,
-  owner_user_id uuid not null references auth.users(id) on delete restrict,
-  member_user_id uuid not null references auth.users(id) on delete restrict,
+  owner_user_id uuid not null,
+  member_user_id uuid not null,
   enabled boolean not null default true,
   created_at timestamptz not null default now(),
+  constraint demo_sandboxes_owner_membership_fkey
+    foreign key (organization_id, owner_user_id)
+    references public.organization_memberships(organization_id, user_id)
+    on delete cascade,
+  constraint demo_sandboxes_member_membership_fkey
+    foreign key (organization_id, member_user_id)
+    references public.organization_memberships(organization_id, user_id)
+    on delete cascade,
   constraint demo_sandboxes_distinct_roles
     check (owner_user_id <> member_user_id)
 );
@@ -29,6 +37,7 @@ create table public.demo_leases (
   sandbox_id uuid not null references public.demo_sandboxes(id) on delete cascade,
   lease_token_hash text not null unique,
   requested_role public.organization_role not null,
+  auth_session_id uuid,
   leased_at timestamptz not null default now(),
   expires_at timestamptz not null,
   released_at timestamptz,
@@ -42,6 +51,9 @@ create table public.demo_leases (
 create unique index demo_leases_one_active_per_sandbox_idx
   on public.demo_leases(sandbox_id)
   where released_at is null;
+create unique index demo_leases_one_active_session_idx
+  on public.demo_leases(auth_session_id)
+  where released_at is null and auth_session_id is not null;
 create index demo_leases_expiry_idx
   on public.demo_leases(expires_at)
   where released_at is null;
@@ -241,6 +253,93 @@ as $$
   select exists(select 1 from released);
 $$;
 
+create function public.bind_demo_sandbox_session(
+  p_lease_token_hash text,
+  p_auth_session_id uuid,
+  p_user_id uuid
+)
+returns boolean
+language sql
+security definer
+set search_path = ''
+as $$
+  with bound as (
+    update public.demo_leases as lease
+    set auth_session_id = p_auth_session_id
+    from public.demo_sandboxes as sandbox
+    where lease.lease_token_hash = p_lease_token_hash
+      and lease.sandbox_id = sandbox.id
+      and lease.released_at is null
+      and lease.expires_at > now()
+      and lease.auth_session_id is null
+      and p_user_id = case lease.requested_role
+        when 'owner' then sandbox.owner_user_id
+        else sandbox.member_user_id
+      end
+    returning lease.id
+  )
+  select exists(select 1 from bound);
+$$;
+
+create or replace function private.has_organization_role(
+  p_organization_id uuid,
+  p_roles public.organization_role[] default null
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    (select auth.uid()) is not null
+    and exists (
+      select 1
+      from public.organization_memberships as membership
+      where membership.organization_id = p_organization_id
+        and membership.user_id = (select auth.uid())
+        and (p_roles is null or membership.role = any (p_roles))
+        and (
+          not exists (
+            select 1
+            from public.demo_sandboxes as sandbox
+            where sandbox.organization_id = p_organization_id
+          )
+          or exists (
+            select 1
+            from public.demo_sandboxes as sandbox
+            join public.demo_leases as lease on lease.sandbox_id = sandbox.id
+            where sandbox.organization_id = p_organization_id
+              and lease.released_at is null
+              and lease.expires_at > now()
+              and lease.requested_role = membership.role
+              and lease.auth_session_id::text = (select auth.jwt() ->> 'session_id')
+              and (select auth.uid()) = case lease.requested_role
+                when 'owner' then sandbox.owner_user_id
+                else sandbox.member_user_id
+              end
+          )
+        )
+    );
+$$;
+
+drop policy "Users read their membership and owners read the organization roster"
+  on public.organization_memberships;
+create policy "Users read active membership and owners read the organization roster"
+on public.organization_memberships
+for select
+to authenticated
+using (
+  private.has_organization_role(organization_id)
+  and (
+    user_id = (select auth.uid())
+    or private.has_organization_role(
+      organization_id,
+      array['owner'::public.organization_role]
+    )
+  )
+);
+
 revoke all on table public.demo_runtime_config from anon, authenticated;
 revoke all on table public.demo_sandboxes from anon, authenticated;
 revoke all on table public.demo_leases from anon, authenticated;
@@ -251,9 +350,12 @@ grant all on table public.demo_leases to service_role;
 revoke all on function private.reset_demo_sandbox(uuid) from public;
 revoke all on function public.claim_demo_sandbox(text, public.organization_role) from public;
 revoke all on function public.release_demo_sandbox(text) from public;
+revoke all on function public.bind_demo_sandbox_session(text, uuid, uuid) from public;
 grant execute on function public.claim_demo_sandbox(text, public.organization_role)
   to service_role;
 grant execute on function public.release_demo_sandbox(text) to service_role;
+grant execute on function public.bind_demo_sandbox_session(text, uuid, uuid)
+  to service_role;
 
 comment on table public.demo_runtime_config is
   'Submission-time pool capacity. The enforced minimum is two isolated slots.';

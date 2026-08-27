@@ -35,7 +35,14 @@ export default async function DemoPage({ searchParams }: PageProps) {
         <form className="auth-form" action={claimDemoSandbox}>
           <label>
             Demo access code
-            <input name="accessCode" type="password" autoComplete="off" required />
+            <input
+              name="accessCode"
+              type="password"
+              autoComplete="off"
+              minLength={24}
+              maxLength={128}
+              required
+            />
           </label>
           <label>
             Role to evaluate

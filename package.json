@@ -22,7 +22,7 @@
     "supabase:reset": "npx supabase db reset --local --yes",
     "supabase:stop": "npx supabase stop",
     "supabase:status": "npx supabase status",
-    "demo:provision": "node scripts/provision-demo.mjs"
+    "demo:provision": "node --env-file-if-exists=.env.local scripts/provision-demo.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

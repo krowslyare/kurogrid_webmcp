@@ -13,6 +13,7 @@ only after explicit approval.
 - [ ] Confirm two simultaneous leases receive different organizations.
 - [ ] Confirm the next request receives the capacity-exhausted message.
 - [ ] Confirm logout releases a lease and the next claim receives clean fixtures.
+- [ ] Confirm an expired lease loses direct Data API/RPC access before reuse.
 
 ## Product evidence
 

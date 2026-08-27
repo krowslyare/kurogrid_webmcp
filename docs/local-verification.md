@@ -6,8 +6,9 @@ native WebMCP host.
 ## Automated
 
 - 5 capability-profile unit tests pass.
-- 100 pgTAP schema, grant, RLS, and function assertions pass.
-- 13 direct Data API/RPC flows pass with real synthetic JWTs.
+- 112 pgTAP schema, grant, RLS, and function assertions pass.
+- 17 direct Data API/RPC flows pass with real synthetic JWTs, including lease
+  binding, expiration, release, exhaustion, and reuse.
 - lint, TypeScript, production build, database lint, and `git diff --check` pass.
 - production dependency audit reports zero known vulnerabilities.
 
