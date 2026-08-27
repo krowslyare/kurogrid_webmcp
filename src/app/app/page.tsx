@@ -44,10 +44,10 @@ export default async function WorkspacePage() {
           <ul>
             {viewer.memberships.map((membership) => (
               <li key={membership.organizationId}>
-                <div>
+                <Link href={`/app/${membership.organizationSlug}`}>
                   <strong>{membership.organizationName}</strong>
                   <span>/{membership.organizationSlug}</span>
-                </div>
+                </Link>
                 <span className="role-badge">{membership.role}</span>
               </li>
             ))}

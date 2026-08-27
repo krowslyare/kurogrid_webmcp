@@ -25,6 +25,10 @@ exhaustion contract remain for the demo-runtime gate.
 - Attention read, acknowledgement, and fixed three-step action plan
 - Owner/member WebMCP capability refresh tests
 
+Current status: the tenant-scoped evidence model, non-communicating lead
+acknowledgement, and atomic/idempotent fixed Action Plan are implemented. Demo
+fixtures and WebMCP lifecycle behavior remain deliberately outside this gate.
+
 ## Gate 3 — publication
 
 - Structured drafts with revision conflicts

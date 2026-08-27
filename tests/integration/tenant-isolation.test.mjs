@@ -57,6 +57,8 @@ const ids = {
   outsider: randomUUID(),
   organizationA: randomUUID(),
   organizationB: randomUUID(),
+  attentionA: randomUUID(),
+  attentionB: randomUUID(),
 };
 const emails = {
   ownerA: `owner-a-${runId}@example.test`,
@@ -142,6 +144,26 @@ before(async () => {
     },
   ]);
   expectNoError(auditError, "create audit events");
+
+  const { error: attentionError } = await admin.from("attention_items").insert([
+    {
+      id: ids.attentionA,
+      organization_id: ids.organizationA,
+      kind: "synthetic_lead",
+      title: "Weekend demand is going unanswered",
+      summary: "A synthetic inquiry arrived outside the published hours.",
+      evidence: { source: "fixture", metric: "weekend_inquiry" },
+    },
+    {
+      id: ids.attentionB,
+      organization_id: ids.organizationB,
+      kind: "synthetic_lead",
+      title: "A different tenant signal",
+      summary: "This evidence must remain isolated from organization A.",
+      evidence: { source: "fixture", metric: "isolated_signal" },
+    },
+  ]);
+  expectNoError(attentionError, "create attention fixtures");
 
   for (const [name, client] of Object.entries(clients)) {
     const { error } = await client.auth.signInWithPassword({
@@ -265,4 +287,95 @@ test("authenticated clients cannot create organizations directly", async () => {
   });
 
   assert.equal(error?.code, "42501");
+});
+
+test("members see only their tenant evidence", async () => {
+  const { data, error } = await clients.memberA
+    .from("attention_items")
+    .select("id, organization_id");
+
+  expectNoError(error, "member A attention");
+  assert.deepEqual(data, [
+    { id: ids.attentionA, organization_id: ids.organizationA },
+  ]);
+});
+
+test("action plan creation is atomic, fixed, and idempotent", async () => {
+  const idempotencyKey = randomUUID();
+  const first = await clients.memberA.rpc("create_action_plan", {
+    p_attention_item_id: ids.attentionA,
+    p_idempotency_key: idempotencyKey,
+  });
+  const second = await clients.memberA.rpc("create_action_plan", {
+    p_attention_item_id: ids.attentionA,
+    p_idempotency_key: idempotencyKey,
+  });
+
+  expectNoError(first.error, "create action plan");
+  expectNoError(second.error, "retry action plan");
+  assert.equal(second.data, first.data);
+
+  const { data: steps, error } = await clients.memberA
+    .from("action_plan_steps")
+    .select("position, kind")
+    .eq("action_plan_id", first.data)
+    .order("position");
+
+  expectNoError(error, "read action plan steps");
+  assert.deepEqual(steps, [
+    { position: 1, kind: "acknowledge_attention" },
+    { position: 2, kind: "draft_site_update" },
+    { position: 3, kind: "review_publication" },
+  ]);
+});
+
+test("a valid JWT cannot create a plan for another tenant", async () => {
+  const { data, error } = await clients.ownerA.rpc("create_action_plan", {
+    p_attention_item_id: ids.attentionB,
+    p_idempotency_key: randomUUID(),
+  });
+
+  assert.equal(data, null);
+  assert.equal(error?.code, "42501");
+});
+
+test("privileged writes cannot mismatch a plan and attention tenant", async () => {
+  const { error } = await admin.from("action_plans").insert({
+    organization_id: ids.organizationA,
+    attention_item_id: ids.attentionB,
+    created_by: ids.ownerA,
+    idempotency_key: randomUUID(),
+  });
+
+  assert.equal(error?.code, "23503");
+});
+
+test("lead acknowledgement records intent without communication", async () => {
+  const first = await clients.memberA.rpc("acknowledge_lead_attention", {
+    p_attention_item_id: ids.attentionA,
+    p_expected_revision: 1,
+  });
+  const retry = await clients.memberA.rpc("acknowledge_lead_attention", {
+    p_attention_item_id: ids.attentionA,
+    p_expected_revision: 1,
+  });
+
+  expectNoError(first.error, "acknowledge attention");
+  expectNoError(retry.error, "retry acknowledgement");
+  assert.equal(first.data, 2);
+  assert.equal(retry.data, 2);
+
+  const { data, error } = await clients.memberA
+    .from("attention_items")
+    .select("status, revision, evidence")
+    .eq("id", ids.attentionA)
+    .single();
+
+  expectNoError(error, "read acknowledged attention");
+  assert.equal(data.status, "acknowledged");
+  assert.equal(data.revision, 2);
+  assert.deepEqual(data.evidence, {
+    source: "fixture",
+    metric: "weekend_inquiry",
+  });
 });

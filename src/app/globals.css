@@ -77,11 +77,24 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .membership-list h2 { font-size: 32px; }
 .membership-list ul { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
 .membership-list li { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 0; border-bottom: 1px solid var(--line); }
-.membership-list li div { display: grid; gap: 4px; }
+.membership-list li div, .membership-list li a { display: grid; gap: 4px; }
 .membership-list strong { font-size: 16px; }
 .membership-list li div span { color: var(--muted); font-size: 12px; }
 .role-badge { padding: 7px 10px; border-radius: 99px; background: rgba(199,246,90,.55); color: var(--deep); font: 700 11px/1 monospace; text-transform: uppercase; }
 .empty-state { margin: 0; padding: 22px; border: 1px dashed #bfc5b8; border-radius: 12px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.compact-heading { padding-bottom: 50px; }
+.compact-heading h1 { max-width: 760px; font-size: clamp(46px, 8vw, 76px); }
+.attention-grid { display: grid; gap: 18px; }
+.attention-card { padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.62); }
+.attention-card h2 { margin-top: 24px; font-size: clamp(28px, 4vw, 40px); }
+.attention-card > p { max-width: 700px; color: var(--muted); line-height: 1.55; }
+.attention-meta { display: flex; justify-content: space-between; gap: 20px; color: var(--deep); font: 700 11px/1 monospace; text-transform: uppercase; }
+.plan-steps { margin: 26px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.plan-steps li { display: flex; gap: 18px; padding: 16px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.plan-steps span { color: var(--muted); font: 12px/1.5 monospace; }
+.primary-action, .secondary-action { min-height: 42px; margin-top: 18px; padding: 0 16px; border-radius: 9px; cursor: pointer; font: 700 12px/1 Arial, sans-serif; }
+.primary-action { border: 0; background: var(--ink); color: var(--acid); }
+.secondary-action { border: 1px solid #bec4b8; background: transparent; color: var(--deep); }
 
 @media (max-width: 760px) {
   .shell { width: min(100% - 28px, 1180px); }
