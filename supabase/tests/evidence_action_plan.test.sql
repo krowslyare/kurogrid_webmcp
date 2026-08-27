@@ -1,11 +1,31 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(20);
+select plan(22);
 
 select has_table('public', 'attention_items', 'attention items table exists');
 select has_table('public', 'action_plans', 'action plans table exists');
 select has_table('public', 'action_plan_steps', 'action plan steps table exists');
+select ok(
+  exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.action_plans'::regclass
+      and conname = 'action_plans_attention_tenant_fkey'
+      and contype = 'f'
+  ),
+  'action plans preserve the attention item tenant'
+);
+select ok(
+  exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.action_plan_steps'::regclass
+      and conname = 'action_plan_steps_plan_tenant_fkey'
+      and contype = 'f'
+  ),
+  'action plan steps preserve the parent plan tenant'
+);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.attention_items'::regclass),

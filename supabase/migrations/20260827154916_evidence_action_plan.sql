@@ -32,6 +32,7 @@ create table public.attention_items (
   constraint attention_items_evidence_is_object
     check (jsonb_typeof(evidence) = 'object'),
   constraint attention_items_revision_positive check (revision > 0),
+  unique (id, organization_id),
   constraint attention_items_acknowledgement_consistent check (
     (status = 'open' and acknowledged_by is null and acknowledged_at is null)
     or
@@ -49,11 +50,14 @@ create table public.action_plans (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null
     references public.organizations(id) on delete cascade,
-  attention_item_id uuid not null unique
-    references public.attention_items(id) on delete cascade,
+  attention_item_id uuid not null unique,
   created_by uuid not null references auth.users(id) on delete restrict,
   idempotency_key uuid not null,
   created_at timestamptz not null default now(),
+  constraint action_plans_attention_tenant_fkey
+    foreign key (attention_item_id, organization_id)
+    references public.attention_items(id, organization_id) on delete cascade,
+  unique (id, organization_id),
   unique (organization_id, created_by, idempotency_key)
 );
 
@@ -65,8 +69,7 @@ create table public.action_plan_steps (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null
     references public.organizations(id) on delete cascade,
-  action_plan_id uuid not null
-    references public.action_plans(id) on delete cascade,
+  action_plan_id uuid not null,
   position smallint not null,
   kind public.action_plan_step_kind not null,
   title text not null,
@@ -74,6 +77,9 @@ create table public.action_plan_steps (
   constraint action_plan_steps_position_fixed check (position between 1 and 3),
   constraint action_plan_steps_title_not_blank
     check (length(btrim(title)) between 1 and 120),
+  constraint action_plan_steps_plan_tenant_fkey
+    foreign key (action_plan_id, organization_id)
+    references public.action_plans(id, organization_id) on delete cascade,
   unique (action_plan_id, position),
   unique (action_plan_id, kind)
 );

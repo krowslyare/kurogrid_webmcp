@@ -339,6 +339,17 @@ test("a valid JWT cannot create a plan for another tenant", async () => {
   assert.equal(error?.code, "42501");
 });
 
+test("privileged writes cannot mismatch a plan and attention tenant", async () => {
+  const { error } = await admin.from("action_plans").insert({
+    organization_id: ids.organizationA,
+    attention_item_id: ids.attentionB,
+    created_by: ids.ownerA,
+    idempotency_key: randomUUID(),
+  });
+
+  assert.equal(error?.code, "23503");
+});
+
 test("lead acknowledgement records intent without communication", async () => {
   const first = await clients.memberA.rpc("acknowledge_lead_attention", {
     p_attention_item_id: ids.attentionA,
