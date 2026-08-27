@@ -680,6 +680,10 @@ begin
     raise exception using errcode = '22023', message = 'target_version_unavailable';
   end if;
 
+  if v_site.published_version_id = v_target.id then
+    raise exception using errcode = '22023', message = 'target_version_already_published';
+  end if;
+
   select coalesce(max(version_number), 0) + 1
   into v_version_number
   from public.site_versions

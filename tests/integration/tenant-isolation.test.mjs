@@ -593,6 +593,14 @@ test("draft publication is exact, owner-only, idempotent, public, and reversible
   assert.equal(reusedRollbackKey.data, null);
   assert.equal(reusedRollbackKey.error?.code, "22023");
 
+  const redundantRollback = await clients.ownerA.rpc("rollback_site_version", {
+    p_site_id: ids.siteA,
+    p_target_version_id: rollback.data,
+    p_idempotency_key: randomUUID(),
+  });
+  assert.equal(redundantRollback.data, null);
+  assert.equal(redundantRollback.error?.code, "22023");
+
   const restoredPublicVersion = await anonymous.rpc("get_published_site", {
     p_slug: `alpha-site-${runId}`,
   });
