@@ -1,13 +1,44 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(25);
+select plan(31);
 
 select has_table('public', 'sites', 'sites table exists');
 select has_table('public', 'site_drafts', 'site drafts table exists');
 select has_table('public', 'site_versions', 'site versions table exists');
 select has_table('public', 'publish_approvals', 'publish approvals table exists');
 select has_table('public', 'publication_operations', 'publication operations table exists');
+
+select ok(exists (
+  select 1 from pg_constraint
+  where conrelid = 'public.site_drafts'::regclass
+    and conname = 'site_drafts_site_tenant_fkey'
+), 'drafts preserve their site tenant');
+select ok(exists (
+  select 1 from pg_constraint
+  where conrelid = 'public.site_versions'::regclass
+    and conname = 'site_versions_site_tenant_fkey'
+), 'versions preserve their site tenant');
+select ok(exists (
+  select 1 from pg_constraint
+  where conrelid = 'public.site_versions'::regclass
+    and conname = 'site_versions_source_draft_tenant_fkey'
+), 'versions preserve source draft lineage');
+select ok(exists (
+  select 1 from pg_constraint
+  where conrelid = 'public.sites'::regclass
+    and conname = 'sites_published_version_id_fkey'
+), 'published pointers preserve site and tenant lineage');
+select ok(exists (
+  select 1 from pg_constraint
+  where conrelid = 'public.publish_approvals'::regclass
+    and conname = 'publish_approvals_draft_tenant_fkey'
+), 'approvals preserve draft, site, and tenant lineage');
+select ok(exists (
+  select 1 from pg_constraint
+  where conrelid = 'public.publication_operations'::regclass
+    and conname = 'publication_operations_result_tenant_fkey'
+), 'operation results preserve site and tenant lineage');
 
 select ok((select relrowsecurity from pg_class where oid = 'public.sites'::regclass), 'sites has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.site_drafts'::regclass), 'drafts has RLS');

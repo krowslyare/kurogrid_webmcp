@@ -10,7 +10,8 @@ create table public.sites (
   published_version_id uuid,
   created_at timestamptz not null default now(),
   constraint sites_slug_format
-    check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$')
+    check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
+  unique (id, organization_id)
 );
 
 create index sites_organization_id_idx on public.sites(organization_id);
@@ -19,13 +20,17 @@ create table public.site_drafts (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null
     references public.organizations(id) on delete cascade,
-  site_id uuid not null unique references public.sites(id) on delete cascade,
+  site_id uuid not null unique,
   revision integer not null default 1,
   content jsonb not null,
   updated_by uuid not null references auth.users(id) on delete restrict,
   updated_at timestamptz not null default now(),
+  constraint site_drafts_site_tenant_fkey
+    foreign key (site_id, organization_id)
+    references public.sites(id, organization_id) on delete cascade,
   constraint site_drafts_revision_positive check (revision > 0),
-  constraint site_drafts_content_is_object check (jsonb_typeof(content) = 'object')
+  constraint site_drafts_content_is_object check (jsonb_typeof(content) = 'object'),
+  unique (id, site_id, organization_id)
 );
 
 create index site_drafts_organization_id_idx on public.site_drafts(organization_id);
@@ -35,19 +40,27 @@ create table public.site_versions (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null
     references public.organizations(id) on delete cascade,
-  site_id uuid not null references public.sites(id) on delete cascade,
+  site_id uuid not null,
   version_number integer not null,
-  source_draft_id uuid references public.site_drafts(id) on delete set null,
+  source_draft_id uuid,
   source_draft_revision integer not null,
   content jsonb not null,
   content_hash text not null,
   published_by uuid not null references auth.users(id) on delete restrict,
   published_at timestamptz not null default now(),
+  constraint site_versions_site_tenant_fkey
+    foreign key (site_id, organization_id)
+    references public.sites(id, organization_id) on delete cascade,
+  constraint site_versions_source_draft_tenant_fkey
+    foreign key (source_draft_id, site_id, organization_id)
+    references public.site_drafts(id, site_id, organization_id)
+    deferrable initially deferred,
   constraint site_versions_number_positive check (version_number > 0),
   constraint site_versions_draft_revision_positive
     check (source_draft_revision > 0),
   constraint site_versions_content_is_object check (jsonb_typeof(content) = 'object'),
   constraint site_versions_content_hash_format check (content_hash ~ '^[0-9a-f]{64}$'),
+  unique (id, site_id, organization_id),
   unique (site_id, version_number)
 );
 
@@ -62,8 +75,8 @@ create index site_versions_published_by_idx on public.site_versions(published_by
 
 alter table public.sites
   add constraint sites_published_version_id_fkey
-  foreign key (published_version_id)
-  references public.site_versions(id)
+  foreign key (published_version_id, id, organization_id)
+  references public.site_versions(id, site_id, organization_id)
   on delete restrict
   deferrable initially deferred;
 
@@ -75,8 +88,8 @@ create table public.publish_approvals (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null
     references public.organizations(id) on delete cascade,
-  site_id uuid not null references public.sites(id) on delete cascade,
-  draft_id uuid not null references public.site_drafts(id) on delete cascade,
+  site_id uuid not null,
+  draft_id uuid not null,
   draft_revision integer not null,
   content_hash text not null,
   consequence_hash text not null,
@@ -84,6 +97,9 @@ create table public.publish_approvals (
   approved_at timestamptz not null default now(),
   expires_at timestamptz not null default now() + interval '10 minutes',
   consumed_at timestamptz,
+  constraint publish_approvals_draft_tenant_fkey
+    foreign key (draft_id, site_id, organization_id)
+    references public.site_drafts(id, site_id, organization_id) on delete cascade,
   constraint publish_approvals_draft_revision_positive check (draft_revision > 0),
   constraint publish_approvals_content_hash_format check (content_hash ~ '^[0-9a-f]{64}$'),
   constraint publish_approvals_consequence_hash_format
@@ -109,12 +125,18 @@ create table public.publication_operations (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null
     references public.organizations(id) on delete cascade,
-  site_id uuid not null references public.sites(id) on delete cascade,
+  site_id uuid not null,
   actor_user_id uuid not null references auth.users(id) on delete restrict,
   kind public.publication_operation_kind not null,
   idempotency_key uuid not null,
-  result_version_id uuid not null references public.site_versions(id) on delete restrict,
+  request_hash text not null,
+  result_version_id uuid not null,
   created_at timestamptz not null default now(),
+  constraint publication_operations_result_tenant_fkey
+    foreign key (result_version_id, site_id, organization_id)
+    references public.site_versions(id, site_id, organization_id) on delete restrict,
+  constraint publication_operations_request_hash_format
+    check (request_hash ~ '^[0-9a-f]{64}$'),
   unique (organization_id, actor_user_id, kind, idempotency_key)
 );
 
@@ -141,7 +163,19 @@ as $$
     and length(btrim(p_content ->> 'summary')) between 1 and 300
     and jsonb_typeof(p_content -> 'cta_label') = 'string'
     and length(btrim(p_content ->> 'cta_label')) between 1 and 40
-    and jsonb_typeof(p_content -> 'opening_hours') = 'object';
+    and jsonb_typeof(p_content -> 'opening_hours') = 'object'
+    and case
+      when jsonb_typeof(p_content -> 'opening_hours') = 'object' then
+        (select count(*) from jsonb_each(p_content -> 'opening_hours')) between 1 and 7
+        and not exists (
+          select 1
+          from jsonb_each(p_content -> 'opening_hours') as hours(label, value)
+          where hours.label !~ '^[a-z][a-z0-9_]{0,31}$'
+            or jsonb_typeof(hours.value) <> 'string'
+            or length(btrim(hours.value #>> '{}')) not between 1 and 40
+        )
+      else false
+    end;
 $$;
 
 create function private.site_content_hash(p_content jsonb)
@@ -155,6 +189,7 @@ $$;
 
 revoke all on function private.site_content_is_valid(jsonb) from public;
 revoke all on function private.site_content_hash(jsonb) from public;
+grant execute on function private.site_content_is_valid(jsonb) to service_role;
 
 alter table public.site_drafts
   add constraint site_drafts_content_contract
@@ -425,23 +460,14 @@ declare
   v_actor_user_id uuid := (select auth.uid());
   v_draft public.site_drafts%rowtype;
   v_approval public.publish_approvals%rowtype;
+  v_existing_operation public.publication_operations%rowtype;
   v_content_hash text;
+  v_request_hash text;
   v_version_id uuid;
   v_version_number integer;
 begin
   if v_actor_user_id is null then
     raise insufficient_privilege using message = 'authentication_required';
-  end if;
-
-  select operation.result_version_id
-  into v_version_id
-  from public.publication_operations as operation
-  where operation.actor_user_id = v_actor_user_id
-    and operation.kind = 'publish'
-    and operation.idempotency_key = p_idempotency_key;
-
-  if v_version_id is not null then
-    return v_version_id;
   end if;
 
   select * into v_draft from public.site_drafts where id = p_draft_id;
@@ -455,6 +481,39 @@ begin
 
   perform 1 from public.sites where id = v_draft.site_id for update;
   select * into v_draft from public.site_drafts where id = p_draft_id for update;
+
+  v_request_hash := encode(
+    extensions.digest(
+      concat_ws(
+        '|',
+        'publish',
+        p_draft_id,
+        p_expected_revision,
+        p_approval_id,
+        p_consequence_hash
+      ),
+      'sha256'
+    ),
+    'hex'
+  );
+
+  select *
+  into v_existing_operation
+  from public.publication_operations as operation
+  where operation.organization_id = v_draft.organization_id
+    and operation.actor_user_id = v_actor_user_id
+    and operation.kind = 'publish'
+    and operation.idempotency_key = p_idempotency_key;
+
+  if v_existing_operation.id is not null then
+    if v_existing_operation.request_hash <> v_request_hash then
+      raise exception using
+        errcode = '22023',
+        message = 'idempotency_key_reused_for_different_publication';
+    end if;
+
+    return v_existing_operation.result_version_id;
+  end if;
 
   select * into v_approval
   from public.publish_approvals
@@ -519,6 +578,7 @@ begin
     actor_user_id,
     kind,
     idempotency_key,
+    request_hash,
     result_version_id
   ) values (
     v_draft.organization_id,
@@ -526,6 +586,7 @@ begin
     v_actor_user_id,
     'publish',
     p_idempotency_key,
+    v_request_hash,
     v_version_id
   );
 
@@ -567,22 +628,13 @@ declare
   v_actor_user_id uuid := (select auth.uid());
   v_site public.sites%rowtype;
   v_target public.site_versions%rowtype;
+  v_existing_operation public.publication_operations%rowtype;
+  v_request_hash text;
   v_version_id uuid;
   v_version_number integer;
 begin
   if v_actor_user_id is null then
     raise insufficient_privilege using message = 'authentication_required';
-  end if;
-
-  select operation.result_version_id
-  into v_version_id
-  from public.publication_operations as operation
-  where operation.actor_user_id = v_actor_user_id
-    and operation.kind = 'rollback'
-    and operation.idempotency_key = p_idempotency_key;
-
-  if v_version_id is not null then
-    return v_version_id;
   end if;
 
   select * into v_site from public.sites where id = p_site_id for update;
@@ -592,6 +644,32 @@ begin
     array['owner'::public.organization_role]
   ) then
     raise insufficient_privilege using message = 'owner_rollback_required';
+  end if;
+
+  v_request_hash := encode(
+    extensions.digest(
+      concat_ws('|', 'rollback', p_site_id, p_target_version_id),
+      'sha256'
+    ),
+    'hex'
+  );
+
+  select *
+  into v_existing_operation
+  from public.publication_operations as operation
+  where operation.organization_id = v_site.organization_id
+    and operation.actor_user_id = v_actor_user_id
+    and operation.kind = 'rollback'
+    and operation.idempotency_key = p_idempotency_key;
+
+  if v_existing_operation.id is not null then
+    if v_existing_operation.request_hash <> v_request_hash then
+      raise exception using
+        errcode = '22023',
+        message = 'idempotency_key_reused_for_different_rollback';
+    end if;
+
+    return v_existing_operation.result_version_id;
   end if;
 
   select * into v_target
@@ -635,6 +713,7 @@ begin
     actor_user_id,
     kind,
     idempotency_key,
+    request_hash,
     result_version_id
   ) values (
     v_site.organization_id,
@@ -642,6 +721,7 @@ begin
     v_actor_user_id,
     'rollback',
     p_idempotency_key,
+    v_request_hash,
     v_version_id
   );
 

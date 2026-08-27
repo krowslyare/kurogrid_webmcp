@@ -409,6 +409,31 @@ test("lead acknowledgement records intent without communication", async () => {
   });
 });
 
+test("site content rejects non-renderable opening hours", async () => {
+  const { data, error } = await clients.ownerB.rpc("create_or_patch_site_draft", {
+    p_site_id: ids.siteB,
+    p_expected_revision: 0,
+    p_content: {
+      ...siteContent,
+      opening_hours: { weekdays: { start: "08:00", end: "18:00" } },
+    },
+  });
+
+  assert.equal(data, null);
+  assert.equal(error?.code, "22023");
+});
+
+test("privileged writes cannot mismatch a draft and site tenant", async () => {
+  const { error } = await admin.from("site_drafts").insert({
+    organization_id: ids.organizationA,
+    site_id: ids.siteB,
+    content: siteContent,
+    updated_by: ids.ownerA,
+  });
+
+  assert.equal(error?.code, "23503");
+});
+
 test("draft publication is exact, owner-only, idempotent, public, and reversible", async () => {
   const draftResult = await clients.memberA.rpc("create_or_patch_site_draft", {
     p_site_id: ids.siteA,
@@ -450,14 +475,32 @@ test("draft publication is exact, owner-only, idempotent, public, and reversible
   });
   expectNoError(approval.error, "owner approves exact preview");
 
-  const publishKey = randomUUID();
-  const published = await clients.ownerA.rpc("publish_site_draft", {
-    p_draft_id: draftResult.data.id,
-    p_expected_revision: 1,
-    p_approval_id: approval.data,
-    p_consequence_hash: preview.data.consequence_hash,
-    p_idempotency_key: publishKey,
-  });
+  const publishKeys = [randomUUID(), randomUUID()];
+  const publishAttempts = await Promise.all(
+    publishKeys.map((idempotencyKey) =>
+      clients.ownerA.rpc("publish_site_draft", {
+        p_draft_id: draftResult.data.id,
+        p_expected_revision: 1,
+        p_approval_id: approval.data,
+        p_consequence_hash: preview.data.consequence_hash,
+        p_idempotency_key: idempotencyKey,
+      }),
+    ),
+  );
+  const successfulPublishIndexes = publishAttempts
+    .map((attempt, index) => (attempt.error ? null : index))
+    .filter((index) => index !== null);
+  const failedPublishAttempts = publishAttempts.filter(
+    (attempt) => attempt.error,
+  );
+
+  assert.equal(successfulPublishIndexes.length, 1);
+  assert.equal(failedPublishAttempts.length, 1);
+  assert.equal(failedPublishAttempts[0].error?.code, "22023");
+
+  const successfulPublishIndex = successfulPublishIndexes[0];
+  const publishKey = publishKeys[successfulPublishIndex];
+  const published = publishAttempts[successfulPublishIndex];
   const publishRetry = await clients.ownerA.rpc("publish_site_draft", {
     p_draft_id: draftResult.data.id,
     p_expected_revision: 1,
@@ -465,9 +508,24 @@ test("draft publication is exact, owner-only, idempotent, public, and reversible
     p_consequence_hash: preview.data.consequence_hash,
     p_idempotency_key: publishKey,
   });
-  expectNoError(published.error, "publish approved draft");
   expectNoError(publishRetry.error, "retry publish");
   assert.equal(publishRetry.data, published.data);
+
+  const reusedPublishKey = await clients.ownerA.rpc("publish_site_draft", {
+    p_draft_id: draftResult.data.id,
+    p_expected_revision: 1,
+    p_approval_id: approval.data,
+    p_consequence_hash: "0".repeat(64),
+    p_idempotency_key: publishKey,
+  });
+  assert.equal(reusedPublishKey.data, null);
+  assert.equal(reusedPublishKey.error?.code, "22023");
+
+  const crossSitePointer = await admin
+    .from("sites")
+    .update({ published_version_id: published.data })
+    .eq("id", ids.siteB);
+  assert.equal(crossSitePointer.error?.code, "23503");
 
   const publicVersion = await anonymous.rpc("get_published_site", {
     p_slug: `alpha-site-${runId}`,
@@ -526,6 +584,14 @@ test("draft publication is exact, owner-only, idempotent, public, and reversible
   assert.equal(rollbackRetry.data, rollback.data);
   assert.notEqual(rollback.data, published.data);
   assert.notEqual(rollback.data, secondVersion.data);
+
+  const reusedRollbackKey = await clients.ownerA.rpc("rollback_site_version", {
+    p_site_id: ids.siteA,
+    p_target_version_id: secondVersion.data,
+    p_idempotency_key: rollbackKey,
+  });
+  assert.equal(reusedRollbackKey.data, null);
+  assert.equal(reusedRollbackKey.error?.code, "22023");
 
   const restoredPublicVersion = await anonymous.rpc("get_published_site", {
     p_slug: `alpha-site-${runId}`,

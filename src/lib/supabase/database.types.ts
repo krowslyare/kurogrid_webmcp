@@ -270,6 +270,7 @@ export type Database = {
           idempotency_key: string
           kind: Database["public"]["Enums"]["publication_operation_kind"]
           organization_id: string
+          request_hash: string
           result_version_id: string
           site_id: string
         }
@@ -280,6 +281,7 @@ export type Database = {
           idempotency_key: string
           kind: Database["public"]["Enums"]["publication_operation_kind"]
           organization_id: string
+          request_hash: string
           result_version_id: string
           site_id: string
         }
@@ -290,6 +292,7 @@ export type Database = {
           idempotency_key?: string
           kind?: Database["public"]["Enums"]["publication_operation_kind"]
           organization_id?: string
+          request_hash?: string
           result_version_id?: string
           site_id?: string
         }
