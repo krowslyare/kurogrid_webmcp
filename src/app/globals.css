@@ -120,6 +120,12 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .published-site dd { margin: 0; color: var(--muted); }
 .published-site button { padding: 14px 20px; border: 0; border-radius: 9px; background: var(--ink); color: var(--acid); font-weight: 700; }
 .published-site small { display: block; margin-top: 34px; color: var(--muted); font: 11px/1.4 monospace; }
+.agent-access { display: grid; grid-template-columns: .7fr 1.3fr; gap: 30px; margin-top: 24px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.48); }
+.agent-access .kicker { margin: 0 0 7px; }
+.agent-access strong { font-size: 14px; }
+.agent-access ul { display: flex; flex-wrap: wrap; gap: 6px; align-content: start; margin: 0; padding: 0; list-style: none; }
+.agent-access li { padding: 6px 8px; border-radius: 6px; background: rgba(24,63,49,.08); color: var(--deep); font: 10px/1 monospace; }
+.published-site > .agent-access { margin: 0 0 60px; }
 
 @media (max-width: 760px) {
   .shell { width: min(100% - 28px, 1180px); }
@@ -141,5 +147,6 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
   .workspace-heading { padding: 72px 0 55px; }
   .membership-list { grid-template-columns: 1fr; gap: 32px; }
   .publication-heading, .field-pair { grid-template-columns: 1fr; }
+  .agent-access { grid-template-columns: 1fr; }
   footer { gap: 20px; }
 }

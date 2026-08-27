@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { WebMcpRegistrar } from "@/features/webmcp/client/webmcp-registrar";
 import { createClient } from "@/lib/supabase/server";
 
 type PageProps = { params: Promise<{ siteSlug: string }> };
@@ -27,6 +28,7 @@ export default async function PublishedSitePage({ params }: PageProps) {
 
   return (
     <main className="published-site">
+      <WebMcpRegistrar siteSlug={siteSlug} contextKey={published.version_id} />
       <p className="kicker">Published version {published.version_number}</p>
       <h1>{content.headline}</h1>
       <p className="published-summary">{content.summary}</p>

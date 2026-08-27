@@ -6,9 +6,9 @@ data, or internal documentation from the private Kurogrid Portal.
 
 ## Status
 
-Gate 1 identity foundation. The repository now contains a local-only tenant
-schema, explicit grants and RLS, cookie-based Supabase SSR clients, and a
-minimal authenticated workspace. WebMCP tools are not implemented yet.
+Gates 1–4 are implemented: tenant isolation, synthetic evidence and the fixed
+Action Plan, exact site publication, and direct native WebMCP registration.
+The final private-repository gate is demo sandboxing and release evidence.
 
 ## Demo contract
 
@@ -50,9 +50,10 @@ npm run supabase:reset
 npm test
 ```
 
-`npm test` runs focused pgTAP policy tests and application-level Data API tests
-with valid users from separate organizations. Tests require the local Supabase
-stack; they do not use GitHub Actions or a hosted project.
+`npm test` runs capability-profile unit tests, focused pgTAP policy tests, and
+application-level Data API/RPC tests with valid users from separate
+organizations. Tests require the local Supabase stack; they do not use GitHub
+Actions or a hosted project.
 
 ## License
 

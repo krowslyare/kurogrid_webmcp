@@ -9,6 +9,12 @@
   idempotency, and tenant ownership before privileged mutations.
 - **Supabase:** Auth, Postgres persistence, RLS, and audit records.
 
+The browser adapter is intentionally small. It fetches a server-resolved
+capability profile, calls `document.modelContext.registerTool()` directly, and
+routes execution through one same-origin endpoint. That endpoint resolves the
+current session and capability profile again; a registered tool is never an
+authorization credential.
+
 ## Canonical publication model
 
 `site_version` is the source of truth for public content. Publishing creates an

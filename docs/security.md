@@ -15,8 +15,10 @@ mutate organization B through UI routes, Data API requests, or RPC calls.
 - Data API grants are explicit and reviewed separately from RLS.
 - User-editable metadata is never an authorization source.
 - Views use `security_invoker` by default.
-- `SECURITY DEFINER` functions, if unavoidable, live outside exposed schemas,
-  fix their `search_path`, revoke public execution, and check membership.
+- reusable `SECURITY DEFINER` helpers live outside exposed schemas;
+  intentionally exposed mutation RPCs fix their `search_path`, revoke default
+  execution, grant only the required role, derive tenant scope from the target
+  resource, and recheck `auth.uid()` plus membership/role internally.
 - Secret and service-role keys never reach browser bundles.
 
 Gate 1 uses one reviewed `SECURITY DEFINER` membership predicate in the

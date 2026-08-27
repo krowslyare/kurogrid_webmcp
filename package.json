@@ -2,6 +2,7 @@
   "name": "kurogrid-webmcp",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Public-safe WebMCP challenge implementation for Kurogrid.",
   "engines": {
     "node": ">=24 <27"
@@ -13,7 +14,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run build",
-    "test": "npm run test:db && npm run test:integration",
+    "test": "npm run test:unit && npm run test:db && npm run test:integration",
+    "test:unit": "node --experimental-strip-types --test tests/unit/*.test.ts",
     "test:db": "npx supabase test db",
     "test:integration": "node --test tests/integration/*.test.mjs",
     "supabase:start": "npx supabase start",
