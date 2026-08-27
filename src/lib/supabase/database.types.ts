@@ -212,6 +212,103 @@ export type Database = {
           },
         ]
       }
+      demo_leases: {
+        Row: {
+          expires_at: string
+          id: string
+          lease_token_hash: string
+          leased_at: string
+          released_at: string | null
+          requested_role: Database["public"]["Enums"]["organization_role"]
+          sandbox_id: string
+        }
+        Insert: {
+          expires_at: string
+          id?: string
+          lease_token_hash: string
+          leased_at?: string
+          released_at?: string | null
+          requested_role: Database["public"]["Enums"]["organization_role"]
+          sandbox_id: string
+        }
+        Update: {
+          expires_at?: string
+          id?: string
+          lease_token_hash?: string
+          leased_at?: string
+          released_at?: string | null
+          requested_role?: Database["public"]["Enums"]["organization_role"]
+          sandbox_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_leases_sandbox_id_fkey"
+            columns: ["sandbox_id"]
+            isOneToOne: false
+            referencedRelation: "demo_sandboxes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demo_runtime_config: {
+        Row: {
+          capacity: number
+          lease_minutes: number
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          lease_minutes?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          lease_minutes?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      demo_sandboxes: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          member_user_id: string
+          organization_id: string
+          owner_user_id: string
+          slot_number: number
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          member_user_id: string
+          organization_id: string
+          owner_user_id: string
+          slot_number: number
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          member_user_id?: string
+          organization_id?: string
+          owner_user_id?: string
+          slot_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_sandboxes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_memberships: {
         Row: {
           created_at: string
@@ -546,6 +643,19 @@ export type Database = {
         }
         Returns: string
       }
+      claim_demo_sandbox: {
+        Args: {
+          p_lease_token_hash: string
+          p_requested_role: Database["public"]["Enums"]["organization_role"]
+        }
+        Returns: {
+          expires_at: string
+          lease_id: string
+          organization_slug: string
+          slot_number: number
+          user_email: string
+        }[]
+      }
       create_action_plan: {
         Args: { p_attention_item_id: string; p_idempotency_key: string }
         Returns: string
@@ -596,6 +706,10 @@ export type Database = {
           p_idempotency_key: string
         }
         Returns: string
+      }
+      release_demo_sandbox: {
+        Args: { p_lease_token_hash: string }
+        Returns: boolean
       }
       rollback_site_version: {
         Args: {

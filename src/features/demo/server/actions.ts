@@ -1,0 +1,82 @@
+"use server";
+
+import { randomBytes, timingSafeEqual } from "node:crypto";
+
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+
+import {
+  DEMO_LEASE_COOKIE,
+  hashDemoLeaseToken,
+  releaseCurrentDemoLease,
+} from "./lease";
+
+function accessCodeMatches(candidate: string) {
+  const expected = process.env.DEMO_ACCESS_CODE;
+
+  if (!expected) return false;
+
+  const candidateBuffer = Buffer.from(candidate);
+  const expectedBuffer = Buffer.from(expected);
+
+  return (
+    candidateBuffer.length === expectedBuffer.length
+    && timingSafeEqual(candidateBuffer, expectedBuffer)
+  );
+}
+
+export async function claimDemoSandbox(formData: FormData) {
+  const accessCode = formData.get("accessCode");
+  const requestedRole = formData.get("role") === "member" ? "member" : "owner";
+  const demoPassword = process.env.DEMO_USER_PASSWORD;
+
+  if (typeof accessCode !== "string" || !accessCodeMatches(accessCode)) {
+    redirect("/demo?error=access");
+  }
+
+  if (!demoPassword) {
+    redirect("/demo?error=configuration");
+  }
+
+  await releaseCurrentDemoLease();
+  const supabase = await createClient();
+  await supabase.auth.signOut({ scope: "local" });
+
+  const leaseToken = randomBytes(32).toString("hex");
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("claim_demo_sandbox", {
+    p_lease_token_hash: hashDemoLeaseToken(leaseToken),
+    p_requested_role: requestedRole,
+  });
+  const lease = data?.[0];
+
+  if (error || !lease) {
+    redirect(`/demo?error=${error?.message === "demo_capacity_exhausted" ? "capacity" : "claim"}`);
+  }
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: lease.user_email,
+    password: demoPassword,
+  });
+
+  if (signInError) {
+    await admin.rpc("release_demo_sandbox", {
+      p_lease_token_hash: hashDemoLeaseToken(leaseToken),
+    });
+    redirect("/demo?error=signin");
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set(DEMO_LEASE_COOKIE, leaseToken, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    expires: new Date(lease.expires_at),
+    path: "/",
+  });
+
+  redirect(`/app/${lease.organization_slug}`);
+}

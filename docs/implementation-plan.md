@@ -59,3 +59,9 @@ implemented against the pinned upstream specification.
 - Secret, provenance, dependency, and license review
 - Threat-model and tenant-isolation evidence
 - Only then decide whether to change repository visibility or deploy
+
+Current status: configurable lease-backed sandboxes, a hard minimum of two
+isolated slots, atomic allocation/reset, explicit exhaustion, early release,
+idempotent provisioning, and a release checklist are implemented. Hosted
+provisioning, deployment, repository visibility, and submission remain
+deliberately untouched.

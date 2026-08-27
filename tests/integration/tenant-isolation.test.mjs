@@ -61,6 +61,8 @@ const ids = {
   attentionB: randomUUID(),
   siteA: randomUUID(),
   siteB: randomUUID(),
+  sandboxA: randomUUID(),
+  sandboxB: randomUUID(),
 };
 const emails = {
   ownerA: `owner-a-${runId}@example.test`,
@@ -157,6 +159,31 @@ before(async () => {
       },
     ]);
   expectNoError(membershipsError, "create memberships");
+
+  await admin.from("demo_leases").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await admin.from("demo_sandboxes").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  const { error: configError } = await admin
+    .from("demo_runtime_config")
+    .update({ capacity: 2 })
+    .eq("singleton", true);
+  expectNoError(configError, "configure demo capacity");
+  const { error: sandboxesError } = await admin.from("demo_sandboxes").insert([
+    {
+      id: ids.sandboxA,
+      slot_number: 1,
+      organization_id: ids.organizationA,
+      owner_user_id: ids.ownerA,
+      member_user_id: ids.memberA,
+    },
+    {
+      id: ids.sandboxB,
+      slot_number: 2,
+      organization_id: ids.organizationB,
+      owner_user_id: ids.ownerB,
+      member_user_id: ids.outsider,
+    },
+  ]);
+  expectNoError(sandboxesError, "create demo sandboxes");
 
   const { error: auditError } = await admin.from("audit_events").insert([
     {
@@ -608,4 +635,56 @@ test("draft publication is exact, owner-only, idempotent, public, and reversible
   assert.equal(restoredPublicVersion.data[0].version_id, rollback.data);
   assert.equal(restoredPublicVersion.data[0].version_number, 3);
   assert.deepEqual(restoredPublicVersion.data[0].content, siteContent);
+});
+
+test("demo pool isolates two leases, reports exhaustion, and resets on reuse", async () => {
+  const hashes = ["a".repeat(64), "b".repeat(64), "c".repeat(64), "d".repeat(64)];
+  const first = await admin.rpc("claim_demo_sandbox", {
+    p_lease_token_hash: hashes[0],
+    p_requested_role: "owner",
+  });
+  const second = await admin.rpc("claim_demo_sandbox", {
+    p_lease_token_hash: hashes[1],
+    p_requested_role: "owner",
+  });
+
+  expectNoError(first.error, "claim first demo slot");
+  expectNoError(second.error, "claim second demo slot");
+  assert.equal(first.data[0].slot_number, 1);
+  assert.equal(second.data[0].slot_number, 2);
+  assert.notEqual(first.data[0].organization_slug, second.data[0].organization_slug);
+
+  const exhausted = await admin.rpc("claim_demo_sandbox", {
+    p_lease_token_hash: hashes[2],
+    p_requested_role: "owner",
+  });
+  assert.equal(exhausted.data, null);
+  assert.equal(exhausted.error?.message, "demo_capacity_exhausted");
+
+  const anonymousClaim = await anonymous.rpc("claim_demo_sandbox", {
+    p_lease_token_hash: "e".repeat(64),
+    p_requested_role: "owner",
+  });
+  assert.equal(anonymousClaim.data, null);
+  assert.equal(anonymousClaim.error?.code, "42501");
+
+  const released = await admin.rpc("release_demo_sandbox", {
+    p_lease_token_hash: hashes[0],
+  });
+  expectNoError(released.error, "release first demo slot");
+  assert.equal(released.data, true);
+
+  const reused = await admin.rpc("claim_demo_sandbox", {
+    p_lease_token_hash: hashes[3],
+    p_requested_role: "member",
+  });
+  expectNoError(reused.error, "reuse released demo slot");
+  assert.equal(reused.data[0].slot_number, 1);
+
+  const { count, error } = await admin
+    .from("attention_items")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", ids.organizationA);
+  expectNoError(error, "count reset attention fixtures");
+  assert.equal(count, 3);
 });

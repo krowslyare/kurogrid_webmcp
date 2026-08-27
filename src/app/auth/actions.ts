@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { releaseCurrentDemoLease } from "@/features/demo/server/lease";
 import { createClient } from "@/lib/supabase/server";
 
 function safeNextPath(value: FormDataEntryValue | null) {
@@ -39,6 +40,7 @@ export async function signIn(formData: FormData) {
 }
 
 export async function signOut() {
+  await releaseCurrentDemoLease();
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
 

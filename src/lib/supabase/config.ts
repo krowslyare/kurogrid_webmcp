@@ -18,3 +18,15 @@ export function getPublicSupabaseConfig() {
     ),
   };
 }
+
+export function getAdminSupabaseConfig() {
+  const { url } = getPublicSupabaseConfig();
+
+  return {
+    url,
+    secretKey: requiredEnvironmentVariable(
+      "SUPABASE_SECRET_KEY",
+      process.env.SUPABASE_SECRET_KEY,
+    ),
+  };
+}
