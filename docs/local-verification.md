@@ -53,8 +53,11 @@ Verified on 2026-08-27 at
   third-request exhaustion, direct cross-tenant Data API denial, expiry and
   release denial, clean reuse, and zero active leases afterward.
 
-Chrome 151.0.0.0 passed the human workflow smoke, but its tested profile did not
-expose `document.modelContext`. Enable
-`chrome://flags/#enable-webmcp-testing`, relaunch Chrome, and repeat the native
-smoke. Repository visibility/public evidence, the video, and the judging-period
-freeze remain the other explicit pre-submission gates.
+Chrome 151.0.0.0 with `#enable-webmcp-testing` enabled exposed
+`document.modelContext`, registered the five initial Owner tools, and executed
+native `get_attention` with the three synthetic fixtures. The smoke uncovered
+and fixed a host-compatibility edge: Chrome omitted the optional execution
+context, so the adapter now preserves cancellation when present without
+requiring that argument. Logout left `getTools()` empty. Repository
+visibility/public evidence, the video, and the judging-period freeze remain the
+explicit pre-submission gates.
