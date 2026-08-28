@@ -84,7 +84,7 @@ export function WebMcpRegistrar({ organizationSlug, siteSlug, contextKey }: Prop
                         organizationSlug,
                         siteSlug,
                       }),
-                      signal: options.signal,
+                      signal: options?.signal,
                     });
                     const result = await executeResponse.json();
 
