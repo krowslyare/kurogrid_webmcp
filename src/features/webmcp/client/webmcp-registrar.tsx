@@ -9,6 +9,7 @@ type Props = {
   organizationSlug?: string;
   siteSlug?: string;
   contextKey: string;
+  presentation?: "workspace" | "public-site";
 };
 
 type RegistrarState =
@@ -17,7 +18,12 @@ type RegistrarState =
   | { status: "active"; names: string[] }
   | { status: "error"; names: string[] };
 
-export function WebMcpRegistrar({ organizationSlug, siteSlug, contextKey }: Props) {
+export function WebMcpRegistrar({
+  organizationSlug,
+  siteSlug,
+  contextKey,
+  presentation = "workspace",
+}: Props) {
   const router = useRouter();
   const [state, setState] = useState<RegistrarState>({
     status: "checking",
@@ -135,22 +141,47 @@ export function WebMcpRegistrar({ organizationSlug, siteSlug, contextKey }: Prop
     };
   }, [contextKey, organizationSlug, router, siteSlug]);
 
+  const publicPresentation = presentation === "public-site";
+
   return (
-    <aside className="agent-access" aria-live="polite">
+    <aside
+      className={`agent-access${publicPresentation ? " public-agent-access" : ""}`}
+      aria-live="polite"
+    >
       <div>
-        <p className="kicker">Agent Access Center</p>
+        <p className="kicker">
+          {publicPresentation ? "Connected information" : "Agent Access Center"}
+        </p>
         <strong>
           {state.status === "active"
-            ? `${state.names.length} native tools active`
+            ? publicPresentation
+              ? "Up to date for people and assistants"
+              : `${state.names.length} native tools active`
             : state.status === "unsupported"
-              ? "WebMCP unavailable in this browser"
+              ? publicPresentation
+                ? "You are viewing the latest published information"
+                : "WebMCP unavailable in this browser"
               : state.status === "error"
-                ? "WebMCP registration failed"
-                : "Resolving current capabilities"}
+                ? publicPresentation
+                  ? "Published information is still available on this page"
+                  : "WebMCP registration failed"
+                : publicPresentation
+                  ? "Checking the latest published information"
+                  : "Resolving current capabilities"}
         </strong>
       </div>
       {state.names.length ? (
-        <ul>{state.names.map((name) => <li key={name}>{name}</li>)}</ul>
+        <ul>
+          {state.names.map((name) => (
+            <li key={name}>
+              {publicPresentation
+                ? name === "get_opening_hours"
+                  ? "Opening hours"
+                  : "Site information"
+                : name}
+            </li>
+          ))}
+        </ul>
       ) : null}
     </aside>
   );
