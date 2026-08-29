@@ -7,6 +7,13 @@ export const WEBMCP_TOOL_NAMES = [
   "preview_publish_consequences",
   "publish_site_draft",
   "get_opening_hours",
+  "get_clinic_services",
+  "find_appointment_slots",
+  "prepare_appointment_request",
+  "confirm_appointment_request",
+  "get_appointment_status",
+  "respond_to_appointment_proposal",
+  "get_appointment_calendar_event",
   "list_site_versions",
   "rollback_site_version",
 ] as const;
@@ -24,13 +31,34 @@ export type CapabilityState = {
   hasPublished: boolean;
   hasActiveApproval: boolean;
   versionCount: number;
+  appointmentStatus?: "prepared" | "requested" | "confirmed" | "time_proposed" | "declined" | "cancelled";
+  canConfirmAppointment?: boolean;
 };
 
 export function toolNamesForState(state: CapabilityState): WebMcpToolName[] {
   if (state.scope === "public") {
-    return state.hasPublished
-      ? ["get_site_content", "get_opening_hours"]
-      : [];
+    if (!state.hasPublished) return [];
+
+    const names: WebMcpToolName[] = [
+      "get_site_content",
+      "get_opening_hours",
+      "get_clinic_services",
+      "find_appointment_slots",
+      "prepare_appointment_request",
+    ];
+
+    if (state.appointmentStatus) names.push("get_appointment_status");
+    if (state.appointmentStatus === "prepared" && state.canConfirmAppointment) {
+      names.push("confirm_appointment_request");
+    }
+    if (state.appointmentStatus === "time_proposed") {
+      names.push("respond_to_appointment_proposal");
+    }
+    if (state.appointmentStatus === "confirmed") {
+      names.push("get_appointment_calendar_event");
+    }
+
+    return names;
   }
 
   const names: WebMcpToolName[] = [];
@@ -170,6 +198,76 @@ const definitions: Record<WebMcpToolName, WebMcpToolDefinition> = {
     name: "get_opening_hours",
     title: "Get opening hours",
     description: "Read opening hours from the same immutable version used by the public human page.",
+    inputSchema: emptyInput,
+    annotations: { readOnlyHint: true },
+  },
+  get_clinic_services: {
+    name: "get_clinic_services",
+    title: "Get clinic services",
+    description: "Read the appointment services currently offered by this clinic.",
+    inputSchema: emptyInput,
+    annotations: { readOnlyHint: true },
+  },
+  find_appointment_slots: {
+    name: "find_appointment_slots",
+    title: "Find appointment times",
+    description: "Find currently available appointment times for one service and date.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        service_slug: { type: "string", minLength: 1, maxLength: 80 },
+        date: { type: "string", format: "date" },
+      },
+      required: ["service_slug", "date"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+  },
+  prepare_appointment_request: {
+    name: "prepare_appointment_request",
+    title: "Prepare appointment request",
+    description: "Prepare an appointment request for customer review. This does not submit it to the clinic.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        service_slug: { type: "string", minLength: 1, maxLength: 80 },
+        slot_id: uuid,
+        pet_name: { type: "string", minLength: 1, maxLength: 80 },
+        customer_email: { type: "string", format: "email", maxLength: 200 },
+        idempotency_key: uuid,
+      },
+      required: ["service_slug", "slot_id", "pet_name", "customer_email", "idempotency_key"],
+      additionalProperties: false,
+    },
+  },
+  confirm_appointment_request: {
+    name: "confirm_appointment_request",
+    title: "Confirm appointment request",
+    description: "Submit the exact appointment request the customer has reviewed. The clinic still needs to accept or propose another time.",
+    inputSchema: emptyInput,
+  },
+  get_appointment_status: {
+    name: "get_appointment_status",
+    title: "Get appointment status",
+    description: "Read the latest status and time for the appointment request opened from its private customer link.",
+    inputSchema: emptyInput,
+    annotations: { readOnlyHint: true },
+  },
+  respond_to_appointment_proposal: {
+    name: "respond_to_appointment_proposal",
+    title: "Respond to proposed time",
+    description: "Accept or decline the alternative appointment time proposed by the clinic.",
+    inputSchema: {
+      type: "object",
+      properties: { accept: { type: "boolean" } },
+      required: ["accept"],
+      additionalProperties: false,
+    },
+  },
+  get_appointment_calendar_event: {
+    name: "get_appointment_calendar_event",
+    title: "Get calendar event",
+    description: "Return the confirmed appointment as structured event data plus Google Calendar and iCalendar links.",
     inputSchema: emptyInput,
     annotations: { readOnlyHint: true },
   },

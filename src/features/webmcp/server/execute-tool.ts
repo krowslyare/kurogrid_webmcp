@@ -18,6 +18,9 @@ type ToolRequest = {
   input: unknown;
   organizationSlug?: string;
   siteSlug?: string;
+  appointmentId?: string;
+  accessToken?: string;
+  confirmationToken?: string;
 };
 
 function objectInput(input: unknown) {
@@ -70,6 +73,24 @@ function integerInput(
   return value as number;
 }
 
+function stringInput(
+  input: Record<string, unknown>,
+  name: string,
+  maximum: number,
+) {
+  const value = input[name];
+  if (typeof value !== "string" || !value.trim() || value.length > maximum) {
+    throw new Error(`invalid_${name}`);
+  }
+  return value.trim();
+}
+
+function booleanInput(input: Record<string, unknown>, name: string) {
+  const value = input[name];
+  if (typeof value !== "boolean") throw new Error(`invalid_${name}`);
+  return value;
+}
+
 function isToolName(name: string): name is WebMcpToolName {
   return (WEBMCP_TOOL_NAMES as readonly string[]).includes(name);
 }
@@ -80,7 +101,12 @@ async function resolveRequestCapabilities(request: ToolRequest) {
   }
 
   if (request.siteSlug) {
-    return resolvePublicCapabilities(request.siteSlug);
+    return resolvePublicCapabilities(
+      request.siteSlug,
+      request.appointmentId,
+      request.accessToken,
+      request.confirmationToken,
+    );
   }
 
   return null;
@@ -198,6 +224,132 @@ export async function executeWebMcpTool(request: ToolRequest) {
       return {
         version_id: capabilities.published!.versionId,
         opening_hours: content["opening_hours"],
+      };
+    }
+
+    case "get_clinic_services": {
+      exactInputKeys(input, []);
+      if (!capabilities.siteSlug) throw new Error("site_unavailable");
+      const { data, error } = await supabase.rpc("get_clinic_services", {
+        p_site_slug: capabilities.siteSlug,
+      });
+      if (error) throw error;
+      return { services: data };
+    }
+
+    case "find_appointment_slots": {
+      exactInputKeys(input, ["date", "service_slug"]);
+      if (!capabilities.siteSlug) throw new Error("site_unavailable");
+      const date = stringInput(input, "date", 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("invalid_date");
+      const { data, error } = await supabase.rpc("find_appointment_slots", {
+        p_site_slug: capabilities.siteSlug,
+        p_service_slug: stringInput(input, "service_slug", 80),
+        p_date: date,
+      });
+      if (error) throw error;
+      return { slots: data };
+    }
+
+    case "prepare_appointment_request": {
+      exactInputKeys(input, [
+        "customer_email",
+        "idempotency_key",
+        "pet_name",
+        "service_slug",
+        "slot_id",
+      ]);
+      if (!capabilities.siteSlug) throw new Error("site_unavailable");
+      const { data, error } = await supabase.rpc("prepare_appointment_request", {
+        p_site_slug: capabilities.siteSlug,
+        p_service_slug: stringInput(input, "service_slug", 80),
+        p_slot_id: uuidInput(input, "slot_id"),
+        p_pet_name: stringInput(input, "pet_name", 80),
+        p_customer_email: stringInput(input, "customer_email", 200),
+        p_idempotency_key: uuidInput(input, "idempotency_key"),
+      });
+      if (error) throw error;
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        throw new Error("appointment_request_unavailable");
+      }
+      const prepared = data as Record<string, unknown>;
+      const search = new URLSearchParams({
+        appointment: String(prepared.request_id),
+        access: String(prepared.access_token),
+        confirm: String(prepared.confirmation_token),
+      });
+      return {
+        appointment: prepared,
+        confirmation_required: true,
+        navigate_to: `/sites/${capabilities.siteSlug}?${search}`,
+        capabilities_changed: true,
+      };
+    }
+
+    case "confirm_appointment_request": {
+      exactInputKeys(input, []);
+      if (!capabilities.appointment?.confirmationToken) {
+        throw new Error("appointment_confirmation_unavailable");
+      }
+      const { data, error } = await supabase.rpc("confirm_appointment_request", {
+        p_request_id: capabilities.appointment.id,
+        p_confirmation_token: capabilities.appointment.confirmationToken,
+      });
+      if (error) throw error;
+      return {
+        appointment: data,
+        updates_channel: "email",
+        capabilities_changed: true,
+      };
+    }
+
+    case "get_appointment_status":
+      exactInputKeys(input, []);
+      if (!capabilities.appointment) throw new Error("appointment_unavailable");
+      return { appointment: capabilities.appointment.details };
+
+    case "respond_to_appointment_proposal": {
+      exactInputKeys(input, ["accept"]);
+      if (!capabilities.appointment) throw new Error("appointment_unavailable");
+      const { data, error } = await supabase.rpc("respond_to_appointment_proposal", {
+        p_request_id: capabilities.appointment.id,
+        p_access_token: capabilities.appointment.accessToken,
+        p_accept: booleanInput(input, "accept"),
+      });
+      if (error) throw error;
+      return { appointment: data, capabilities_changed: true };
+    }
+
+    case "get_appointment_calendar_event": {
+      exactInputKeys(input, []);
+      if (!capabilities.appointment || capabilities.appointment.status !== "confirmed") {
+        throw new Error("confirmed_appointment_required");
+      }
+      const details = capabilities.appointment.details as Record<string, unknown>;
+      const startsAt = new Date(String(details.starts_at));
+      const duration = Number(details.duration_minutes);
+      const endsAt = new Date(startsAt.getTime() + duration * 60_000);
+      const calendarStamp = (value: Date) => value.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+      const title = `${String(details.service)} for ${String(details.pet_name)} · Arboleda`;
+      const google = new URL("https://calendar.google.com/calendar/render");
+      google.searchParams.set("action", "TEMPLATE");
+      google.searchParams.set("text", title);
+      google.searchParams.set("dates", `${calendarStamp(startsAt)}/${calendarStamp(endsAt)}`);
+      google.searchParams.set("details", "Confirmed through Arboleda's WebMCP appointment flow.");
+      google.searchParams.set("location", "Clínica Veterinaria Arboleda");
+      const calendarSearch = new URLSearchParams({
+        appointment: capabilities.appointment.id,
+        access: capabilities.appointment.accessToken,
+      });
+      return {
+        event: {
+          title,
+          starts_at: startsAt.toISOString(),
+          ends_at: endsAt.toISOString(),
+          location: "Clínica Veterinaria Arboleda",
+        },
+        google_calendar_url: google.toString(),
+        ics_download_url: `/api/appointments/calendar?${calendarSearch}`,
       };
     }
 

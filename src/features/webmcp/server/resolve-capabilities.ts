@@ -16,6 +16,14 @@ type AttentionItem = {
   revision: number;
 };
 
+type AppointmentStatus =
+  | "prepared"
+  | "requested"
+  | "confirmed"
+  | "time_proposed"
+  | "declined"
+  | "cancelled";
+
 export type ResolvedCapabilities = {
   scope: "public" | "authenticated";
   role?: "owner" | "member";
@@ -28,6 +36,13 @@ export type ResolvedCapabilities = {
   activeApproval?: { id: string; consequenceHash: string };
   attention: AttentionItem[];
   versions: Array<{ id: string; versionNumber: number }>;
+  appointment?: {
+    id: string;
+    accessToken: string;
+    confirmationToken?: string;
+    status: AppointmentStatus;
+    details: unknown;
+  };
   names: WebMcpToolName[];
   definitions: ReturnType<typeof definitionsForNames>;
   signature: string;
@@ -35,6 +50,9 @@ export type ResolvedCapabilities = {
 
 export async function resolvePublicCapabilities(
   siteSlug: string,
+  appointmentId?: string,
+  accessToken?: string,
+  confirmationToken?: string,
 ): Promise<ResolvedCapabilities> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_published_site", {
@@ -48,6 +66,25 @@ export async function resolvePublicCapabilities(
     });
   }
 
+  const appointmentResult = appointmentId && accessToken
+    ? await supabase.rpc("get_appointment_status", {
+        p_request_id: appointmentId,
+        p_access_token: accessToken,
+      })
+    : { data: null, error: null };
+
+  if (appointmentResult.error) {
+    throw new Error("Unable to resolve appointment context.", {
+      cause: appointmentResult.error,
+    });
+  }
+
+  const appointment = appointmentResult.data && typeof appointmentResult.data === "object"
+    ? appointmentResult.data as Record<string, unknown>
+    : null;
+  const appointmentStatus = typeof appointment?.status === "string"
+    ? appointment.status as AppointmentStatus
+    : undefined;
   const names = toolNamesForState({
     scope: "public",
     hasAttention: false,
@@ -58,6 +95,8 @@ export async function resolvePublicCapabilities(
     hasPublished: Boolean(row),
     hasActiveApproval: false,
     versionCount: row ? 1 : 0,
+    appointmentStatus,
+    canConfirmAppointment: Boolean(confirmationToken),
   });
 
   return {
@@ -68,9 +107,24 @@ export async function resolvePublicCapabilities(
       : undefined,
     attention: [],
     versions: row ? [{ id: row.version_id, versionNumber: row.version_number }] : [],
+    appointment: appointmentId && accessToken && appointmentStatus
+      ? {
+          id: appointmentId,
+          accessToken,
+          confirmationToken,
+          status: appointmentStatus,
+          details: appointment,
+        }
+      : undefined,
     names,
     definitions: definitionsForNames(names),
-    signature: JSON.stringify([siteSlug, row?.version_id ?? null, names]),
+    signature: JSON.stringify([
+      siteSlug,
+      row?.version_id ?? null,
+      appointmentId ?? null,
+      appointmentStatus ?? null,
+      names,
+    ]),
   };
 }
 

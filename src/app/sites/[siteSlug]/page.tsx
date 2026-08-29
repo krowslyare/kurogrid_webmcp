@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
+import { respondToAppointmentProposal } from "@/features/appointments/server/actions";
 import { WebMcpRegistrar } from "@/features/webmcp/client/webmcp-registrar";
 import { createClient } from "@/lib/supabase/server";
 
-type PageProps = { params: Promise<{ siteSlug: string }> };
+type PageProps = {
+  params: Promise<{ siteSlug: string }>;
+  searchParams: Promise<{ appointment?: string; access?: string; confirm?: string }>;
+};
 
 type PublishedContent = {
   headline: string;
@@ -51,8 +56,36 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function PublishedSitePage({ params }: PageProps) {
+function customerTime(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "full",
+    timeStyle: "short",
+    timeZone: "America/Lima",
+  }).format(new Date(value));
+}
+
+function googleCalendarUrl(appointment: Record<string, unknown>) {
+  const startsAt = new Date(String(appointment.starts_at));
+  const endsAt = new Date(
+    startsAt.getTime() + Number(appointment.duration_minutes) * 60_000,
+  );
+  const stamp = (value: Date) => value.toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}/, "");
+  const url = new URL("https://calendar.google.com/calendar/render");
+  url.searchParams.set("action", "TEMPLATE");
+  url.searchParams.set(
+    "text",
+    `${String(appointment.service)} for ${String(appointment.pet_name)} · Arboleda`,
+  );
+  url.searchParams.set("dates", `${stamp(startsAt)}/${stamp(endsAt)}`);
+  url.searchParams.set("location", "Clínica Veterinaria Arboleda");
+  return url.toString();
+}
+
+export default async function PublishedSitePage({ params, searchParams }: PageProps) {
   const { siteSlug } = await params;
+  const customerContext = await searchParams;
   const published = await getPublishedSite(siteSlug);
 
   if (!published) {
@@ -60,6 +93,20 @@ export default async function PublishedSitePage({ params }: PageProps) {
   }
 
   const content = published.content as PublishedContent;
+  const supabase = await createClient();
+  const servicesResult = await supabase.rpc("get_clinic_services", {
+    p_site_slug: siteSlug,
+  });
+  const appointmentResult = customerContext.appointment && customerContext.access
+    ? await supabase.rpc("get_appointment_status", {
+        p_request_id: customerContext.appointment,
+        p_access_token: customerContext.access,
+      })
+    : { data: null, error: null };
+  const appointment = appointmentResult.data && typeof appointmentResult.data === "object"
+    && !Array.isArray(appointmentResult.data)
+    ? appointmentResult.data as Record<string, unknown>
+    : null;
   const schedule = Object.entries(content.opening_hours).sort(([first], [second]) => {
     const firstIndex = scheduleOrder.indexOf(first as (typeof scheduleOrder)[number]);
     const secondIndex = scheduleOrder.indexOf(second as (typeof scheduleOrder)[number]);
@@ -89,7 +136,7 @@ export default async function PublishedSitePage({ params }: PageProps) {
         </a>
         <nav aria-label="Main navigation">
           <a href="#opening-hours">Hours</a>
-          <a className="clinic-nav-cta" href="#opening-hours">
+          <a className="clinic-nav-cta" href="#agent-booking">
             {content.cta_label}
           </a>
         </nav>
@@ -103,7 +150,7 @@ export default async function PublishedSitePage({ params }: PageProps) {
           <h1>{content.headline}</h1>
           <p className="published-summary">{content.summary}</p>
           <div className="clinic-hero-actions">
-            <a className="clinic-primary-cta" href="#opening-hours">
+            <a className="clinic-primary-cta" href="#agent-booking">
               {content.cta_label}
               <span aria-hidden="true">↘</span>
             </a>
@@ -124,39 +171,120 @@ export default async function PublishedSitePage({ params }: PageProps) {
         </div>
       </section>
 
-      <section className="clinic-approach" id="our-approach" aria-labelledby="approach-title">
-        <p className="clinic-section-index">01 / Approach</p>
-        <div>
+      <section className="clinic-booking" id="agent-booking" aria-labelledby="booking-title">
+        <div className="clinic-booking-intro">
+          <p className="clinic-section-index">01 / Appointments</p>
+          <h2 id="booking-title">
+            {appointment ? "Your appointment, in one clear place." : "Ask your assistant to find the right time."}
+          </h2>
+          <p>
+            {appointment
+              ? "This private link always reflects the clinic's latest response."
+              : "Arboleda exposes services and live demo availability directly to compatible agents through WebMCP."}
+          </p>
+          {!appointment ? (
+            <div className="clinic-agent-prompt">
+              <span>Try this with your agent</span>
+              <p>Find a dermatology appointment for Luna this Saturday morning and email me if the clinic changes the time.</p>
+            </div>
+          ) : null}
+        </div>
+
+        {appointment ? (
+          <article className="customer-appointment-card">
+            <div className="customer-appointment-status">
+              <span>Current status</span>
+              <strong>{String(appointment.status).replaceAll("_", " ")}</strong>
+            </div>
+            <h3>{String(appointment.service)} for {String(appointment.pet_name)}</h3>
+            <p>{customerTime(String(appointment.starts_at))}</p>
+            <small>Updates are sent to {String(appointment.customer_email)}</small>
+
+            {appointment.status === "prepared" ? (
+              <p className="customer-next-step">Review complete. Ask your agent to submit this exact request.</p>
+            ) : appointment.status === "requested" ? (
+              <p className="customer-next-step">Request sent. Arboleda will accept it or propose another time.</p>
+            ) : appointment.status === "time_proposed" ? (
+              <div className="customer-proposal">
+                <p>Arboleda proposed this new time. You remain in control.</p>
+                <div>
+                  <form action={respondToAppointmentProposal}>
+                    <input name="siteSlug" type="hidden" value={siteSlug} />
+                    <input name="requestId" type="hidden" value={customerContext.appointment} />
+                    <input name="accessToken" type="hidden" value={customerContext.access} />
+                    <input name="response" type="hidden" value="accept" />
+                    <button className="clinic-primary-cta" type="submit">Accept new time</button>
+                  </form>
+                  <form action={respondToAppointmentProposal}>
+                    <input name="siteSlug" type="hidden" value={siteSlug} />
+                    <input name="requestId" type="hidden" value={customerContext.appointment} />
+                    <input name="accessToken" type="hidden" value={customerContext.access} />
+                    <input name="response" type="hidden" value="decline" />
+                    <button className="clinic-text-button" type="submit">Decline</button>
+                  </form>
+                </div>
+              </div>
+            ) : appointment.status === "confirmed" ? (
+              <div className="customer-calendar-actions">
+                <strong>Confirmed by Arboleda</strong>
+                <div>
+                  <a href={googleCalendarUrl(appointment)} target="_blank" rel="noreferrer">Google Calendar ↗</a>
+                  <a href={`/api/appointments/calendar?appointment=${customerContext.appointment}&access=${customerContext.access}`}>Download .ics ↗</a>
+                </div>
+              </div>
+            ) : null}
+          </article>
+        ) : (
+          <div className="clinic-service-list" aria-label="Available appointment services">
+            {(servicesResult.data ?? []).map((service, index) => (
+              <article key={service.service_slug}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div><h3>{service.service_name}</h3><p>{service.description}</p></div>
+                <strong>{service.duration_minutes} min</strong>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="clinic-details" aria-label="Care approach and opening hours">
+        <article className="clinic-approach" id="our-approach" aria-labelledby="approach-title">
+          <p className="clinic-section-index">01 / Approach</p>
           <h2 id="approach-title">Good care starts before the appointment.</h2>
           <p>
             Clear information makes every visit feel simpler. Know when to
             come, what to expect, and where your attention belongs: with them.
           </p>
-        </div>
-      </section>
-
-      <section className="clinic-hours" id="opening-hours" aria-labelledby="hours-title">
-        <div className="clinic-hours-heading">
-          <p className="clinic-section-index">02 / Visit</p>
-          <div>
-            <h2 id="hours-title">Find a time that fits.</h2>
-            <p>Our current published hours, kept in one reliable place.</p>
+          <div className="clinic-values" aria-label="Care principles">
+            <span>Clear guidance</span><span>Calm visits</span><span>Current information</span>
           </div>
-        </div>
-        <dl>
-          {schedule.map(([label, value], index) => (
-            <div key={label}>
-              <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-              <dt>{label.replaceAll("_", " ")}</dt>
-              <dd>{value}</dd>
+        </article>
+
+        <article className="clinic-hours" id="opening-hours" aria-labelledby="hours-title">
+          <div className="clinic-hours-heading">
+            <p className="clinic-section-index">02 / Visit</p>
+            <div>
+              <h2 id="hours-title">Find a time that fits.</h2>
+              <p>Current published hours, kept in one reliable place.</p>
             </div>
-          ))}
-        </dl>
+          </div>
+          <dl>
+            {schedule.map(([label, value], index) => (
+              <div key={label}>
+                <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                <dt>{label.replaceAll("_", " ")}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </article>
       </section>
 
       <section className="clinic-closing" aria-labelledby="closing-title">
-        <p className="clinic-kicker">A calmer kind of care</p>
-        <h2 id="closing-title">Make room for the moments that matter.</h2>
+        <div>
+          <p className="clinic-kicker">A calmer kind of care</p>
+          <h2 id="closing-title">Make room for the moments that matter.</h2>
+        </div>
         <a className="clinic-primary-cta clinic-primary-cta-light" href="#opening-hours">
           {content.cta_label}
           <span aria-hidden="true">↑</span>
@@ -170,10 +298,14 @@ export default async function PublishedSitePage({ params }: PageProps) {
         </div>
         <WebMcpRegistrar
           siteSlug={siteSlug}
-          contextKey={published.version_id}
+          appointmentId={customerContext.appointment}
+          accessToken={customerContext.access}
+          confirmationToken={customerContext.confirm}
+          contextKey={JSON.stringify([published.version_id, appointment?.status ?? null])}
           presentation="public-site"
         />
         <div className="clinic-footer-meta">
+          <Link href="/app">Clinic workspace ↗</Link>
           <span>Published information</span>
           <span>Version {published.version_number}</span>
         </div>

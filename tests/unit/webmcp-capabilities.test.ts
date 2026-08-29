@@ -50,14 +50,61 @@ test("Owner publish disappears when exact approval is absent", () => {
   assert.equal(names.includes("rollback_site_version"), true);
 });
 
-test("Public website exposes published-derived reads only", () => {
+test("Public website exposes the customer appointment entry surface", () => {
   const names = toolNamesForState({
     ...completeState,
     scope: "public",
     role: undefined,
   });
 
-  assert.deepEqual(names, ["get_site_content", "get_opening_hours"]);
+  assert.deepEqual(names, [
+    "get_site_content",
+    "get_opening_hours",
+    "get_clinic_services",
+    "find_appointment_slots",
+    "prepare_appointment_request",
+  ]);
+});
+
+test("Prepared request exposes exact confirmation, then removes it", () => {
+  const prepared = toolNamesForState({
+    ...completeState,
+    scope: "public",
+    role: undefined,
+    appointmentStatus: "prepared",
+    canConfirmAppointment: true,
+  });
+  const requested = toolNamesForState({
+    ...completeState,
+    scope: "public",
+    role: undefined,
+    appointmentStatus: "requested",
+    canConfirmAppointment: true,
+  });
+
+  assert.equal(prepared.includes("confirm_appointment_request"), true);
+  assert.equal(requested.includes("confirm_appointment_request"), false);
+  assert.equal(requested.includes("get_appointment_status"), true);
+});
+
+test("Customer response and calendar tools follow appointment state", () => {
+  const proposed = toolNamesForState({
+    ...completeState,
+    scope: "public",
+    role: undefined,
+    appointmentStatus: "time_proposed",
+  });
+  const confirmed = toolNamesForState({
+    ...completeState,
+    scope: "public",
+    role: undefined,
+    appointmentStatus: "confirmed",
+  });
+
+  assert.equal(proposed.includes("respond_to_appointment_proposal"), true);
+  assert.equal(proposed.includes("get_appointment_calendar_event"), false);
+  assert.equal(confirmed.includes("respond_to_appointment_proposal"), false);
+  assert.equal(confirmed.includes("get_appointment_calendar_event"), true);
 });
 
 test("An unpublished public route exposes no tools", () => {

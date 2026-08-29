@@ -10,6 +10,9 @@ type Props = {
   siteSlug?: string;
   contextKey: string;
   presentation?: "workspace" | "public-site";
+  appointmentId?: string;
+  accessToken?: string;
+  confirmationToken?: string;
 };
 
 type RegistrarState =
@@ -18,11 +21,26 @@ type RegistrarState =
   | { status: "active"; names: string[] }
   | { status: "error"; names: string[] };
 
+const publicCapabilityLabels: Record<string, string> = {
+  get_site_content: "Published care details",
+  get_opening_hours: "Current opening hours",
+  get_clinic_services: "Available services",
+  find_appointment_slots: "Live appointment times",
+  prepare_appointment_request: "Prepare a request",
+  confirm_appointment_request: "Submit reviewed request",
+  get_appointment_status: "Latest appointment status",
+  respond_to_appointment_proposal: "Respond to the clinic",
+  get_appointment_calendar_event: "Calendar handoff",
+};
+
 export function WebMcpRegistrar({
   organizationSlug,
   siteSlug,
   contextKey,
   presentation = "workspace",
+  appointmentId,
+  accessToken,
+  confirmationToken,
 }: Props) {
   const router = useRouter();
   const [state, setState] = useState<RegistrarState>({
@@ -53,6 +71,9 @@ export function WebMcpRegistrar({
         const search = new URLSearchParams();
         if (organizationSlug) search.set("organizationSlug", organizationSlug);
         if (siteSlug) search.set("siteSlug", siteSlug);
+        if (appointmentId) search.set("appointmentId", appointmentId);
+        if (accessToken) search.set("accessToken", accessToken);
+        if (confirmationToken) search.set("confirmationToken", confirmationToken);
 
         const response = await fetch(`/api/webmcp/capabilities?${search}`, {
           cache: "no-store",
@@ -89,6 +110,9 @@ export function WebMcpRegistrar({
                         input,
                         organizationSlug,
                         siteSlug,
+                        appointmentId,
+                        accessToken,
+                        confirmationToken,
                       }),
                       signal: options?.signal,
                     });
@@ -99,8 +123,12 @@ export function WebMcpRegistrar({
                     }
 
                     if (result.capabilities_changed) {
-                      router.refresh();
-                      void refresh();
+                      if (typeof result.navigate_to === "string") {
+                        router.push(result.navigate_to);
+                      } else {
+                        router.refresh();
+                        void refresh();
+                      }
                     }
 
                     return result;
@@ -139,9 +167,44 @@ export function WebMcpRegistrar({
       generation += 1;
       registrationController.abort();
     };
-  }, [contextKey, organizationSlug, router, siteSlug]);
+  }, [accessToken, appointmentId, confirmationToken, contextKey, organizationSlug, router, siteSlug]);
 
   const publicPresentation = presentation === "public-site";
+  const publicLabels = [...new Set(
+    state.names.map((name) => publicCapabilityLabels[name]).filter(Boolean),
+  )];
+
+  if (!publicPresentation) {
+    const statusLabel = state.status === "active"
+      ? `${state.names.length} safe action${state.names.length === 1 ? " is" : "s are"} available for this step`
+      : state.status === "unsupported"
+        ? "The guided demo still works in this browser"
+        : state.status === "error"
+          ? "AI actions are temporarily unavailable"
+          : "Checking what the AI can do at this step";
+
+    return (
+      <details className="agent-access agent-access-details" aria-live="polite">
+        <summary>
+          <div>
+            <p className="kicker">What the AI can do right now</p>
+            <strong>{statusLabel}</strong>
+          </div>
+          <span>See WebMCP details</span>
+        </summary>
+        {state.names.length ? (
+          <ul>
+            {state.names.map((name) => <li key={name}>{name}</li>)}
+          </ul>
+        ) : (
+          <p>
+            The human workflow remains available even when this browser cannot
+            register agent actions.
+          </p>
+        )}
+      </details>
+    );
+  }
 
   return (
     <aside
@@ -150,36 +213,22 @@ export function WebMcpRegistrar({
     >
       <div>
         <p className="kicker">
-          {publicPresentation ? "Connected information" : "Agent Access Center"}
+          Connected information
         </p>
         <strong>
           {state.status === "active"
-            ? publicPresentation
-              ? "Up to date for people and assistants"
-              : `${state.names.length} native tools active`
+            ? "Up to date for people and assistants"
             : state.status === "unsupported"
-              ? publicPresentation
-                ? "You are viewing the latest published information"
-                : "WebMCP unavailable in this browser"
+              ? "You are viewing the latest published information"
               : state.status === "error"
-                ? publicPresentation
-                  ? "Published information is still available on this page"
-                  : "WebMCP registration failed"
-                : publicPresentation
-                  ? "Checking the latest published information"
-                  : "Resolving current capabilities"}
+                ? "Published information is still available on this page"
+                : "Checking the latest published information"}
         </strong>
       </div>
-      {state.names.length ? (
+      {publicLabels.length ? (
         <ul>
-          {state.names.map((name) => (
-            <li key={name}>
-              {publicPresentation
-                ? name === "get_opening_hours"
-                  ? "Opening hours"
-                  : "Site information"
-                : name}
-            </li>
+          {publicLabels.map((label) => (
+            <li key={label}>{label}</li>
           ))}
         </ul>
       ) : null}

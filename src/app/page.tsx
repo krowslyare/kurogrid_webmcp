@@ -1,24 +1,17 @@
-const journey = [
-  ["01", "Read the signal", "The agent finds bounded business evidence, not a blank prompt."],
-  ["02", "Prepare the change", "It turns that evidence into a fixed plan and structured draft."],
-  ["03", "Approve exactly", "The Owner reviews the human and agent-visible consequences."],
-  ["04", "Publish or reverse", "One version updates both surfaces; rollback stays available."],
-] as const;
+import { KuroBrand, KuroMark } from "@/components/KuroBrand";
 
-const principles = [
-  ["Contextual", "Tools appear only when role, resource, and state allow them."],
-  ["Human-led", "Drafting can be delegated. Publishing requires exact Owner approval."],
-  ["One truth", "People and assistants read the same immutable published version."],
+const journey = [
+  ["01", "Understand the opportunity", "Review demand, one customer question, and the clinic's approved hours."],
+  ["02", "Prepare the website update", "Turn that evidence into a fixed plan and the exact page content."],
+  ["03", "Owner reviews the draft", "Nothing can go live until the Owner approves that exact version."],
+  ["04", "Publish or undo", "Update the website and its AI-readable facts together, with rollback ready."],
 ] as const;
 
 export default function Home() {
   return (
     <main className="landing">
       <header className="landing-nav">
-        <a className="landing-brand" href="#top" aria-label="Kurogrid, home">
-          <span aria-hidden="true">K</span>
-          <strong>Kurogrid</strong>
-        </a>
+        <KuroBrand className="landing-brand" href="#top" />
         <nav aria-label="Primary navigation">
           <a href="#workflow">How it works</a>
           <a href="#why-webmcp">Why WebMCP</a>
@@ -29,12 +22,12 @@ export default function Home() {
       <section className="landing-hero" id="top">
         <div className="landing-hero-copy">
           <p className="landing-kicker">
-            <span aria-hidden="true" /> Agent-native business operations
+            <span aria-hidden="true" /> AI-assisted website operations
           </p>
-          <h1>The website becomes an operating surface.</h1>
+          <h1>Turn business signals into approved website updates.</h1>
           <p className="landing-lede">
-            Kurogrid lets an agent turn business evidence into a real, reversible
-            website change—without stepping outside human authority.
+            Kuro Agent helps a team spot an opportunity, prepare the exact change,
+            get Owner approval, and publish it—without giving the AI unchecked control.
           </p>
           <div className="landing-actions">
             <a className="landing-primary-cta" href="/demo">
@@ -45,107 +38,100 @@ export default function Home() {
             </a>
           </div>
           <ul className="landing-proof" aria-label="Product guarantees">
-            <li>Native WebMCP</li>
-            <li>Exact approval</li>
-            <li>Auditable rollback</li>
+            <li>Live website updates</li>
+            <li>Owner approval</li>
+            <li>One-click rollback</li>
           </ul>
         </div>
 
-        <div className="landing-product" aria-label="Kurogrid product workflow preview">
+        <div className="landing-product" aria-label="Kuro Agent product workflow preview">
           <div className="landing-product-bar">
             <span><i aria-hidden="true" /> Clínica Arboleda</span>
             <span>Owner workspace</span>
           </div>
           <div className="landing-product-body">
             <div className="landing-signal-label">
-              <span>Attention / 01</span>
-              <strong>High confidence</strong>
+              <span>Opportunity / 01</span>
+              <strong>Ready to review</strong>
             </div>
-            <h2>Weekend demand is rising.</h2>
+            <h2>Customers want Saturday appointments.</h2>
             <p>
-              A verified analytics signal and an open lead point to one
-              bounded website change.
+              Weekend demand, one customer question, and approved opening hours
+              point to a clear website update.
             </p>
             <div className="landing-evidence">
-              <span>Analytics signal</span>
-              <span>Verified hours</span>
-              <span>Synthetic lead</span>
+              <span>Weekend demand</span>
+              <span>Customer question</span>
+              <span>Approved hours</span>
             </div>
             <ol className="landing-mini-plan">
-              <li><span>01</span><strong>Acknowledge attention</strong><i>Done</i></li>
-              <li><span>02</span><strong>Prepare site draft</strong><i>Ready</i></li>
-              <li><span>03</span><strong>Publish exact revision</strong><i>Approval</i></li>
+              <li><span>01</span><strong>Review the opportunity</strong><i>Done</i></li>
+              <li><span>02</span><strong>Prepare the website update</strong><i>Ready</i></li>
+              <li><span>03</span><strong>Owner approves and publishes</strong><i>Approval</i></li>
             </ol>
           </div>
           <div className="landing-product-footer">
-            <span>Capability surface</span>
+            <span>WebMCP actions available now</span>
             <div>
-              <code>preview_publish_consequences</code>
-              <code>publish_site_draft</code>
+              <code>Preview consequences</code>
+              <code>Publish approved draft</code>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="landing-principles" id="why-webmcp" aria-labelledby="why-title">
-        <div className="landing-section-heading">
-          <p>Why WebMCP</p>
-          <h2 id="why-title">The right capability, at the right moment.</h2>
+      <section className="landing-operating" id="workflow" aria-labelledby="workflow-title">
+        <div className="landing-operating-heading">
+          <div>
+            <p className="landing-kicker"><span aria-hidden="true" /> One complete story</p>
+            <h2 id="workflow-title">One opportunity. One controlled website update.</h2>
+          </div>
+          <p>
+            The AI can prepare the work, but its available actions change with
+            the user&apos;s role and the current step. Publishing remains an Owner decision.
+          </p>
         </div>
-        <div className="landing-principle-grid">
-          {principles.map(([title, description], index) => (
-            <article key={title}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <h3>{title}</h3>
-              <p>{description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
 
-      <section className="landing-workflow" id="workflow" aria-labelledby="workflow-title">
-        <div className="landing-section-heading">
-          <p>One complete story</p>
-          <h2 id="workflow-title">From signal to published change.</h2>
-        </div>
-        <div className="landing-journey">
-          {journey.map(([number, title, description]) => (
-            <article key={number}>
-              <span>{number}</span>
-              <div>
+        <div className="landing-operating-grid">
+          <div className="landing-journey" aria-label="Kuro Agent workflow">
+            {journey.map(([number, title, description]) => (
+              <article key={number}>
+                <span>{number}</span>
                 <h3>{title}</h3>
                 <p>{description}</p>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))}
+          </div>
         </div>
-      </section>
 
-      <section className="landing-parity" aria-labelledby="parity-title">
-        <div>
-          <p className="landing-kicker">One published truth</p>
-          <h2 id="parity-title">What people see is what agents read.</h2>
-        </div>
-        <div className="landing-parity-diagram" aria-label="Human and agent publication parity">
-          <div><span>Human website</span><strong>Published content</strong></div>
-          <span aria-hidden="true">↔</span>
-          <div className="landing-version"><span>Canonical state</span><strong>site_version</strong></div>
-          <span aria-hidden="true">↔</span>
-          <div><span>WebMCP tools</span><strong>Published facts</strong></div>
+        <div className="landing-parity" id="why-webmcp" aria-labelledby="parity-title">
+          <div className="landing-parity-copy">
+            <p>One approved version</p>
+            <h3 id="parity-title">The live website is the source of truth.</h3>
+          </div>
+          <div className="landing-parity-diagram" aria-label="Human and agent publication parity">
+            <div><span>Customer website</span><strong>Approved content</strong></div>
+            <span aria-hidden="true">↔</span>
+            <div className="landing-version"><span>Shared source</span><strong>Published version</strong></div>
+            <span aria-hidden="true">↔</span>
+            <div><span>AI via WebMCP</span><strong>The same facts</strong></div>
+          </div>
         </div>
       </section>
 
       <section className="landing-close" aria-labelledby="close-title">
-        <p>Built to be explored, not explained away.</p>
-        <h2 id="close-title">Run the complete workflow.</h2>
+        <div>
+          <p>Built to be explored, not explained away.</p>
+          <h2 id="close-title">Run the complete workflow.</h2>
+        </div>
         <a className="landing-primary-cta landing-primary-cta-light" href="/demo">
           Enter the isolated demo <span aria-hidden="true">↗</span>
         </a>
       </section>
 
       <footer className="landing-footer">
-        <span>Kurogrid</span>
-        <span>WebMCP Challenge · public-safe implementation</span>
+        <span className="landing-footer-brand"><KuroMark className="kuro-mark kuro-mark--sm" /> Kuro Agent <i>by Kurogrid</i></span>
+        <span>WebMCP Challenge · fictional clinic demo</span>
       </footer>
     </main>
   );

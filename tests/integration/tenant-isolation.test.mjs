@@ -478,9 +478,31 @@ test("draft publication is exact, owner-only, idempotent, public, and reversible
   expectNoError(approval.error, "owner approves exact preview");
 
   const publishKeys = [randomUUID(), randomUUID()];
+  const ownerSession = await clients.ownerA.auth.getSession();
+  expectNoError(ownerSession.error, "read owner session for concurrent publish");
+  assert.ok(ownerSession.data.session?.access_token);
+  const memberSession = await clients.memberA.auth.getSession();
+  expectNoError(memberSession.error, "read member session for revision conflict");
+  assert.ok(memberSession.data.session?.access_token);
+  const publishClients = publishKeys.map(() => createClient(
+    apiUrl,
+    publishableKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        persistSession: false,
+      },
+      global: {
+        headers: {
+          Authorization: `Bearer ${ownerSession.data.session.access_token}`,
+        },
+      },
+    },
+  ));
   const publishAttempts = await Promise.all(
-    publishKeys.map((idempotencyKey) =>
-      clients.ownerA.rpc("publish_site_draft", {
+    publishKeys.map((idempotencyKey, index) =>
+      publishClients[index].rpc("publish_site_draft", {
         p_draft_id: draftResult.data.id,
         p_expected_revision: 1,
         p_approval_id: approval.data,
@@ -536,13 +558,25 @@ test("draft publication is exact, owner-only, idempotent, public, and reversible
   assert.equal(publicVersion.data[0].version_id, published.data);
   assert.deepEqual(publicVersion.data[0].content, siteContent);
 
-  const stalePatch = await clients.memberA.rpc("create_or_patch_site_draft", {
-    p_site_id: ids.siteA,
-    p_expected_revision: 0,
-    p_content: revisedSiteContent,
-  });
-  assert.equal(stalePatch.data, null);
-  assert.equal(stalePatch.error?.code, "40001");
+  const stalePatchResponse = await fetch(
+    `${apiUrl}/rest/v1/rpc/create_or_patch_site_draft`,
+    {
+      method: "POST",
+      headers: {
+        apikey: publishableKey,
+        Authorization: `Bearer ${memberSession.data.session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        p_site_id: ids.siteA,
+        p_expected_revision: 0,
+        p_content: revisedSiteContent,
+      }),
+    },
+  );
+  const stalePatch = await stalePatchResponse.json();
+  assert.equal(stalePatchResponse.ok, false);
+  assert.equal(stalePatch.code, "PT409");
 
   const revisedDraft = await clients.memberA.rpc("create_or_patch_site_draft", {
     p_site_id: ids.siteA,
