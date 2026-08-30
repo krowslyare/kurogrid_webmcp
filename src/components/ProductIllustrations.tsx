@@ -51,41 +51,6 @@ export function AppointmentHandoffIllustration({ className = "" }: IllustrationP
   );
 }
 
-export function ArboledaCareIllustration({ className = "" }: IllustrationProps) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={`product-illustration product-illustration--care ${className}`}
-      fill="none"
-      viewBox="0 0 560 560"
-    >
-      <path className="care-arch" d="M74 502V220C74 103 166 27 280 27s206 76 206 193v282H74Z" />
-      <circle className="care-halo" cx="280" cy="253" r="154" />
-
-      <g className="care-animal">
-        <path className="care-dog" d="M151 375c0-87 51-153 129-153s129 66 129 153v127H151V375Z" />
-        <path className="care-ear" d="M220 270c-55-18-92 5-98 57 30 7 58 0 80-21l18-36ZM340 270c55-18 92 5 98 57-30 7-58 0-80-21l-18-36Z" />
-        <path className="care-face" d="M224 304c19-20 93-20 112 0 15 16 12 52-5 74-13 17-31 27-51 27s-38-10-51-27c-17-22-20-58-5-74Z" />
-        <circle className="care-eye" cx="252" cy="322" r="4" />
-        <circle className="care-eye" cx="308" cy="322" r="4" />
-        <path className="care-nose" d="M270 350c6-6 15-6 21 0-1 9-6 14-11 14s-9-5-10-14Z" />
-        <path className="care-detail" d="M280 364c-1 10-8 17-18 18" />
-      </g>
-
-      <g className="care-botanical care-botanical--left">
-        <path d="M101 451c23-70 46-123 83-170" />
-        <path d="M129 381c-41-10-61-36-58-76 41 10 61 36 58 76ZM146 343c-4-40 14-68 51-84 4 40-14 68-51 84ZM111 424c-36 1-59-16-70-49 36-1 59 16 70 49Z" />
-      </g>
-      <g className="care-botanical care-botanical--right">
-        <path d="M459 451c-23-70-46-123-83-170" />
-        <path d="M431 381c41-10 61-36 58-76-41 10-61 36-58 76ZM414 343c4-40-14-68-51-84-4 40 14 68 51 84ZM449 424c36 1 59-16 70-49-36-1-59 16-70 49Z" />
-      </g>
-
-      <circle className="care-sun" cx="444" cy="155" r="6" />
-    </svg>
-  );
-}
-
 export function WorkspacePulseIllustration({ className = "" }: IllustrationProps) {
   return (
     <svg

@@ -4,10 +4,10 @@ import { KuroBrand, KuroMark } from "@/components/KuroBrand";
 import { AppointmentHandoffIllustration } from "@/components/ProductIllustrations";
 
 const journey = [
-  ["01", "Discover", "Read Arboleda's services and current availability directly from its website."],
-  ["02", "Prepare", "Choose a suitable time and assemble the exact request without sending it."],
-  ["03", "Confirm", "Hand control back to the customer before the clinic receives anything."],
-  ["04", "Resolve", "Let the clinic accept or suggest another time, then return by email and add it to Calendar."],
+  ["Discover", "Read Mimo's services and current availability directly from its website."],
+  ["Prepare", "Choose a suitable time and assemble the exact request without sending it."],
+  ["Confirm", "Hand control back to the customer before the clinic receives anything."],
+  ["Resolve", "Let the clinic accept or suggest another time, then return by email and add it to Calendar."],
 ] as const;
 
 export default function Home() {
@@ -50,7 +50,7 @@ export default function Home() {
 
         <div className="landing-product" aria-label="Kuro Agent product workflow preview">
           <div className="landing-product-bar">
-            <span><i aria-hidden="true" /> Arboleda Veterinary Care</span>
+            <span><i aria-hidden="true" /> Mimo Veterinary Care</span>
             <span>Customer agent</span>
           </div>
           <div className="landing-product-body">
@@ -65,7 +65,7 @@ export default function Home() {
             </div>
             <h2>Find Luna a dermatology visit this Saturday.</h2>
             <p>
-              Arboleda offers dermatology care on Saturday morning. The agent
+              Mimo offers dermatology care on Saturday morning. The agent
               can prepare a request, but only the customer can send it.
             </p>
             <div className="landing-prepared-request">
@@ -98,9 +98,8 @@ export default function Home() {
 
         <div className="landing-operating-grid">
           <div className="landing-journey" aria-label="Kuro Agent workflow">
-            {journey.map(([number, title, description]) => (
-              <article key={number}>
-                <span>{number}</span>
+            {journey.map(([title, description]) => (
+              <article key={title}>
                 <h3>{title}</h3>
                 <p>{description}</p>
               </article>
@@ -133,10 +132,10 @@ export default function Home() {
       <section className="landing-close" aria-labelledby="close-title">
         <div>
           <p>One fictional clinic. One real agent interaction.</p>
-          <h2 id="close-title">Ask Arboleda for a Saturday visit.</h2>
+          <h2 id="close-title">Ask Mimo for a Saturday visit.</h2>
         </div>
         <Link className="landing-primary-cta landing-primary-cta-light" href="/sites/arboleda-01">
-          Try it on Arboleda <span aria-hidden="true">↗</span>
+          Try it on Mimo <span aria-hidden="true">↗</span>
         </Link>
       </section>
 

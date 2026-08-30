@@ -25,15 +25,15 @@ export default async function DemoPage({ searchParams }: PageProps) {
         <aside className="auth-context demo-context" aria-label="Demo workflow overview">
           <KuroBrand className="auth-context-brand" />
           <div>
-            <p className="kicker">Arboleda · Live appointment demo</p>
+            <p className="kicker">Mimo · Live appointment demo</p>
             <h2>Ask for a visit. Let the page do more than answer.</h2>
             <p>Your assistant can find a current time, prepare the request, and stop before anything is sent.</p>
           </div>
           <ol>
-            <li><span>01</span>Ask for Saturday care</li>
-            <li><span>02</span>Review before sending</li>
-            <li><span>03</span>Receive the clinic&apos;s response</li>
-            <li><span>04</span>Return by email and add it to Calendar</li>
+            <li>Ask for Saturday care</li>
+            <li>Review before sending</li>
+            <li>Receive the clinic&apos;s response</li>
+            <li>Return by email and add it to Calendar</li>
           </ol>
         </aside>
 
@@ -43,12 +43,12 @@ export default async function DemoPage({ searchParams }: PageProps) {
             <p className="kicker">Isolated walkthrough</p>
             <h1>Open a resettable demo.</h1>
             <p>
-              Use the supplied code to start on Arboleda or inside the clinic.
+              Use the supplied code to start on Mimo or inside the clinic.
               Both sides share the same temporary data.
             </p>
           </div>
           <Link className="demo-public-link" href="/sites/arboleda-01">
-            Public customer demo — no code needed ↗
+            Public customer demo. No code needed ↗
           </Link>
           <form className="auth-form" action={claimDemoSandbox}>
           <label>
@@ -68,7 +68,7 @@ export default async function DemoPage({ searchParams }: PageProps) {
               name="journey"
               defaultValue="customer"
               options={[
-                { value: "customer", label: "Arboleda website", hint: "customer appointment" },
+                { value: "customer", label: "Mimo website", hint: "customer appointment" },
                 { value: "workspace", label: "Clinic workspace", hint: "requests and publishing" },
               ]}
             />

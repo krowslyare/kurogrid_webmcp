@@ -9,14 +9,15 @@ const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", displa
 const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Kuro Agent — WebMCP by Kurogrid",
+  title: "Kuro Agent | WebMCP by Kurogrid",
   description:
     "Kuro Agent shows how customers can book through an assistant using services and availability published on a business website.",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icono-32.png", type: "image/png", sizes: "32x32" },
       { url: "/isotipo.svg", type: "image/svg+xml" },
     ],
+    shortcut: "/icono-32.png",
   },
 };
 

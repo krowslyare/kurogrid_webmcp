@@ -82,7 +82,7 @@ function toolActivity(
     case "prepare_appointment_request":
       return { title: "Request prepared", detail: "The exact service, time, pet, and email are ready for customer review." };
     case "confirm_appointment_request":
-      return { title: "Reviewed request sent", detail: "Arboleda can now accept the appointment or suggest another time." };
+      return { title: "Reviewed request sent", detail: "Mimo can now accept the appointment or suggest another time." };
     case "get_appointment_status":
       return { title: "Clinic response checked", detail: "The assistant read the latest status from this private appointment link." };
     case "respond_to_appointment_proposal":

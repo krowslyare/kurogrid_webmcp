@@ -55,7 +55,7 @@ export async function sendAppointmentUpdate(
   }).format(new Date(update.startsAt));
   const proposed = update.status === "time_proposed";
   const subject = proposed
-    ? `Arboleda proposed a new time for ${update.petName}`
+    ? `Mimo proposed a new time for ${update.petName}`
     : `${update.petName}'s appointment is confirmed`;
   const heading = proposed ? "A new time was proposed." : "The appointment is confirmed.";
   const action = proposed ? "Review the new time" : "View appointment";
@@ -75,7 +75,7 @@ export async function sendAppointmentUpdate(
         html: `
           <div style="background:#f4f3ed;padding:40px 16px;font-family:Arial,sans-serif;color:#121510">
             <div style="max-width:560px;margin:auto;background:white;border:1px solid #d8dbd0;border-radius:18px;padding:32px">
-              <p style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#355d50">Clínica Arboleda</p>
+              <p style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#355d50">Clínica Mimo</p>
               <h1 style="font-size:32px;line-height:1.1;margin:18px 0">${heading}</h1>
               <p style="font-size:16px;line-height:1.6">${escapeHtml(update.service)} for <strong>${escapeHtml(update.petName)}</strong><br>${escapeHtml(formattedTime)}</p>
               <a href="${escapeHtml(manageUrl)}" style="display:inline-block;margin-top:18px;background:#14271f;color:white;text-decoration:none;padding:14px 20px;border-radius:999px">${action}</a>

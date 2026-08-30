@@ -36,7 +36,7 @@ export function CopyAgentPrompt({ prompt }: CopyAgentPromptProps) {
       </button>
       <p aria-live="polite" className={`clinic-copy-feedback is-${status}`}>
         {status === "copied"
-          ? "Copied with the page link — paste it into your assistant."
+          ? "Copied with the page link. Paste it into your assistant."
           : status === "error"
             ? "Copy failed. Select the request and try again."
             : "Includes this page link."}
