@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { KuroBrand, KuroMark } from "@/components/KuroBrand";
+import { AppointmentHandoffIllustration } from "@/components/ProductIllustrations";
 
 const journey = [
   ["01", "Discover", "Read Arboleda's services and current availability directly from its website."],
@@ -49,10 +50,15 @@ export default function Home() {
 
         <div className="landing-product" aria-label="Kuro Agent product workflow preview">
           <div className="landing-product-bar">
-            <span><i aria-hidden="true" /> Clínica Arboleda</span>
+            <span><i aria-hidden="true" /> Arboleda Veterinary Care</span>
             <span>Customer agent</span>
           </div>
           <div className="landing-product-body">
+            <div className="landing-product-illustration">
+              <AppointmentHandoffIllustration />
+              <span>Customer request</span>
+              <span>Clinic response</span>
+            </div>
             <div className="landing-signal-label">
               <span>Appointment / Luna</span>
               <strong>3 times available</strong>

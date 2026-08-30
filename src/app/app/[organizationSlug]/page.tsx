@@ -8,6 +8,7 @@ import {
 } from "@/features/attention/server/actions";
 import { updateAppointmentFromOwner } from "@/features/appointments/server/actions";
 import { KuroBrand } from "@/components/KuroBrand";
+import { WorkspacePulseIllustration } from "@/components/ProductIllustrations";
 import { getViewer } from "@/features/auth/server/get-viewer";
 import {
   approveSiteDraft,
@@ -292,12 +293,20 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
       ) : null}
 
       <section className="workspace-heading guided-heading">
-        <p className="kicker">Website settings · Step {currentStep} of 4</p>
-        <h2>{workspaceTitle}</h2>
-        <p>
-          Update the public page once. Customers and assistants will see the
-          same services and hours.
-        </p>
+        <div className="guided-heading-main">
+          <div>
+            <p className="kicker">Website settings · Step {currentStep} of 4</p>
+            <h2>{workspaceTitle}</h2>
+            <p>
+              Update the public page once. Customers and assistants will see the
+              same services and hours.
+            </p>
+          </div>
+          <div className="workspace-illustration-wrap">
+            <WorkspacePulseIllustration />
+            <p><span>One approved change</span><strong>Customer page + assistant tools</strong></p>
+          </div>
+        </div>
         <ol className="workspace-progress" aria-label="Website update progress">
           {[
             [1, "Review", "Check what changed"],

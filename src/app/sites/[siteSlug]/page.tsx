@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { CopyAgentPrompt } from "@/components/CopyAgentPrompt";
+import { ArboledaCareIllustration } from "@/components/ProductIllustrations";
 import {
   confirmAppointmentFromPage,
   prepareAppointmentFromPage,
@@ -196,7 +197,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
       data-published-version={published.version_id}
     >
       <header className="published-nav">
-        <a className="clinic-brand" href="#top" aria-label="Arboleda, home">
+        <a className="clinic-brand" href="#top" aria-label="Arboleda Veterinary Care, home">
           <span className="clinic-mark" aria-hidden="true">
             <svg viewBox="0 0 40 40" role="presentation">
               <path d="M20 34V15" />
@@ -236,12 +237,10 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
         </div>
 
         <div className="clinic-hero-art" aria-hidden="true">
-          <span className="clinic-orbit clinic-orbit-one" />
-          <span className="clinic-orbit clinic-orbit-two" />
-          <div className="clinic-monogram">A</div>
+          <ArboledaCareIllustration />
           <div className="clinic-art-note">
-            <span>Care notes</span>
-            <strong>Clear, calm,<br />considered.</strong>
+            <span>Now welcoming</span>
+            <strong>Saturday<br />appointments.</strong>
           </div>
         </div>
       </section>
