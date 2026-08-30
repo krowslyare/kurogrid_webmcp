@@ -505,6 +505,7 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .product-illustration--care .care-halo { stroke: rgba(216,241,122,.2); stroke-width: 1.5; }
 .product-illustration--care .care-dog { fill: #d8f17a; }
 .product-illustration--care .care-ear { fill: #b9d567; }
+.product-illustration--care .care-animal { transform-box: fill-box; transform-origin: bottom center; animation: care-breathe 5.5s ease-in-out infinite; }
 .product-illustration--care .care-face { fill: #f5f1e8; }
 .product-illustration--care .care-eye { fill: var(--clinic-ink); }
 .product-illustration--care .care-nose { fill: var(--clinic-forest); }
@@ -521,10 +522,15 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .clinic-agent-prompt { margin-top: 34px; padding: 24px; border-radius: 4px 24px 24px 24px; color: #fff; background: var(--clinic-forest); box-shadow: 0 18px 48px rgba(23,37,30,.12); }
 .clinic-agent-prompt span { color: var(--clinic-lime); font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .clinic-agent-prompt .clinic-agent-explainer { margin: 11px 0 0; color: #d8e0da; font-size: 12px; line-height: 1.55; }
-.clinic-agent-request { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: end; margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.16); }
-.clinic-agent-request p { margin: 0; font: 400 19px/1.35 "Iowan Old Style", Georgia, serif; }
-.clinic-copy-prompt { min-height: 38px; padding: 0 13px; border: 1px solid rgba(255,255,255,.24); border-radius: 999px; cursor: pointer; background: transparent; color: var(--clinic-lime); font: 700 10px/1 Arial, sans-serif; white-space: nowrap; }
-.clinic-copy-prompt:hover { border-color: var(--clinic-lime); }
+.clinic-agent-request { display: grid; grid-template-columns: minmax(0, 1fr) 164px; gap: 18px; align-items: end; margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.16); }
+.clinic-agent-request > p { margin: 0; font: 400 19px/1.35 "Iowan Old Style", Georgia, serif; }
+.clinic-copy-action { display: grid; gap: 8px; width: 164px; }
+.clinic-copy-prompt { width: 122px; min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 13px; border: 1px solid rgba(255,255,255,.24); border-radius: 999px; cursor: pointer; background: transparent; color: var(--clinic-lime); font: 700 10px/1 Arial, sans-serif; white-space: nowrap; transition: border-color .18s ease, background .18s ease, transform .18s ease; }
+.clinic-copy-prompt span { display: inline-grid; width: 12px; place-items: center; font-size: 10px; }
+.clinic-copy-prompt:hover { border-color: var(--clinic-lime); background: rgba(255,255,255,.06); transform: translateY(-1px); }
+.clinic-copy-feedback { width: 164px; min-height: 25px; margin: 0; color: #aebdb3; font: 8px/1.45 Arial, sans-serif; letter-spacing: .01em; transition: color .18s ease; }
+.clinic-copy-feedback.is-copied { color: var(--clinic-lime); }
+.clinic-copy-feedback.is-error { color: #ffd0ca; }
 .clinic-booking-options { align-self: end; display: grid; gap: 18px; }
 .clinic-service-list { border-top: 1px solid var(--clinic-ink); }
 .clinic-service-list article { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 18px; align-items: baseline; padding: 22px 0; border-bottom: 1px solid rgba(23,37,30,.18); }
@@ -533,31 +539,47 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .clinic-service-list h3 { margin: 0; font: 400 28px/1.1 "Iowan Old Style", Georgia, serif; }
 .clinic-service-list p { max-width: 440px; margin: 0; color: #66736b; font-size: 12px; line-height: 1.5; }
 .clinic-service-list article > strong { color: #536159; font-size: 11px; font-weight: 600; }
-.clinic-human-booking { border: 1px solid rgba(23,37,30,.18); border-radius: 18px; background: rgba(255,255,255,.48); }
-.clinic-human-booking summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 20px; cursor: pointer; list-style: none; }
-.clinic-human-booking summary::-webkit-details-marker { display: none; }
-.clinic-human-booking summary > div { display: grid; gap: 4px; }
-.clinic-human-booking summary span { color: #718078; font-size: 8px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
-.clinic-human-booking summary strong { font: 400 21px/1.1 "Iowan Old Style", Georgia, serif; }
-.clinic-human-booking summary em { padding: 7px 9px; border-radius: 999px; background: rgba(33,76,58,.08); color: var(--clinic-forest); font-size: 9px; font-style: normal; font-weight: 700; white-space: nowrap; }
-.clinic-human-booking[open] summary { border-bottom: 1px solid rgba(23,37,30,.14); }
+.clinic-human-booking { overflow: hidden; border: 1px solid rgba(23,37,30,.18); border-radius: 18px; background: rgba(255,255,255,.48); box-shadow: 0 0 0 rgba(23,37,30,0); transition: border-color .25s ease, box-shadow .25s ease; overflow-anchor: none; }
+.clinic-human-booking.is-open { border-color: rgba(23,37,30,.28); box-shadow: 0 16px 44px rgba(23,37,30,.07); }
+.clinic-human-booking-trigger { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 20px; border: 0; cursor: pointer; text-align: left; background: transparent; color: inherit; transition: background .2s ease; }
+.clinic-human-booking-trigger:hover { background: rgba(255,255,255,.46); }
+.clinic-human-booking-trigger > span { display: grid; gap: 4px; }
+.clinic-human-booking-trigger small { color: #718078; font-size: 8px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+.clinic-human-booking-trigger strong { font: 400 21px/1.1 "Iowan Old Style", Georgia, serif; }
+.clinic-human-booking-trigger em { display: inline-flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: 999px; background: rgba(33,76,58,.08); color: var(--clinic-forest); font-size: 9px; font-style: normal; font-weight: 700; white-space: nowrap; }
+.clinic-human-booking-trigger em i { font-size: 13px; font-style: normal; line-height: .7; transform: translateY(-1px) rotate(0); transition: transform .32s cubic-bezier(.16,1,.3,1); }
+.clinic-human-booking.is-open .clinic-human-booking-trigger { border-bottom: 1px solid rgba(23,37,30,.14); }
+.clinic-human-booking.is-open .clinic-human-booking-trigger em i { transform: translateY(1px) rotate(180deg); }
+.clinic-human-booking-panel { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .38s cubic-bezier(.16,1,.3,1), opacity .22s ease; }
+.clinic-human-booking.is-open .clinic-human-booking-panel { grid-template-rows: 1fr; opacity: 1; }
 .clinic-human-booking-body { padding: 20px; }
+.clinic-human-booking-panel > .clinic-human-booking-body { min-height: 0; overflow: hidden; padding-block: 0; transition: padding .38s cubic-bezier(.16,1,.3,1); }
+.clinic-human-booking.is-open .clinic-human-booking-panel > .clinic-human-booking-body { padding-block: 20px; }
 .clinic-human-booking-body > p { margin: 0; color: #66736b; font-size: 11px; line-height: 1.55; }
 .clinic-human-booking-body form { display: grid; gap: 16px; margin-top: 18px; }
 .clinic-human-booking-body fieldset { margin: 0; padding: 0; border: 0; }
 .clinic-human-booking-body legend { margin-bottom: 10px; color: var(--clinic-ink); font-size: 11px; font-weight: 700; }
 .clinic-slot-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-.clinic-slot-options label { position: relative; display: grid; gap: 4px; padding: 12px; border: 1px solid rgba(23,37,30,.16); border-radius: 10px; cursor: pointer; background: #fff; }
+.clinic-slot-options label { position: relative; display: grid; gap: 4px; padding: 12px; border: 1px solid rgba(23,37,30,.16); border-radius: 10px; cursor: pointer; background: #fff; transform: translateY(0); transition: border-color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease; }
+.clinic-slot-options label:hover { border-color: rgba(33,76,58,.42); transform: translateY(-2px); }
 .clinic-slot-options label:has(input:checked) { border-color: var(--clinic-forest); background: rgba(216,241,122,.24); box-shadow: inset 0 0 0 1px var(--clinic-forest); }
 .clinic-slot-options input { position: absolute; opacity: 0; pointer-events: none; }
 .clinic-slot-options span { color: var(--clinic-ink); font: 400 19px/1 "Iowan Old Style", Georgia, serif; }
 .clinic-slot-options small { color: #718078; font-size: 9px; }
+.clinic-slot-options label > i { position: absolute; top: 9px; right: 9px; display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: var(--clinic-forest); color: var(--clinic-lime); font-size: 8px; font-style: normal; opacity: 0; transform: scale(.65); transition: opacity .2s ease, transform .2s cubic-bezier(.16,1,.3,1); }
+.clinic-slot-options label:has(input:checked) > i { opacity: 1; transform: scale(1); }
 .clinic-booking-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .clinic-booking-fields label { display: grid; gap: 6px; color: #536159; font-size: 10px; font-weight: 700; }
-.clinic-booking-fields input { width: 100%; height: 43px; padding: 0 11px; border: 1px solid rgba(23,37,30,.18); border-radius: 9px; background: #fff; color: var(--clinic-ink); font: inherit; }
+.clinic-booking-fields input { width: 100%; height: 43px; padding: 0 11px; border: 1px solid rgba(23,37,30,.18); border-radius: 9px; background: #fff; color: var(--clinic-ink); font: inherit; transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
 .clinic-booking-fields input:focus { outline: 0; border-color: var(--clinic-forest); box-shadow: 0 0 0 3px rgba(33,76,58,.08); }
+.clinic-booking-fields input[aria-invalid="true"] { border-color: #a63f37; background: #fff9f7; }
+.clinic-field-error { min-height: 13px; color: #9b342e; font-size: 9px; font-weight: 650; line-height: 1.35; }
 .clinic-human-booking-body .clinic-primary-cta { width: 100%; min-height: 46px; border: 0; cursor: pointer; background: var(--clinic-forest); color: #fff; }
 .clinic-human-booking-body .clinic-booking-error { margin-top: 12px; color: #9b342e; font-weight: 700; }
+.clinic-human-booking-trigger:focus-visible,
+.clinic-copy-prompt:focus-visible,
+.clinic-slot-options input:focus-visible + span,
+.clinic-text-button:focus-visible { outline: 2px solid var(--clinic-forest); outline-offset: 3px; }
 .customer-appointment-card { align-self: end; padding: 34px; border-radius: 4px 34px 34px 34px; color: #fff; background: var(--clinic-forest); box-shadow: 0 28px 70px rgba(23,37,30,.15); }
 .customer-appointment-status { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,.16); }
 .customer-appointment-status span { color: #b8c7bd; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
@@ -593,6 +615,8 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .customer-review-request > p { margin: 0; color: #ced7d1; font-size: 13px; line-height: 1.55; }
 .customer-review-request small { color: #aebdb3; }
 .customer-review-request .clinic-primary-cta { min-width: 0; border: 0; cursor: pointer; background: var(--clinic-lime); color: var(--clinic-ink); }
+.customer-review-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+.customer-review-actions .clinic-text-button { padding: 10px 2px; text-decoration: underline; text-decoration-color: rgba(255,255,255,.28); text-underline-offset: 4px; }
 .customer-proposal,
 .customer-calendar-actions { margin-top: 34px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.16); }
 .customer-proposal > p { color: #ced7d1; font-size: 13px; line-height: 1.55; }
@@ -697,6 +721,10 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
   from { opacity: 0; transform: scale(.96) translateY(20px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
+@keyframes care-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
 
 @media (max-width: 760px) {
   h1 { font-size: clamp(48px, 15vw, 70px); }
@@ -794,12 +822,14 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
   .clinic-booking-intro h2 { font-size: 44px; }
   .clinic-agent-prompt { padding: 21px; }
   .clinic-agent-request { grid-template-columns: 1fr; align-items: start; }
-  .clinic-agent-request p { font-size: 18px; }
+  .clinic-agent-request > p { font-size: 18px; }
+  .clinic-copy-action { width: 100%; }
+  .clinic-copy-feedback { width: 100%; min-height: 13px; }
   .clinic-copy-prompt { justify-self: start; }
   .clinic-booking-fields { grid-template-columns: 1fr; }
   .clinic-slot-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .clinic-slot-options span { font-size: 20px; white-space: nowrap; }
-  .clinic-human-booking summary { align-items: flex-start; }
+  .clinic-human-booking-trigger { align-items: flex-start; flex-direction: column; gap: 12px; }
   .clinic-service-list article { grid-template-columns: 28px 1fr; }
   .clinic-service-list article > strong { grid-column: 2; }
   .customer-appointment-card { padding: 26px 22px; border-radius: 4px 24px 24px 24px; }
@@ -833,6 +863,14 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 @media (prefers-reduced-motion: reduce) {
   .clinic-hero-copy,
   .clinic-hero-art { animation: none; }
-  .clinic-primary-cta { transition: none; }
-  .care-botanical, .care-sun { animation: none; }
+  .clinic-primary-cta,
+  .clinic-copy-prompt,
+  .clinic-human-booking,
+  .clinic-human-booking-panel,
+  .clinic-human-booking-panel > .clinic-human-booking-body,
+  .clinic-human-booking-trigger,
+  .clinic-human-booking-trigger em i,
+  .clinic-slot-options label,
+  .clinic-slot-options label > i { transition: none; }
+  .care-animal, .care-botanical, .care-sun { animation: none; }
 }

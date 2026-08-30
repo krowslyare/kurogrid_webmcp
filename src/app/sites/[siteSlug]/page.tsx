@@ -5,9 +5,9 @@ import { cache } from "react";
 
 import { CopyAgentPrompt } from "@/components/CopyAgentPrompt";
 import { ArboledaCareIllustration } from "@/components/ProductIllustrations";
+import { TraditionalBooking } from "@/components/TraditionalBooking";
 import {
   confirmAppointmentFromPage,
-  prepareAppointmentFromPage,
   respondToAppointmentProposal,
   simulateClinicResponseFromPage,
 } from "@/features/appointments/server/actions";
@@ -22,6 +22,7 @@ type PageProps = {
     bookingError?: string;
     confirm?: string;
     delivery?: string;
+    edit?: string;
     mode?: string;
   }>;
 };
@@ -169,10 +170,13 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
         p_access_token: customerContext.access,
       })
     : { data: null, error: null };
-  const appointment = appointmentResult.data && typeof appointmentResult.data === "object"
+  const appointmentRecord = appointmentResult.data && typeof appointmentResult.data === "object"
     && !Array.isArray(appointmentResult.data)
     ? appointmentResult.data as Record<string, unknown>
     : null;
+  const editingAppointment = customerContext.edit === "1"
+    && appointmentRecord?.status === "prepared";
+  const appointment = editingAppointment ? null : appointmentRecord;
   const slotsResult = appointment
     ? { data: [], error: null }
     : await supabase.rpc("find_appointment_slots", {
@@ -183,6 +187,18 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
   const slots = slotsResult.data ?? [];
   const appointmentDate = slots[0] ? slotDate(slots[0].starts_at) : "next Saturday";
   const agentPrompt = `Find a dermatology appointment for Luna on ${appointmentDate} morning and email me if the clinic changes the time.`;
+  const editSearch = appointmentRecord && customerContext.appointment
+    && customerContext.access && customerContext.confirm
+    ? new URLSearchParams({
+        access: customerContext.access,
+        appointment: customerContext.appointment,
+        confirm: customerContext.confirm,
+        edit: "1",
+      })
+    : null;
+  const editHref = editSearch
+    ? `/sites/${siteSlug}?${editSearch}#agent-booking`
+    : `/sites/${siteSlug}#agent-booking`;
   const schedule = Object.entries(content.opening_hours).sort(([first], [second]) => {
     const firstIndex = scheduleOrder.indexOf(first as (typeof scheduleOrder)[number]);
     const secondIndex = scheduleOrder.indexOf(second as (typeof scheduleOrder)[number]);
@@ -323,15 +339,20 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
             {appointment.status === "prepared" ? (
               <div className="customer-review-request">
                 <p>Nothing has been sent yet. Review the service, time, pet, and email above.</p>
-                {customerContext.confirm ? (
-                  <form action={confirmAppointmentFromPage}>
-                    <input name="siteSlug" type="hidden" value={siteSlug} />
-                    <input name="requestId" type="hidden" value={customerContext.appointment} />
-                    <input name="accessToken" type="hidden" value={customerContext.access} />
-                    <input name="confirmationToken" type="hidden" value={customerContext.confirm} />
-                    <button className="clinic-primary-cta" type="submit">Send request to Arboleda</button>
-                  </form>
-                ) : <small>Return to the original review link to send this request.</small>}
+                <div className="customer-review-actions">
+                  {customerContext.confirm ? (
+                    <form action={confirmAppointmentFromPage}>
+                      <input name="siteSlug" type="hidden" value={siteSlug} />
+                      <input name="requestId" type="hidden" value={customerContext.appointment} />
+                      <input name="accessToken" type="hidden" value={customerContext.access} />
+                      <input name="confirmationToken" type="hidden" value={customerContext.confirm} />
+                      <button className="clinic-primary-cta" type="submit">Send request to Arboleda</button>
+                    </form>
+                  ) : <small>Return to the original review link to send this request.</small>}
+                  <Link className="clinic-text-button" href={editHref}>
+                    ← Edit details
+                  </Link>
+                </div>
               </div>
             ) : appointment.status === "requested" ? (
               <div className="customer-demo-response">
@@ -410,47 +431,16 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
               ))}
             </div>
 
-            <details className="clinic-human-booking">
-              <summary>
-                <div><span>Prefer not to use an assistant?</span><strong>Book traditionally on this page</strong></div>
-                <em>{slots.length
-                  ? `${slots.length} live ${slots.length === 1 ? "time" : "times"} · Open form`
-                  : "No times available"}</em>
-              </summary>
-              <div className="clinic-human-booking-body">
-                <p>The form and your assistant use the same published services and availability. Either way, you review before sending.</p>
-                {customerContext.bookingError ? (
-                  <p className="clinic-booking-error">
-                    {customerContext.bookingError === "confirm"
-                      ? "That time is no longer available. Start a new request."
-                      : "The request could not be prepared. Check the details and try again."}
-                  </p>
-                ) : null}
-                {slots.length ? (
-                  <form action={prepareAppointmentFromPage}>
-                    <input name="siteSlug" type="hidden" value={siteSlug} />
-                    <input name="serviceSlug" type="hidden" value="dermatology" />
-                    <fieldset>
-                      <legend>Dermatology · {appointmentDate}</legend>
-                      <div className="clinic-slot-options">
-                        {slots.map((slot, index) => (
-                          <label key={slot.slot_id}>
-                            <input defaultChecked={index === 0} name="slotId" type="radio" value={slot.slot_id} />
-                            <span>{slotTime(slot.starts_at)}</span>
-                            <small>{slot.duration_minutes} min</small>
-                          </label>
-                        ))}
-                      </div>
-                    </fieldset>
-                    <div className="clinic-booking-fields">
-                      <label>Pet name<input maxLength={80} name="petName" placeholder="Luna" required /></label>
-                      <label>Email for updates<input inputMode="email" maxLength={200} name="customerEmail" placeholder="you@example.com" required type="email" /></label>
-                    </div>
-                    <button className="clinic-primary-cta" type="submit">Review appointment request</button>
-                  </form>
-                ) : <p>No dermatology times are currently available.</p>}
-              </div>
-            </details>
+            <TraditionalBooking
+              appointmentDate={appointmentDate}
+              bookingError={customerContext.bookingError}
+              initialCustomerEmail={editingAppointment ? String(appointmentRecord?.customer_email ?? "") : undefined}
+              initialOpen={editingAppointment || Boolean(customerContext.bookingError)}
+              initialPetName={editingAppointment ? String(appointmentRecord?.pet_name ?? "") : undefined}
+              initialStartsAt={editingAppointment ? String(appointmentRecord?.original_starts_at ?? "") : undefined}
+              siteSlug={siteSlug}
+              slots={slots}
+            />
           </div>
         )}
       </section>
@@ -493,7 +483,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
           <p className="clinic-kicker">Plan with current information</p>
           <h2 id="closing-title">See when Saturday care is available.</h2>
         </div>
-        <a className="clinic-primary-cta clinic-primary-cta-light" href="#opening-hours">
+        <a className="clinic-primary-cta clinic-primary-cta-light" href="#agent-booking">
           {content.cta_label}
           <span aria-hidden="true">↑</span>
         </a>
@@ -506,9 +496,9 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
         </div>
         <WebMcpRegistrar
           siteSlug={siteSlug}
-          appointmentId={customerContext.appointment}
-          accessToken={customerContext.access}
-          confirmationToken={customerContext.confirm}
+          appointmentId={editingAppointment ? undefined : customerContext.appointment}
+          accessToken={editingAppointment ? undefined : customerContext.access}
+          confirmationToken={editingAppointment ? undefined : customerContext.confirm}
           contextKey={JSON.stringify([published.version_id, appointment?.status ?? null])}
           presentation="public-site"
         />

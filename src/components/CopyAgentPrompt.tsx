@@ -1,23 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type CopyAgentPromptProps = {
   prompt: string;
 };
 
 export function CopyAgentPrompt({ prompt }: CopyAgentPromptProps) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
+  const resetTimer = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (resetTimer.current) window.clearTimeout(resetTimer.current);
+  }, []);
 
   async function copyPrompt() {
-    await navigator.clipboard.writeText(prompt);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
+    try {
+      const currentUrl = new URL(window.location.href);
+      const pageUrl = `${currentUrl.origin}${currentUrl.pathname}`;
+      await navigator.clipboard.writeText(`${prompt}\n\nPage: ${pageUrl}`);
+      setStatus("copied");
+    } catch {
+      setStatus("error");
+    }
+
+    if (resetTimer.current) window.clearTimeout(resetTimer.current);
+    resetTimer.current = window.setTimeout(() => setStatus("idle"), 2600);
   }
 
   return (
-    <button className="clinic-copy-prompt" onClick={copyPrompt} type="button">
-      {copied ? "Copied" : "Copy request"}
-    </button>
+    <div className="clinic-copy-action">
+      <button className="clinic-copy-prompt" onClick={copyPrompt} type="button">
+        <span aria-hidden="true">{status === "copied" ? "✓" : "↗"}</span>
+        {status === "copied" ? "Copied" : "Copy request"}
+      </button>
+      <p aria-live="polite" className={`clinic-copy-feedback is-${status}`}>
+        {status === "copied"
+          ? "Copied with the page link — paste it into your assistant."
+          : status === "error"
+            ? "Copy failed. Select the request and try again."
+            : "Includes this page link."}
+      </p>
+    </div>
   );
 }
