@@ -234,6 +234,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
               Our approach <span aria-hidden="true">↓</span>
             </a>
           </div>
+          <p className="clinic-assistant-ready"><span aria-hidden="true" /> Assistant-ready appointment planning</p>
         </div>
 
         <div className="clinic-hero-art" aria-hidden="true">
@@ -258,13 +259,8 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
           </p>
           {!appointment ? (
             <div className="clinic-agent-prompt">
-              <span>Use this page with your AI assistant</span>
-              <p className="clinic-agent-explainer">It reads live times here, prepares the request, and asks for your approval before Arboleda receives it.</p>
-              <ol aria-label="How to use Arboleda with an assistant">
-                <li><i>01</i> Open assistant</li>
-                <li><i>02</i> Share this page</li>
-                <li><i>03</i> Review before sending</li>
-              </ol>
+              <span>Ask your assistant</span>
+              <p className="clinic-agent-explainer">It reads live times from this page. You still review the request before Arboleda receives it.</p>
               <div className="clinic-agent-request">
                 <p>{agentPrompt}</p>
                 <CopyAgentPrompt prompt={agentPrompt} />
@@ -494,8 +490,8 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
 
       <section className="clinic-closing" aria-labelledby="closing-title">
         <div>
-          <p className="clinic-kicker">A calmer kind of care</p>
-          <h2 id="closing-title">Make room for the moments that matter.</h2>
+          <p className="clinic-kicker">Plan with current information</p>
+          <h2 id="closing-title">See when Saturday care is available.</h2>
         </div>
         <a className="clinic-primary-cta clinic-primary-cta-light" href="#opening-hours">
           {content.cta_label}
@@ -517,7 +513,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
           presentation="public-site"
         />
         <div className="clinic-footer-meta">
-          <Link href="/app">Clinic staff workspace · demo access ↗</Link>
+          <Link href="/demo">Clinic staff workspace · demo access ↗</Link>
           <span>Published information</span>
           <span>Version {published.version_number}</span>
         </div>

@@ -65,11 +65,10 @@ export function ArboledaCareIllustration({ className = "" }: IllustrationProps) 
       <g className="care-animal">
         <path className="care-dog" d="M151 375c0-87 51-153 129-153s129 66 129 153v127H151V375Z" />
         <path className="care-ear" d="M220 270c-55-18-92 5-98 57 30 7 58 0 80-21l18-36ZM340 270c55-18 92 5 98 57-30 7-58 0-80-21l-18-36Z" />
-        <path className="care-face" d="M224 304c19-19 93-19 112 0 17 17 14 54-6 78-13 16-31 26-50 26s-37-10-50-26c-20-24-23-61-6-78Z" />
-        <circle className="care-eye" cx="242" cy="322" r="6" />
-        <circle className="care-eye" cx="318" cy="322" r="6" />
-        <path className="care-nose" d="M265 352c7-7 23-7 30 0-1 12-8 19-15 19s-14-7-15-19Z" />
-        <path className="care-detail" d="M280 371v19M280 390c-12 0-20-5-26-13M280 390c12 0 20-5 26-13" />
+        <path className="care-face" d="M218 302c27-34 84-43 117-15 17 14 24 36 16 54-5 12-17 18-28 23-12 5-18 17-14 29-27 16-68 14-89-7-20-20-20-61-2-84Z" />
+        <circle className="care-eye" cx="302" cy="316" r="5" />
+        <path className="care-nose" d="M337 340c8-4 17-1 20 6-5 8-14 11-21 6l1-12Z" />
+        <path className="care-detail" d="M336 352c-4 16-16 26-31 29" />
       </g>
 
       <g className="care-botanical care-botanical--left">
@@ -81,10 +80,7 @@ export function ArboledaCareIllustration({ className = "" }: IllustrationProps) 
         <path d="M431 381c41-10 61-36 58-76-41 10-61 36-58 76ZM414 343c4-40-14-68-51-84-4 40 14 68 51 84ZM449 424c36 1 59-16 70-49-36-1-59 16-70 49Z" />
       </g>
 
-      <g className="care-sparkles">
-        <path d="M112 159v34M95 176h34M450 112v25M438 124h25" />
-        <circle cx="453" cy="220" r="6" />
-      </g>
+      <circle className="care-sun" cx="444" cy="155" r="6" />
     </svg>
   );
 }

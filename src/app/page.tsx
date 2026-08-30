@@ -68,19 +68,14 @@ export default function Home() {
               Arboleda offers dermatology care on Saturday morning. The agent
               can prepare a request, but only the customer can send it.
             </p>
-            <div className="landing-evidence">
-              <span>Dermatology</span>
-              <span>Saturday 09:30</span>
-              <span>30 minutes</span>
+            <div className="landing-prepared-request">
+              <span>Prepared for customer review</span>
+              <strong>Dermatology · Saturday 09:30</strong>
+              <i>Nothing sent yet</i>
             </div>
-            <ol className="landing-mini-plan">
-              <li><span>01</span><strong>Read services and live times</strong><i>Done</i></li>
-              <li><span>02</span><strong>Prepare Saturday at 09:30</strong><i>Ready</i></li>
-              <li><span>03</span><strong>Ask before sending</strong><i>Confirm</i></li>
-            </ol>
           </div>
           <div className="landing-product-footer">
-            <span>Available from this page</span>
+            <span>Agent capabilities on this page</span>
             <div>
               <code>Find appointment times</code>
               <code>Prepare request</code>
@@ -118,12 +113,19 @@ export default function Home() {
             <p>Built into the page</p>
             <h3 id="parity-title">The website becomes a working interface.</h3>
           </div>
-          <div className="landing-parity-diagram" aria-label="Customer, agent, and clinic handoff">
-            <div><span>Customer</span><strong>I need Saturday care</strong></div>
-            <span aria-hidden="true">↔</span>
-            <div className="landing-version"><span>Arboleda website + WebMCP</span><strong>Find times · prepare request</strong></div>
-            <span aria-hidden="true">↔</span>
-            <div><span>Clinic</span><strong>Accept or offer another time</strong></div>
+          <div className="landing-outcome" aria-label="Confirmed appointment outcome">
+            <div className="landing-outcome-status">
+              <span>Clinic response</span>
+              <strong>Confirmed</strong>
+            </div>
+            <div className="landing-outcome-visit">
+              <span>Luna · Dermatology</span>
+              <strong>Saturday, 09:30</strong>
+            </div>
+            <ul>
+              <li><span aria-hidden="true">✓</span> Email update sent</li>
+              <li><span aria-hidden="true">＋</span> Ready for Calendar</li>
+            </ul>
           </div>
         </div>
       </section>
