@@ -349,11 +349,27 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
           <div className="guided-action">
             <div>
               <p className="kicker">Recommended next step</p>
-              <h3>{guidedPlan ? "The update is ready to draft." : "Prepare the Saturday update."}</h3>
+              <h3>
+                {currentDraftIsPublished
+                  ? "The Saturday update is live and reversible."
+                  : firstSiteApproved
+                    ? "The exact draft is approved and ready to publish."
+                    : firstDraft
+                      ? "The draft is ready for Owner review."
+                      : guidedPlan
+                        ? "The update is ready to draft."
+                        : "Prepare the Saturday update."}
+              </h3>
               <p>
-                {guidedPlan
-                  ? "Continue below and prepare the exact website copy."
-                  : "Review the evidence, update the hours, then ask the Owner to approve it."}
+                {currentDraftIsPublished
+                  ? "Customers and assistants now read the same published version."
+                  : firstSiteApproved
+                    ? "Publish below when you are ready to update both views together."
+                    : firstDraft
+                      ? "Compare both previews below, then approve that exact revision."
+                      : guidedPlan
+                        ? "Continue below and prepare the exact website copy."
+                        : "Review the evidence, update the hours, then ask the Owner to approve it."}
               </p>
             </div>
             {guidedPlan ? (
@@ -481,11 +497,19 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                   <header>
                     <div>
                       <p className="kicker">
-                        {isCurrentDraftPublished ? "Published consequence" : draft ? "Before you approve" : "Suggested outcome"}
+                        {isCurrentDraftPublished
+                          ? "Published consequence"
+                          : hasExactApproval
+                            ? "Approved consequence"
+                            : draft
+                              ? "Before you approve"
+                              : "Suggested outcome"}
                       </p>
                       <h3>
                         {isCurrentDraftPublished
                           ? "One published version, two matching views."
+                          : hasExactApproval
+                            ? "One approved draft, two matching views."
                           : draft
                             ? "One draft, two matching views."
                             : "One proposal, two matching views."}
@@ -494,6 +518,8 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                     <span>
                       {isCurrentDraftPublished
                         ? `Version ${publishedVersion?.version_number ?? "—"} · Live for customers and assistants`
+                        : hasExactApproval
+                          ? `Draft v${draft?.revision ?? "—"} · Approved, not live yet`
                         : `${draft ? `Draft v${draft.revision}` : "Suggested from evidence"} · Nothing is live yet`}
                     </span>
                   </header>
