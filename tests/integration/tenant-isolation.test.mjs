@@ -704,6 +704,19 @@ test("demo pool isolates two leases, reports exhaustion, and resets on reuse", a
   assert.equal(second.data[0].slot_number, 2);
   assert.notEqual(first.data[0].organization_slug, second.data[0].organization_slug);
 
+  const sandboxBaseline = await admin
+    .from("site_versions")
+    .select("content")
+    .eq("site_id", ids.siteA)
+    .eq("version_number", 1)
+    .single();
+  expectNoError(sandboxBaseline.error, "read reset sandbox baseline");
+  assert.equal(sandboxBaseline.data.content.headline, "Thoughtful care for every stage.");
+  assert.equal(
+    sandboxBaseline.data.content.opening_hours.saturday,
+    "Saturday · 09:00–14:00",
+  );
+
   const ownerAClaims = await clients.ownerA.auth.getClaims();
   const ownerBClaims = await clients.ownerB.auth.getClaims();
   expectNoError(ownerAClaims.error, "read owner A session claims");

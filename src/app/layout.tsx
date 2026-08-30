@@ -11,7 +11,7 @@ const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", 
 export const metadata: Metadata = {
   title: "Kuro Agent — WebMCP by Kurogrid",
   description:
-    "Kuro Agent is the public-safe, browser-native demonstration of tenant-aware operations with WebMCP by Kurogrid.",
+    "Kuro Agent shows how customers can book through an assistant using services and availability published on a business website.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

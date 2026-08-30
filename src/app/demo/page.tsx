@@ -13,7 +13,7 @@ const errorMessages: Record<string, string> = {
   capacity: "All isolated demo slots are in use. Try again after a lease expires.",
   configuration: "The demo runtime has not been configured on this environment.",
   claim: "The demo slot could not be allocated.",
-  signin: "The synthetic demo identity could not be signed in.",
+  signin: "The demo workspace could not be opened.",
 };
 
 export default async function DemoPage({ searchParams }: PageProps) {
@@ -25,14 +25,14 @@ export default async function DemoPage({ searchParams }: PageProps) {
         <aside className="auth-context demo-context" aria-label="Demo workflow overview">
           <KuroBrand className="auth-context-brand" />
           <div>
-            <p className="kicker">One fictional clinic · One connected visit</p>
-            <h2>Let an agent book care, not just browse a page.</h2>
-            <p>Start as a customer. Ask for a time, hand control back to the person, and follow the clinic&apos;s response.</p>
+            <p className="kicker">Arboleda · Live appointment demo</p>
+            <h2>Ask for a visit. Let the page do more than answer.</h2>
+            <p>Your assistant can find a current time, prepare the request, and stop before anything is sent.</p>
           </div>
           <ol>
-            <li><span>01</span>Discover services and live times</li>
-            <li><span>02</span>Review the exact request</li>
-            <li><span>03</span>Let the clinic accept or reschedule</li>
+            <li><span>01</span>Ask for Saturday care</li>
+            <li><span>02</span>Review before sending</li>
+            <li><span>03</span>Receive the clinic&apos;s response</li>
             <li><span>04</span>Return by email and add it to Calendar</li>
           </ol>
         </aside>
@@ -40,38 +40,41 @@ export default async function DemoPage({ searchParams }: PageProps) {
         <section className="auth-card demo-card">
           <KuroBrand className="auth-card-brand" />
           <div className="auth-heading">
-            <p className="kicker">Isolated fictional demo</p>
-            <h1>Start where the value is felt.</h1>
+            <p className="kicker">Isolated walkthrough</p>
+            <h1>Open a resettable demo.</h1>
             <p>
-              Customer is the main story. Workspace lets you inspect the
-              clinic side and the original controlled publishing flow.
+              Use the supplied code to start on Arboleda or inside the clinic.
+              Both sides share the same temporary data.
             </p>
           </div>
+          <Link className="demo-public-link" href="/sites/arboleda-01">
+            Public customer demo — no code needed ↗
+          </Link>
           <form className="auth-form" action={claimDemoSandbox}>
           <label>
-            Demo access code
+            Workspace access code
             <input
+              aria-describedby="demo-access-help"
               name="accessCode"
               type="password"
               autoComplete="off"
-              minLength={24}
               maxLength={128}
-              required
             />
+            <small id="demo-access-help">Use the code supplied with the submission.</small>
           </label>
           <div className="kuro-field">
-            <span className="kuro-field-label">Start the demo as</span>
+            <span className="kuro-field-label">Open first</span>
             <KuroSelect
               name="journey"
               defaultValue="customer"
               options={[
-                { value: "customer", label: "Customer", hint: "recommended · agent booking" },
-                { value: "workspace", label: "Clinic team", hint: "requests and publishing" },
+                { value: "customer", label: "Arboleda website", hint: "customer appointment" },
+                { value: "workspace", label: "Clinic workspace", hint: "requests and publishing" },
               ]}
             />
           </div>
           <div className="kuro-field demo-role-field">
-            <span className="kuro-field-label">Workspace permission</span>
+            <span className="kuro-field-label">Workspace role</span>
             <KuroSelect
               name="role"
               defaultValue="owner"
@@ -82,7 +85,7 @@ export default async function DemoPage({ searchParams }: PageProps) {
             />
           </div>
           {error ? <p className="form-error">{errorMessages[error] ?? "Demo access failed."}</p> : null}
-            <button type="submit">Begin isolated demo</button>
+            <button type="submit">Open isolated demo</button>
           </form>
           <Link className="auth-back-link" href="/">Back to product overview</Link>
         </section>

@@ -25,12 +25,12 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         <aside className="auth-context" aria-label="Kuro Agent access model">
           <KuroBrand className="auth-context-brand" />
           <div>
-            <p className="kicker">A bounded operating surface</p>
-            <h2>Identity changes what the agent can do.</h2>
-            <p>Role, organization, resource and state resolve before any capability appears.</p>
+            <p className="kicker">Access follows the role</p>
+            <h2>The right actions, for the right person.</h2>
+            <p>Owners can publish changes. Members can prepare and review them.</p>
           </div>
           <dl>
-            <div><dt>Owner</dt><dd>Approve · publish · rollback</dd></div>
+            <div><dt>Owner</dt><dd>Approve · publish · undo</dd></div>
             <div><dt>Member</dt><dd>Read · prepare · preview</dd></div>
           </dl>
         </aside>
@@ -39,11 +39,11 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           <KuroBrand className="auth-card-brand" />
 
           <div className="auth-heading">
-            <p className="kicker">Tenant-aware workspace</p>
+            <p className="kicker">Demo workspace</p>
             <h1 id="sign-in-title">Sign in to the demo</h1>
             <p>
-              Accounts are synthetic and provisioned per sandbox. Public sign-up
-              is intentionally unavailable.
+              Use the credentials created for this demo slot. Public sign-up is
+              not available.
             </p>
           </div>
 
@@ -80,7 +80,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
             <button type="submit">Sign in</button>
           </form>
-          <Link className="auth-back-link" href="/demo">Need a fresh sandbox? Start here ↗</Link>
+          <Link className="auth-back-link" href="/demo">Need a new demo slot? Start here ↗</Link>
         </section>
       </div>
     </main>

@@ -35,7 +35,7 @@ export default async function WorkspacePage() {
         <div className="workspace-stat">
           <span>Available workspaces</span>
           <strong>{String(viewer.memberships.length).padStart(2, "0")}</strong>
-          <small>Your role determines what the agent and interface can do.</small>
+          <small>Your role decides which actions are available.</small>
         </div>
       </section>
 

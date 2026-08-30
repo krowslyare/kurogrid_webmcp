@@ -128,7 +128,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
   const { data: versions, error: versionsError } = siteIds.length
     ? await supabase
         .from("site_versions")
-        .select("id, site_id, version_number, published_at, source_draft_id, source_draft_revision")
+        .select("id, site_id, version_number, published_at, source_draft_id, source_draft_revision, content")
         .in("site_id", siteIds)
         .order("version_number", { ascending: false })
     : { data: [], error: null };
@@ -212,14 +212,14 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
   );
   const currentStep = currentDraftIsPublished ? 4 : firstSiteApproved ? 4 : firstDraft ? 3 : guidedPlan ? 2 : 1;
   const workspaceTitle = currentDraftIsPublished
-    ? "The Saturday update is live."
+    ? "Saturday care is live for customers and agents."
     : firstSiteApproved
-      ? "The exact draft is approved. Publish when ready."
+      ? "The approved update is ready to publish."
       : firstDraft
-        ? "Review the draft before it goes live."
+        ? "Review the exact change before it goes live."
         : guidedPlan
-          ? "The opportunity is clear. Prepare the website change."
-          : "Turn Saturday demand into a live website update.";
+          ? "The evidence is clear. Shape the Saturday message."
+          : "Keep Arboleda accurate for customers and their assistants.";
 
   return (
     <main className="workspace-shell">
@@ -231,20 +231,17 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
         </div>
       </header>
 
+      {appointmentRequests.length ? (
       <section className="appointment-inbox" aria-labelledby="appointment-inbox-title">
         <div className="appointment-inbox-heading">
           <div>
-            <p className="kicker">Customer activity · WebMCP</p>
+            <p className="kicker">Appointment requests</p>
             <h1 id="appointment-inbox-title">
-              {appointmentRequests.length
-                ? `${appointmentRequests[0].pet_name} is asking for Saturday care.`
-                : "Let a customer agent start the story."}
+              {`${appointmentRequests[0].pet_name} is asking for Saturday care.`}
             </h1>
           </div>
           <p>
-            {appointmentRequests.length
-              ? "Respond once. Email brings the customer back if the appointment changes."
-              : "Open the public clinic and ask an assistant to find a dermatology appointment."}
+            Respond once. Email brings the customer back if the appointment changes.
           </p>
         </div>
 
@@ -258,8 +255,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
           </p>
         ) : null}
 
-        {appointmentRequests.length ? (
-          <div className="appointment-request-list">
+        <div className="appointment-request-list">
             {appointmentRequests.map((request) => {
               const requestedAt = request.appointment_slots.starts_at;
               const nextProposal = new Date(new Date(requestedAt).getTime() + 60 * 60_000).toISOString();
@@ -291,29 +287,23 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                 </article>
               );
             })}
-          </div>
-        ) : (
-          <div className="appointment-empty">
-            <span>01</span>
-            <div><strong>No appointment requests yet</strong><p>The customer journey starts on Arboleda, not in this workspace.</p></div>
-            {firstSite ? <Link href={`/sites/${firstSite.slug}`}>Open customer experience ↗</Link> : null}
-          </div>
-        )}
+        </div>
       </section>
+      ) : null}
 
       <section className="workspace-heading guided-heading">
-        <p className="kicker">Then adapt the business · Step {currentStep} of 4</p>
+        <p className="kicker">Website settings · Step {currentStep} of 4</p>
         <h2>{workspaceTitle}</h2>
         <p>
-          Follow one fictional clinic update from business evidence to a public,
-          reversible website change.
+          Update the public page once. Customers and assistants will see the
+          same services and hours.
         </p>
         <ol className="workspace-progress" aria-label="Website update progress">
           {[
-            [1, "Understand", "Review the opportunity"],
+            [1, "Review", "Check what changed"],
             [2, "Draft", "Prepare the website change"],
-            [3, "Approve", "Owner reviews the exact draft"],
-            [4, "Publish", "Make it live or roll it back"],
+            [3, "Approve", "Review the exact draft"],
+            [4, "Publish", "Make it live or undo it"],
           ].map(([step, label, description]) => (
             <li
               className={Number(step) < currentStep ? "is-complete" : Number(step) === currentStep ? "is-current" : ""}
@@ -334,10 +324,10 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
       <section className="opportunity-section" aria-labelledby="opportunity-title">
         <div className="workspace-section-heading">
           <p className="kicker">01 · Understand</p>
-          <h2 id="opportunity-title">Why should the website change?</h2>
+          <h2 id="opportunity-title">What changed at Arboleda?</h2>
           <p>
-            Weekend interest is visible, a customer has asked about Saturday,
-            and the clinic has already approved the hours.
+            Customers are looking for Saturday care, but the current site does
+            not make it easy enough to spot.
           </p>
         </div>
 
@@ -359,11 +349,11 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
           <div className="guided-action">
             <div>
               <p className="kicker">Recommended next step</p>
-              <h3>{guidedPlan ? "The change plan is ready." : "Turn these signals into one bounded plan."}</h3>
+              <h3>{guidedPlan ? "The update is ready to draft." : "Prepare the Saturday update."}</h3>
               <p>
                 {guidedPlan
-                  ? "Continue below to prepare the exact website content."
-                  : "The plan always contains three fixed steps and cannot become a general workflow."}
+                  ? "Continue below and prepare the exact website copy."
+                  : "Review the evidence, update the hours, then ask the Owner to approve it."}
               </p>
             </div>
             {guidedPlan ? (
@@ -379,7 +369,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
               <form action={createActionPlan}>
                 <input name="organizationSlug" type="hidden" value={organizationSlug} />
                 <input name="attentionItemId" type="hidden" value={guidedAttention.id} />
-                <button className="primary-action" type="submit">Create the website update plan</button>
+                <button className="primary-action" type="submit">Prepare website update</button>
               </form>
             )}
             {guidedAttention.kind === "synthetic_lead" && guidedAttention.status === "open" ? (
@@ -398,9 +388,9 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
         <div className="publication-heading">
           <div>
             <p className="kicker">02–04 · Draft, approve, publish</p>
-            <h2 id="publication-title">Prepare the exact website update.</h2>
+            <h2 id="publication-title">Make Saturday care unmistakable.</h2>
           </div>
-          <p>Save the content, let the Owner approve that exact draft, then publish it to the public site and WebMCP together.</p>
+          <p>Turn the approved evidence into one clear message, then publish it for customers and assistants together.</p>
         </div>
 
         {sites.map((site) => {
@@ -409,7 +399,18 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
           const publishedVersion = siteVersions.find(
             (version) => version.id === site.published_version_id,
           );
-          const content = contentObject(draft?.content);
+          const publishedContent = contentObject(publishedVersion?.content);
+          const publishedHours = contentObject(publishedContent.opening_hours);
+          const proposedContent: Record<string, Json> = {
+            headline: "Care that makes room for Saturday.",
+            summary: "Thoughtful veterinary consultations, now with selected Saturday appointments.",
+            opening_hours: {
+              weekdays: contentString(publishedHours, "weekdays") || "Monday–Friday · 08:00–18:00",
+              saturday: "Saturday · 09:00–14:00",
+            },
+            cta_label: "Find an appointment",
+          };
+          const content = draft ? contentObject(draft.content) : proposedContent;
           const hours = contentObject(content.opening_hours);
           const hasExactApproval = draft
             ? activeApprovals.some(
@@ -431,24 +432,101 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                 <div><span>03</span><strong>{site.published_version_id ? "Website live" : "Not published"}</strong></div>
               </div>
 
-              <form className="publication-form" action={saveSiteDraft}>
-                <input name="organizationSlug" type="hidden" value={organizationSlug} />
-                <input name="siteId" type="hidden" value={site.id} />
-                <input name="draftId" type="hidden" value={draft?.id ?? ""} />
-                <input name="revision" type="hidden" value={draft?.revision ?? 0} />
-                <label>Page headline<input name="headline" defaultValue={contentString(content, "headline")} required /></label>
-                <label>Short introduction<textarea name="summary" defaultValue={contentString(content, "summary")} required /></label>
-                <div className="field-pair">
-                  <label>Monday–Friday hours<input name="weekdayHours" defaultValue={contentString(hours, "weekdays")} required /></label>
-                  <label>Saturday hours<input name="saturdayHours" defaultValue={contentString(hours, "saturday")} required /></label>
+              {guidedPlan || draft ? (
+                <>
+                  {!draft ? (
+                    <div className="draft-change-summary" aria-label="Suggested change">
+                      <div>
+                        <span>Current website</span>
+                        <strong>{contentString(publishedContent, "headline")}</strong>
+                      </div>
+                      <i aria-hidden="true">→</i>
+                      <div>
+                        <span>Suggested from evidence</span>
+                        <strong>{contentString(proposedContent, "headline")}</strong>
+                      </div>
+                      <em>Not saved yet</em>
+                    </div>
+                  ) : null}
+
+                  <form className="publication-form" action={saveSiteDraft}>
+                    <input name="organizationSlug" type="hidden" value={organizationSlug} />
+                    <input name="siteId" type="hidden" value={site.id} />
+                    <input name="draftId" type="hidden" value={draft?.id ?? ""} />
+                    <input name="revision" type="hidden" value={draft?.revision ?? 0} />
+                    <label>Page headline<input name="headline" defaultValue={contentString(content, "headline")} required /></label>
+                    <label>Short introduction<textarea name="summary" defaultValue={contentString(content, "summary")} required /></label>
+                    <div className="field-pair">
+                      <label>Monday–Friday hours<input name="weekdayHours" defaultValue={contentString(hours, "weekdays")} required /></label>
+                      <label>Saturday hours<input name="saturdayHours" defaultValue={contentString(hours, "saturday")} required /></label>
+                    </div>
+                    <label>Primary button label<input name="ctaLabel" defaultValue={contentString(content, "cta_label")} required /></label>
+                    <button className="primary-action" type="submit">
+                      {draft ? "Save website draft" : "Create this proposed draft"}
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <div className="draft-locked">
+                  <span>02</span>
+                  <div>
+                    <strong>Prepare the update above to reveal the proposed copy.</strong>
+                    <p>The suggestion stays locked until the evidence becomes an action plan.</p>
+                  </div>
                 </div>
-                <label>Primary button label<input name="ctaLabel" defaultValue={contentString(content, "cta_label")} required /></label>
-                <button className="primary-action" type="submit">Save website draft</button>
-              </form>
+              )}
+
+              {draft || guidedPlan ? (
+                <section className="publication-consequence-preview" aria-label="Publication consequence preview">
+                  <header>
+                    <div>
+                      <p className="kicker">
+                        {isCurrentDraftPublished ? "Published consequence" : draft ? "Before you approve" : "Suggested outcome"}
+                      </p>
+                      <h3>
+                        {isCurrentDraftPublished
+                          ? "One published version, two matching views."
+                          : draft
+                            ? "One draft, two matching views."
+                            : "One proposal, two matching views."}
+                      </h3>
+                    </div>
+                    <span>
+                      {isCurrentDraftPublished
+                        ? `Version ${publishedVersion?.version_number ?? "—"} · Live for customers and assistants`
+                        : `${draft ? `Draft v${draft.revision}` : "Suggested from evidence"} · Nothing is live yet`}
+                    </span>
+                  </header>
+                  <div className="consequence-preview-grid">
+                    <article className="human-consequence-preview">
+                      <span>Customer preview</span>
+                      <h4>{contentString(content, "headline")}</h4>
+                      <p>{contentString(content, "summary")}</p>
+                      <dl>
+                        <div><dt>Saturday</dt><dd>{contentString(hours, "saturday")}</dd></div>
+                        <div><dt>Button</dt><dd>{contentString(content, "cta_label")}</dd></div>
+                      </dl>
+                    </article>
+                    <article className="agent-consequence-preview">
+                      <span>Assistant preview</span>
+                      <h4>Structured facts from this same version</h4>
+                      <ul>
+                        <li><i aria-hidden="true">01</i><strong>Opening hours</strong><small>{contentString(hours, "saturday")}</small></li>
+                        <li><i aria-hidden="true">02</i><strong>Available services</strong><small>Published clinic catalog</small></li>
+                        <li><i aria-hidden="true">03</i><strong>Appointment times</strong><small>Live availability only</small></li>
+                      </ul>
+                    </article>
+                  </div>
+                </section>
+              ) : null}
 
               {draft ? (
                 <div className="publication-actions">
-                  <span>Draft v{draft.revision} is saved. Every edit requires a new approval.</span>
+                  <span>
+                    {isCurrentDraftPublished
+                      ? `Version ${publishedVersion?.version_number ?? "—"} is live. Any new edit will require a fresh approval.`
+                      : `Draft v${draft.revision} is saved. Every edit requires a new approval.`}
+                  </span>
                   {membership.role === "owner" ? (
                     <>
                       <form action={approveSiteDraft}>
@@ -504,6 +582,27 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
           );
         })}
       </section>
+
+      {!appointmentRequests.length && currentDraftIsPublished && firstSite ? (
+        <section className="workspace-customer-handoff" aria-labelledby="customer-handoff-title">
+          <div>
+            <p className="kicker">The customer chapter is ready</p>
+            <h2 id="customer-handoff-title">See the update from the other side.</h2>
+            <p>
+              Version {firstPublishedVersion?.version_number ?? "—"} now powers both
+              Arboleda&apos;s public page and the actions available to assistants.
+            </p>
+          </div>
+          <ol aria-label="What is now live">
+            <li><span>01</span>Saturday hours are public</li>
+            <li><span>02</span>Assistants can read current availability</li>
+            <li><span>03</span>Customer requests return to this workspace</li>
+          </ol>
+          <Link href={`/sites/${firstSite.slug}`}>
+            Continue on the customer site <span aria-hidden="true">↗</span>
+          </Link>
+        </section>
+      ) : null}
     </main>
   );
 }

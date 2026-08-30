@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(25);
 
 select has_table('public', 'demo_runtime_config', 'demo config table exists');
 select has_table('public', 'demo_sandboxes', 'demo sandboxes table exists');
@@ -43,9 +43,12 @@ select has_function(
   array['text', 'uuid', 'uuid'],
   'session binding RPC exists'
 );
+select has_function('public', 'refresh_demo_fixtures', array[]::text[], 'service-only fixture refresh RPC exists');
 select ok(has_function_privilege('service_role', 'public.claim_demo_sandbox(text,public.organization_role)', 'execute'), 'service role can claim a sandbox');
 select ok(has_function_privilege('service_role', 'public.bind_demo_sandbox_session(text,uuid,uuid)', 'execute'), 'service role can bind a claimed session');
+select ok(has_function_privilege('service_role', 'public.refresh_demo_fixtures()', 'execute'), 'service role can refresh fictional demo data');
 select ok(not has_function_privilege('anon', 'public.claim_demo_sandbox(text,public.organization_role)', 'execute'), 'anon cannot claim a sandbox directly');
+select ok(not has_function_privilege('anon', 'public.refresh_demo_fixtures()', 'execute'), 'anon cannot reset demo data');
 select ok(not has_function_privilege('authenticated', 'public.release_demo_sandbox(text)', 'execute'), 'authenticated cannot release arbitrary leases');
 select ok(not has_function_privilege('authenticated', 'public.bind_demo_sandbox_session(text,uuid,uuid)', 'execute'), 'authenticated cannot bind arbitrary leases');
 

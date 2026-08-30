@@ -1,10 +1,12 @@
+import Link from "next/link";
+
 import { KuroBrand, KuroMark } from "@/components/KuroBrand";
 
 const journey = [
-  ["01", "Understand the opportunity", "Review demand, one customer question, and the clinic's approved hours."],
-  ["02", "Prepare the website update", "Turn that evidence into a fixed plan and the exact page content."],
-  ["03", "Owner reviews the draft", "Nothing can go live until the Owner approves that exact version."],
-  ["04", "Publish or undo", "Update the website and its AI-readable facts together, with rollback ready."],
+  ["01", "Discover", "Read Arboleda's services and current availability directly from its website."],
+  ["02", "Prepare", "Choose a suitable time and assemble the exact request without sending it."],
+  ["03", "Confirm", "Hand control back to the customer before the clinic receives anything."],
+  ["04", "Resolve", "Let the clinic accept or suggest another time, then return by email and add it to Calendar."],
 ] as const;
 
 export default function Home() {
@@ -14,67 +16,68 @@ export default function Home() {
         <KuroBrand className="landing-brand" href="#top" />
         <nav aria-label="Primary navigation">
           <a href="#workflow">How it works</a>
-          <a href="#why-webmcp">Why WebMCP</a>
-          <a className="landing-nav-cta" href="/demo">Launch demo</a>
+          <a href="#why-webmcp">Why it matters</a>
+          <Link className="landing-nav-cta" href="/sites/arboleda-01">Try customer demo</Link>
         </nav>
       </header>
 
       <section className="landing-hero" id="top">
         <div className="landing-hero-copy">
           <p className="landing-kicker">
-            <span aria-hidden="true" /> AI-assisted website operations
+            <span aria-hidden="true" /> Websites assistants can safely use
           </p>
-          <h1>Turn business signals into approved website updates.</h1>
+          <h1>Let customers book through the agent they already use.</h1>
           <p className="landing-lede">
-            Kuro Agent helps a team spot an opportunity, prepare the exact change,
-            get Owner approval, and publish it—without giving the AI unchecked control.
+            Kuro Agent turns a business website into actions AI assistants can
+            safely use. Customers find a time, review the exact request, and
+            approve it before anything is sent.
           </p>
           <div className="landing-actions">
-            <a className="landing-primary-cta" href="/demo">
-              Open the live demo <span aria-hidden="true">↗</span>
-            </a>
+            <Link className="landing-primary-cta" href="/sites/arboleda-01">
+              Try the customer demo <span aria-hidden="true">↗</span>
+            </Link>
             <a className="landing-secondary-link" href="#workflow">
               See the complete story <span aria-hidden="true">↓</span>
             </a>
           </div>
           <ul className="landing-proof" aria-label="Product guarantees">
-            <li>Live website updates</li>
-            <li>Owner approval</li>
-            <li>One-click rollback</li>
+            <li>Live availability</li>
+            <li>Human confirmation</li>
+            <li>Clinic response</li>
           </ul>
         </div>
 
         <div className="landing-product" aria-label="Kuro Agent product workflow preview">
           <div className="landing-product-bar">
             <span><i aria-hidden="true" /> Clínica Arboleda</span>
-            <span>Owner workspace</span>
+            <span>Customer agent</span>
           </div>
           <div className="landing-product-body">
             <div className="landing-signal-label">
-              <span>Opportunity / 01</span>
-              <strong>Ready to review</strong>
+              <span>Appointment / Luna</span>
+              <strong>3 times available</strong>
             </div>
-            <h2>Customers want Saturday appointments.</h2>
+            <h2>Find Luna a dermatology visit this Saturday.</h2>
             <p>
-              Weekend demand, one customer question, and approved opening hours
-              point to a clear website update.
+              Arboleda offers dermatology care on Saturday morning. The agent
+              can prepare a request, but only the customer can send it.
             </p>
             <div className="landing-evidence">
-              <span>Weekend demand</span>
-              <span>Customer question</span>
-              <span>Approved hours</span>
+              <span>Dermatology</span>
+              <span>Saturday 09:30</span>
+              <span>30 minutes</span>
             </div>
             <ol className="landing-mini-plan">
-              <li><span>01</span><strong>Review the opportunity</strong><i>Done</i></li>
-              <li><span>02</span><strong>Prepare the website update</strong><i>Ready</i></li>
-              <li><span>03</span><strong>Owner approves and publishes</strong><i>Approval</i></li>
+              <li><span>01</span><strong>Read services and live times</strong><i>Done</i></li>
+              <li><span>02</span><strong>Prepare Saturday at 09:30</strong><i>Ready</i></li>
+              <li><span>03</span><strong>Ask before sending</strong><i>Confirm</i></li>
             </ol>
           </div>
           <div className="landing-product-footer">
-            <span>WebMCP actions available now</span>
+            <span>Available from this page</span>
             <div>
-              <code>Preview consequences</code>
-              <code>Publish approved draft</code>
+              <code>Find appointment times</code>
+              <code>Prepare request</code>
             </div>
           </div>
         </div>
@@ -83,12 +86,12 @@ export default function Home() {
       <section className="landing-operating" id="workflow" aria-labelledby="workflow-title">
         <div className="landing-operating-heading">
           <div>
-            <p className="landing-kicker"><span aria-hidden="true" /> One complete story</p>
-            <h2 id="workflow-title">One opportunity. One controlled website update.</h2>
+            <p className="landing-kicker"><span aria-hidden="true" /> One complete appointment</p>
+            <h2 id="workflow-title">From a question to a confirmed visit.</h2>
           </div>
           <p>
-            The AI can prepare the work, but its available actions change with
-            the user&apos;s role and the current step. Publishing remains an Owner decision.
+            WebMCP lets an assistant discover and use the actions published by
+            the website without bypassing the customer or the clinic.
           </p>
         </div>
 
@@ -106,27 +109,27 @@ export default function Home() {
 
         <div className="landing-parity" id="why-webmcp" aria-labelledby="parity-title">
           <div className="landing-parity-copy">
-            <p>One approved version</p>
-            <h3 id="parity-title">The live website is the source of truth.</h3>
+            <p>Built into the page</p>
+            <h3 id="parity-title">The website becomes a working interface.</h3>
           </div>
-          <div className="landing-parity-diagram" aria-label="Human and agent publication parity">
-            <div><span>Customer website</span><strong>Approved content</strong></div>
+          <div className="landing-parity-diagram" aria-label="Customer, agent, and clinic handoff">
+            <div><span>Customer</span><strong>I need Saturday care</strong></div>
             <span aria-hidden="true">↔</span>
-            <div className="landing-version"><span>Shared source</span><strong>Published version</strong></div>
+            <div className="landing-version"><span>Arboleda website + WebMCP</span><strong>Find times · prepare request</strong></div>
             <span aria-hidden="true">↔</span>
-            <div><span>AI via WebMCP</span><strong>The same facts</strong></div>
+            <div><span>Clinic</span><strong>Accept or offer another time</strong></div>
           </div>
         </div>
       </section>
 
       <section className="landing-close" aria-labelledby="close-title">
         <div>
-          <p>Built to be explored, not explained away.</p>
-          <h2 id="close-title">Run the complete workflow.</h2>
+          <p>One fictional clinic. One real agent interaction.</p>
+          <h2 id="close-title">Ask Arboleda for a Saturday visit.</h2>
         </div>
-        <a className="landing-primary-cta landing-primary-cta-light" href="/demo">
-          Enter the isolated demo <span aria-hidden="true">↗</span>
-        </a>
+        <Link className="landing-primary-cta landing-primary-cta-light" href="/sites/arboleda-01">
+          Try it on Arboleda <span aria-hidden="true">↗</span>
+        </Link>
       </section>
 
       <footer className="landing-footer">

@@ -960,6 +960,15 @@ export type Database = {
         };
         Returns: Json;
       };
+      refresh_demo_fixtures: { Args: never; Returns: number };
+      simulate_demo_clinic_response: {
+        Args: {
+          p_access_token: string;
+          p_decision: string;
+          p_request_id: string;
+        };
+        Returns: Json;
+      };
       rollback_site_version: {
         Args: {
           p_idempotency_key: string;
