@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="Kurogrid"><title>Kurogrid</title><style>/* El favicon no sigue el tema del SITIO sino el del NAVEGADOR, así que se
+     resuelve acá dentro y no con los tokens de la página. Por defecto va el
+     verde oscuro, que es el que aguanta una pestaña clara: el lime sobre
+     blanco da 1,2:1 y el isotipo se perdía. Es el mismo valor que
+     --accent-ink, que existe justamente para el acento sobre fondo claro. */
+    path { fill: #4d7c0f; }
+    @media (prefers-color-scheme: dark) { path { fill: #bef264; } }</style><g><path d="M16 2.7 22.3 9 16 15.3 9.7 9Z"/><path d="M23 9.7 29.3 16 23 22.3 16.7 16Z"/><path d="M16 16.7 22.3 23 16 29.3 9.7 23Z"/><path d="M9 9.7 15.3 16 9 22.3 2.7 16Z"/></g></svg>

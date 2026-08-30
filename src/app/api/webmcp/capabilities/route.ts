@@ -9,6 +9,9 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const organizationSlug = url.searchParams.get("organizationSlug");
   const siteSlug = url.searchParams.get("siteSlug");
+  const appointmentId = url.searchParams.get("appointmentId") ?? undefined;
+  const accessToken = url.searchParams.get("accessToken") ?? undefined;
+  const confirmationToken = url.searchParams.get("confirmationToken") ?? undefined;
 
   if (organizationSlug) {
     const capabilities = await resolveAuthenticatedCapabilities(organizationSlug);
@@ -24,7 +27,12 @@ export async function GET(request: Request) {
   }
 
   if (siteSlug) {
-    const capabilities = await resolvePublicCapabilities(siteSlug);
+    const capabilities = await resolvePublicCapabilities(
+      siteSlug,
+      appointmentId,
+      accessToken,
+      confirmationToken,
+    );
     return NextResponse.json({
       definitions: capabilities.definitions,
       signature: capabilities.signature,

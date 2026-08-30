@@ -115,4 +115,11 @@ const config = await admin
   .eq("singleton", true);
 assertNoError(config.error, "demo runtime config");
 
+const refreshed = await admin.rpc("refresh_demo_fixtures");
+assertNoError(refreshed.error, "refresh demo fixtures");
+
+if (refreshed.data !== capacity) {
+  throw new Error(`Expected to refresh ${capacity} demo sandboxes, refreshed ${refreshed.data}.`);
+}
+
 process.stdout.write(`Provisioned ${capacity} isolated demo sandboxes at ${apiUrl}.\n`);

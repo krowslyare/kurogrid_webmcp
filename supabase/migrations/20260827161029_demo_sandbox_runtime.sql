@@ -169,6 +169,10 @@ declare
   v_sandbox public.demo_sandboxes%rowtype;
   v_user_id uuid;
 begin
+  -- Serialize the tiny challenge pool so two simultaneous claims cannot select
+  -- the same free sandbox before either lease becomes visible.
+  perform pg_advisory_xact_lock(hashtextextended('kurogrid-demo-pool', 0));
+
   if p_lease_token_hash !~ '^[0-9a-f]{64}$' then
     raise exception using errcode = '22023', message = 'invalid_lease_token_hash';
   end if;

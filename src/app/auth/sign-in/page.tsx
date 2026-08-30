@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { KuroBrand } from "@/components/KuroBrand";
 import { signIn } from "../actions";
 
 export const metadata: Metadata = {
@@ -20,23 +21,34 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
   return (
     <main className="auth-shell">
-      <section className="auth-card" aria-labelledby="sign-in-title">
-        <Link className="brand" href="/" aria-label="Kurogrid WebMCP, home">
-          <span className="mark" aria-hidden="true">K</span>
-          <span>Kurogrid <b>WebMCP</b></span>
-        </Link>
+      <div className="auth-stage">
+        <aside className="auth-context" aria-label="Kuro Agent access model">
+          <KuroBrand className="auth-context-brand" />
+          <div>
+            <p className="kicker">Access follows the role</p>
+            <h2>The right actions, for the right person.</h2>
+            <p>Owners can publish changes. Members can prepare and review them.</p>
+          </div>
+          <dl>
+            <div><dt>Owner</dt><dd>Approve · publish · undo</dd></div>
+            <div><dt>Member</dt><dd>Read · prepare · preview</dd></div>
+          </dl>
+        </aside>
 
-        <div className="auth-heading">
-          <p className="kicker">Tenant-aware workspace</p>
-          <h1 id="sign-in-title">Sign in to the demo</h1>
-          <p>
-            Accounts are synthetic and provisioned per sandbox. Public sign-up
-            is intentionally unavailable.
-          </p>
-        </div>
+        <section className="auth-card" aria-labelledby="sign-in-title">
+          <KuroBrand className="auth-card-brand" />
 
-        <form action={signIn} className="auth-form">
-          <input type="hidden" name="next" value={params.next ?? "/app"} />
+          <div className="auth-heading">
+            <p className="kicker">Demo workspace</p>
+            <h1 id="sign-in-title">Sign in to the demo</h1>
+            <p>
+              Use the credentials created for this demo slot. Public sign-up is
+              not available.
+            </p>
+          </div>
+
+          <form action={signIn} className="auth-form">
+            <input type="hidden" name="next" value={params.next ?? "/app"} />
 
           <label>
             Email
@@ -66,9 +78,11 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             </p>
           ) : null}
 
-          <button type="submit">Sign in</button>
-        </form>
-      </section>
+            <button type="submit">Sign in</button>
+          </form>
+          <Link className="auth-back-link" href="/demo">Need a new demo slot? Start here ↗</Link>
+        </section>
+      </div>
     </main>
   );
 }

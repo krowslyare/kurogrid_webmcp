@@ -264,7 +264,7 @@ begin
   end if;
 
   if v_item.revision <> p_expected_revision then
-    raise exception using errcode = '40001', message = 'revision_conflict';
+    raise exception using errcode = 'PT409', message = 'revision_conflict';
   end if;
 
   update public.attention_items

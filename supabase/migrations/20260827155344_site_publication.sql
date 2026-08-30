@@ -275,7 +275,7 @@ begin
 
   if v_draft.id is null then
     if p_expected_revision <> 0 then
-      raise exception using errcode = '40001', message = 'revision_conflict';
+      raise exception using errcode = 'PT409', message = 'revision_conflict';
     end if;
 
     insert into public.site_drafts (
@@ -291,7 +291,7 @@ begin
     ) returning * into v_draft;
   else
     if v_draft.revision <> p_expected_revision then
-      raise exception using errcode = '40001', message = 'revision_conflict';
+      raise exception using errcode = 'PT409', message = 'revision_conflict';
     end if;
 
     update public.site_drafts
@@ -404,7 +404,7 @@ begin
   end if;
 
   if v_draft.revision <> p_expected_revision then
-    raise exception using errcode = '40001', message = 'revision_conflict';
+    raise exception using errcode = 'PT409', message = 'revision_conflict';
   end if;
 
   v_preview := public.preview_publish_consequences(p_draft_id);
@@ -523,7 +523,7 @@ begin
   v_content_hash := private.site_content_hash(v_draft.content);
 
   if v_draft.revision <> p_expected_revision then
-    raise exception using errcode = '40001', message = 'revision_conflict';
+    raise exception using errcode = 'PT409', message = 'revision_conflict';
   end if;
 
   if v_approval.id is null

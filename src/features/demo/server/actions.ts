@@ -30,7 +30,10 @@ function accessCodeMatches(candidate: string) {
 
 export async function claimDemoSandbox(formData: FormData) {
   const accessCode = formData.get("accessCode");
-  const requestedRole = formData.get("role") === "member" ? "member" : "owner";
+  const journey = formData.get("journey") === "workspace" ? "workspace" : "customer";
+  const requestedRole = journey === "workspace" && formData.get("role") === "member"
+    ? "member"
+    : "owner";
   const demoPassword = process.env.DEMO_USER_PASSWORD;
 
   if (typeof accessCode !== "string" || !accessCodeMatches(accessCode)) {
@@ -107,6 +110,11 @@ export async function claimDemoSandbox(formData: FormData) {
     expires: new Date(lease.expires_at),
     path: "/",
   });
+
+  if (journey === "customer") {
+    const siteSlug = lease.organization_slug.replace("arboleda-demo-", "arboleda-");
+    redirect(`/sites/${siteSlug}`);
+  }
 
   redirect(`/app/${lease.organization_slug}`);
 }
