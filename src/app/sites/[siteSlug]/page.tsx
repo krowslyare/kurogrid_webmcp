@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { CopyAgentPrompt } from "@/components/CopyAgentPrompt";
+import { TraditionalBooking } from "@/components/TraditionalBooking";
 import {
   confirmAppointmentFromPage,
-  prepareAppointmentFromPage,
   respondToAppointmentProposal,
   simulateClinicResponseFromPage,
 } from "@/features/appointments/server/actions";
@@ -21,6 +22,7 @@ type PageProps = {
     bookingError?: string;
     confirm?: string;
     delivery?: string;
+    edit?: string;
     mode?: string;
   }>;
 };
@@ -64,8 +66,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const content = published.content as PublishedContent;
 
   return {
-    title: `Arboleda — ${content.headline}`,
+    title: `Mimo | ${content.headline}`,
     description: content.summary,
+    icons: {
+      icon: [{ url: "/mimo-icon.svg", type: "image/svg+xml" }],
+      shortcut: "/mimo-icon.svg",
+    },
   };
 }
 
@@ -112,7 +118,7 @@ function oneHourLater(value: string) {
 }
 
 function appointmentReference(value: string | undefined) {
-  return value ? `ARB-${value.replaceAll("-", "").slice(-8).toUpperCase()}` : "ARB-DEMO";
+  return value ? `MIM-${value.replaceAll("-", "").slice(-8).toUpperCase()}` : "MIM-DEMO";
 }
 
 function appointmentJourney(status: unknown) {
@@ -141,10 +147,10 @@ function googleCalendarUrl(appointment: Record<string, unknown>) {
   url.searchParams.set("action", "TEMPLATE");
   url.searchParams.set(
     "text",
-    `${String(appointment.service)} for ${String(appointment.pet_name)} · Arboleda`,
+    `${String(appointment.service)} for ${String(appointment.pet_name)} · Mimo`,
   );
   url.searchParams.set("dates", `${stamp(startsAt)}/${stamp(endsAt)}`);
-  url.searchParams.set("location", "Clínica Veterinaria Arboleda");
+  url.searchParams.set("location", "Clínica Veterinaria Mimo");
   return url.toString();
 }
 
@@ -168,10 +174,13 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
         p_access_token: customerContext.access,
       })
     : { data: null, error: null };
-  const appointment = appointmentResult.data && typeof appointmentResult.data === "object"
+  const appointmentRecord = appointmentResult.data && typeof appointmentResult.data === "object"
     && !Array.isArray(appointmentResult.data)
     ? appointmentResult.data as Record<string, unknown>
     : null;
+  const editingAppointment = customerContext.edit === "1"
+    && appointmentRecord?.status === "prepared";
+  const appointment = editingAppointment ? null : appointmentRecord;
   const slotsResult = appointment
     ? { data: [], error: null }
     : await supabase.rpc("find_appointment_slots", {
@@ -182,6 +191,18 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
   const slots = slotsResult.data ?? [];
   const appointmentDate = slots[0] ? slotDate(slots[0].starts_at) : "next Saturday";
   const agentPrompt = `Find a dermatology appointment for Luna on ${appointmentDate} morning and email me if the clinic changes the time.`;
+  const editSearch = appointmentRecord && customerContext.appointment
+    && customerContext.access && customerContext.confirm
+    ? new URLSearchParams({
+        access: customerContext.access,
+        appointment: customerContext.appointment,
+        confirm: customerContext.confirm,
+        edit: "1",
+      })
+    : null;
+  const editHref = editSearch
+    ? `/sites/${siteSlug}?${editSearch}#agent-booking`
+    : `/sites/${siteSlug}#agent-booking`;
   const schedule = Object.entries(content.opening_hours).sort(([first], [second]) => {
     const firstIndex = scheduleOrder.indexOf(first as (typeof scheduleOrder)[number]);
     const secondIndex = scheduleOrder.indexOf(second as (typeof scheduleOrder)[number]);
@@ -196,16 +217,18 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
       data-published-version={published.version_id}
     >
       <header className="published-nav">
-        <a className="clinic-brand" href="#top" aria-label="Arboleda, home">
+        <a className="clinic-brand" href="#top" aria-label="Mimo Veterinary Care, home">
           <span className="clinic-mark" aria-hidden="true">
             <svg viewBox="0 0 40 40" role="presentation">
-              <path d="M20 34V15" />
-              <path d="M20 22c-7 0-11-4-11-11 7 0 11 4 11 11Z" />
-              <path d="M20 17c6 0 10-3 10-9-6 0-10 3-10 9Z" />
+              <circle cx="11" cy="13" r="4" />
+              <circle cx="20" cy="9" r="4" />
+              <circle cx="29" cy="13" r="4" />
+              <circle cx="33" cy="22" r="4" />
+              <path d="M20 17c-7 0-12 6-12 12 0 4 3 6 7 5 3-1 4-3 5-3s2 2 5 3c4 1 7-1 7-5 0-6-5-12-12-12Z" />
             </svg>
           </span>
           <span>
-            <strong>Arboleda</strong>
+            <strong>Mimo</strong>
             <small>Veterinary care</small>
           </span>
         </a>
@@ -227,45 +250,48 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
           <div className="clinic-hero-actions">
             <a className="clinic-primary-cta" href="#agent-booking">
               {content.cta_label}
-              <span aria-hidden="true">↘</span>
+              <span aria-hidden="true">→</span>
             </a>
             <a className="clinic-text-link" href="#our-approach">
               Our approach <span aria-hidden="true">↓</span>
             </a>
           </div>
+          <p className="clinic-assistant-ready"><span aria-hidden="true" /> Assistant-ready appointment planning</p>
         </div>
 
         <div className="clinic-hero-art" aria-hidden="true">
-          <span className="clinic-orbit clinic-orbit-one" />
-          <span className="clinic-orbit clinic-orbit-two" />
-          <div className="clinic-monogram">A</div>
+          <div className="clinic-dog-stage">
+            <Image
+              alt=""
+              className="clinic-dog-photo"
+              fill
+              priority
+              sizes="(max-width: 980px) 82vw, 38vw"
+              src="/mimo-dog.webp"
+            />
+          </div>
           <div className="clinic-art-note">
-            <span>Care notes</span>
-            <strong>Clear, calm,<br />considered.</strong>
+            <span>Now welcoming</span>
+            <strong>Saturday<br />appointments.</strong>
           </div>
         </div>
       </section>
 
       <section className="clinic-booking" id="agent-booking" aria-labelledby="booking-title">
         <div className="clinic-booking-intro">
-          <p className="clinic-section-index">01 / Appointments</p>
+          <p className="clinic-section-index">Appointments</p>
           <h2 id="booking-title">
             {appointment ? "Your appointment, in one clear place." : "Ask your assistant to find the right time."}
           </h2>
           <p>
             {appointment
               ? "This private link always reflects the clinic's latest response."
-              : "Your assistant can read Arboleda's current services and available times directly from this page."}
+              : "Your assistant can read Mimo's current services and available times directly from this page."}
           </p>
           {!appointment ? (
             <div className="clinic-agent-prompt">
-              <span>Use this page with your AI assistant</span>
-              <p className="clinic-agent-explainer">It reads live times here, prepares the request, and asks for your approval before Arboleda receives it.</p>
-              <ol aria-label="How to use Arboleda with an assistant">
-                <li><i>01</i> Open assistant</li>
-                <li><i>02</i> Share this page</li>
-                <li><i>03</i> Review before sending</li>
-              </ol>
+              <span>Ask your assistant</span>
+              <p className="clinic-agent-explainer">It reads live times from this page. You still review the request before Mimo receives it.</p>
               <div className="clinic-agent-request">
                 <p>{agentPrompt}</p>
                 <CopyAgentPrompt prompt={agentPrompt} />
@@ -308,7 +334,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
                 </div>
                 <strong>
                   {appointment.status === "time_proposed"
-                    ? `Arboleda proposed a new time for ${String(appointment.pet_name)}`
+                    ? `Mimo proposed a new time for ${String(appointment.pet_name)}`
                     : `${String(appointment.pet_name)}’s appointment is confirmed`}
                 </strong>
                 <p>
@@ -328,19 +354,24 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
             {appointment.status === "prepared" ? (
               <div className="customer-review-request">
                 <p>Nothing has been sent yet. Review the service, time, pet, and email above.</p>
-                {customerContext.confirm ? (
-                  <form action={confirmAppointmentFromPage}>
-                    <input name="siteSlug" type="hidden" value={siteSlug} />
-                    <input name="requestId" type="hidden" value={customerContext.appointment} />
-                    <input name="accessToken" type="hidden" value={customerContext.access} />
-                    <input name="confirmationToken" type="hidden" value={customerContext.confirm} />
-                    <button className="clinic-primary-cta" type="submit">Send request to Arboleda</button>
-                  </form>
-                ) : <small>Return to the original review link to send this request.</small>}
+                <div className="customer-review-actions">
+                  {customerContext.confirm ? (
+                    <form action={confirmAppointmentFromPage}>
+                      <input name="siteSlug" type="hidden" value={siteSlug} />
+                      <input name="requestId" type="hidden" value={customerContext.appointment} />
+                      <input name="accessToken" type="hidden" value={customerContext.access} />
+                      <input name="confirmationToken" type="hidden" value={customerContext.confirm} />
+                      <button className="clinic-primary-cta" type="submit">Send request to Mimo</button>
+                    </form>
+                  ) : <small>Return to the original review link to send this request.</small>}
+                  <Link className="clinic-text-button" href={editHref}>
+                    ← Edit details
+                  </Link>
+                </div>
               </div>
             ) : appointment.status === "requested" ? (
               <div className="customer-demo-response">
-                <p className="customer-next-step">Request sent. In the real product, Arboleda replies from its staff workspace.</p>
+                <p className="customer-next-step">Request sent. In the real product, Mimo replies from its staff workspace.</p>
                 <div className="customer-demo-response-heading">
                   <span>Demo-only handoff</span>
                   <p>Trigger a fictional clinic reply to see the customer update and calendar handoff.</p>
@@ -366,7 +397,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
               </div>
             ) : appointment.status === "time_proposed" ? (
               <div className="customer-proposal">
-                <p>Arboleda proposed this new time. You remain in control.</p>
+                <p>Mimo proposed this new time. You remain in control.</p>
                 <div>
                   <form action={respondToAppointmentProposal}>
                     <input name="siteSlug" type="hidden" value={siteSlug} />
@@ -394,7 +425,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
                     <div><dt>When</dt><dd>{customerTime(String(appointment.starts_at))}</dd></div>
                     <div><dt>Updates</dt><dd>{String(appointment.customer_email)}</dd></div>
                   </dl>
-                  <small>Fictional Arboleda demo · this private page remains the source of truth.</small>
+                  <small>Fictional Mimo demo · this private page remains the source of truth.</small>
                 </article>
                 <div>
                   <a href={googleCalendarUrl(appointment)} target="_blank" rel="noreferrer">Google Calendar ↗</a>
@@ -406,63 +437,31 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
         ) : (
           <div className="clinic-booking-options">
             <div className="clinic-service-list" aria-label="Available appointment services">
-              {(servicesResult.data ?? []).map((service, index) => (
+              {(servicesResult.data ?? []).map((service) => (
                 <article key={service.service_slug}>
-                  <span>{String(index + 1).padStart(2, "0")}</span>
                   <div><h3>{service.service_name}</h3><p>{service.description}</p></div>
                   <strong>{service.duration_minutes} min</strong>
                 </article>
               ))}
             </div>
 
-            <details className="clinic-human-booking">
-              <summary>
-                <div><span>Prefer not to use an assistant?</span><strong>Book traditionally on this page</strong></div>
-                <em>{slots.length
-                  ? `${slots.length} live ${slots.length === 1 ? "time" : "times"} · Open form`
-                  : "No times available"}</em>
-              </summary>
-              <div className="clinic-human-booking-body">
-                <p>The form and your assistant use the same published services and availability. Either way, you review before sending.</p>
-                {customerContext.bookingError ? (
-                  <p className="clinic-booking-error">
-                    {customerContext.bookingError === "confirm"
-                      ? "That time is no longer available. Start a new request."
-                      : "The request could not be prepared. Check the details and try again."}
-                  </p>
-                ) : null}
-                {slots.length ? (
-                  <form action={prepareAppointmentFromPage}>
-                    <input name="siteSlug" type="hidden" value={siteSlug} />
-                    <input name="serviceSlug" type="hidden" value="dermatology" />
-                    <fieldset>
-                      <legend>Dermatology · {appointmentDate}</legend>
-                      <div className="clinic-slot-options">
-                        {slots.map((slot, index) => (
-                          <label key={slot.slot_id}>
-                            <input defaultChecked={index === 0} name="slotId" type="radio" value={slot.slot_id} />
-                            <span>{slotTime(slot.starts_at)}</span>
-                            <small>{slot.duration_minutes} min</small>
-                          </label>
-                        ))}
-                      </div>
-                    </fieldset>
-                    <div className="clinic-booking-fields">
-                      <label>Pet name<input maxLength={80} name="petName" placeholder="Luna" required /></label>
-                      <label>Email for updates<input inputMode="email" maxLength={200} name="customerEmail" placeholder="you@example.com" required type="email" /></label>
-                    </div>
-                    <button className="clinic-primary-cta" type="submit">Review appointment request</button>
-                  </form>
-                ) : <p>No dermatology times are currently available.</p>}
-              </div>
-            </details>
+            <TraditionalBooking
+              appointmentDate={appointmentDate}
+              bookingError={customerContext.bookingError}
+              initialCustomerEmail={editingAppointment ? String(appointmentRecord?.customer_email ?? "") : undefined}
+              initialOpen={editingAppointment || Boolean(customerContext.bookingError)}
+              initialPetName={editingAppointment ? String(appointmentRecord?.pet_name ?? "") : undefined}
+              initialStartsAt={editingAppointment ? String(appointmentRecord?.original_starts_at ?? "") : undefined}
+              siteSlug={siteSlug}
+              slots={slots}
+            />
           </div>
         )}
       </section>
 
       <section className="clinic-details" aria-label="Care approach and opening hours">
         <article className="clinic-approach" id="our-approach" aria-labelledby="approach-title">
-          <p className="clinic-section-index">01 / Approach</p>
+          <p className="clinic-section-index">Our approach</p>
           <h2 id="approach-title">Good care starts before the appointment.</h2>
           <p>
             Clear information makes every visit feel simpler. Know when to
@@ -475,16 +474,15 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
 
         <article className="clinic-hours" id="opening-hours" aria-labelledby="hours-title">
           <div className="clinic-hours-heading">
-            <p className="clinic-section-index">02 / Visit</p>
+            <p className="clinic-section-index">Opening hours</p>
             <div>
               <h2 id="hours-title">Find a time that fits.</h2>
               <p>Current published hours, kept in one reliable place.</p>
             </div>
           </div>
           <dl>
-            {schedule.map(([label, value], index) => (
+            {schedule.map(([label, value]) => (
               <div key={label}>
-                <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
                 <dt>{label.replaceAll("_", " ")}</dt>
                 <dd>{value}</dd>
               </div>
@@ -495,10 +493,10 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
 
       <section className="clinic-closing" aria-labelledby="closing-title">
         <div>
-          <p className="clinic-kicker">A calmer kind of care</p>
-          <h2 id="closing-title">Make room for the moments that matter.</h2>
+          <p className="clinic-kicker">Plan with current information</p>
+          <h2 id="closing-title">See when Saturday care is available.</h2>
         </div>
-        <a className="clinic-primary-cta clinic-primary-cta-light" href="#opening-hours">
+        <a className="clinic-primary-cta clinic-primary-cta-light" href="#agent-booking">
           {content.cta_label}
           <span aria-hidden="true">↑</span>
         </a>
@@ -506,21 +504,20 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
 
       <footer className="clinic-footer">
         <div className="clinic-footer-brand">
-          <strong>Arboleda</strong>
+          <strong>Mimo</strong>
           <span>Veterinary care with a gentler rhythm.</span>
         </div>
         <WebMcpRegistrar
           siteSlug={siteSlug}
-          appointmentId={customerContext.appointment}
-          accessToken={customerContext.access}
-          confirmationToken={customerContext.confirm}
+          appointmentId={editingAppointment ? undefined : customerContext.appointment}
+          accessToken={editingAppointment ? undefined : customerContext.access}
+          confirmationToken={editingAppointment ? undefined : customerContext.confirm}
           contextKey={JSON.stringify([published.version_id, appointment?.status ?? null])}
           presentation="public-site"
         />
         <div className="clinic-footer-meta">
-          <Link href="/app">Clinic staff workspace · demo access ↗</Link>
-          <span>Published information</span>
-          <span>Version {published.version_number}</span>
+          <Link href="/demo">Staff workspace →</Link>
+          <span>Live version {published.version_number}</span>
         </div>
       </footer>
     </main>

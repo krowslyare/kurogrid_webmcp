@@ -1,12 +1,13 @@
 import Link from "next/link";
 
 import { KuroBrand, KuroMark } from "@/components/KuroBrand";
+import { AppointmentHandoffIllustration } from "@/components/ProductIllustrations";
 
 const journey = [
-  ["01", "Discover", "Read Arboleda's services and current availability directly from its website."],
-  ["02", "Prepare", "Choose a suitable time and assemble the exact request without sending it."],
-  ["03", "Confirm", "Hand control back to the customer before the clinic receives anything."],
-  ["04", "Resolve", "Let the clinic accept or suggest another time, then return by email and add it to Calendar."],
+  ["Discover", "Read Mimo's services and current availability directly from its website."],
+  ["Prepare", "Choose a suitable time and assemble the exact request without sending it."],
+  ["Confirm", "Hand control back to the customer before the clinic receives anything."],
+  ["Resolve", "Let the clinic accept or suggest another time, then return by email and add it to Calendar."],
 ] as const;
 
 export default function Home() {
@@ -49,32 +50,32 @@ export default function Home() {
 
         <div className="landing-product" aria-label="Kuro Agent product workflow preview">
           <div className="landing-product-bar">
-            <span><i aria-hidden="true" /> Clínica Arboleda</span>
+            <span><i aria-hidden="true" /> Mimo Veterinary Care</span>
             <span>Customer agent</span>
           </div>
           <div className="landing-product-body">
+            <div className="landing-product-illustration">
+              <AppointmentHandoffIllustration />
+              <span>Customer request</span>
+              <span>Clinic response</span>
+            </div>
             <div className="landing-signal-label">
               <span>Appointment / Luna</span>
               <strong>3 times available</strong>
             </div>
             <h2>Find Luna a dermatology visit this Saturday.</h2>
             <p>
-              Arboleda offers dermatology care on Saturday morning. The agent
+              Mimo offers dermatology care on Saturday morning. The agent
               can prepare a request, but only the customer can send it.
             </p>
-            <div className="landing-evidence">
-              <span>Dermatology</span>
-              <span>Saturday 09:30</span>
-              <span>30 minutes</span>
+            <div className="landing-prepared-request">
+              <span>Prepared for customer review</span>
+              <strong>Dermatology · Saturday 09:30</strong>
+              <i>Nothing sent yet</i>
             </div>
-            <ol className="landing-mini-plan">
-              <li><span>01</span><strong>Read services and live times</strong><i>Done</i></li>
-              <li><span>02</span><strong>Prepare Saturday at 09:30</strong><i>Ready</i></li>
-              <li><span>03</span><strong>Ask before sending</strong><i>Confirm</i></li>
-            </ol>
           </div>
           <div className="landing-product-footer">
-            <span>Available from this page</span>
+            <span>Agent capabilities on this page</span>
             <div>
               <code>Find appointment times</code>
               <code>Prepare request</code>
@@ -97,9 +98,8 @@ export default function Home() {
 
         <div className="landing-operating-grid">
           <div className="landing-journey" aria-label="Kuro Agent workflow">
-            {journey.map(([number, title, description]) => (
-              <article key={number}>
-                <span>{number}</span>
+            {journey.map(([title, description]) => (
+              <article key={title}>
                 <h3>{title}</h3>
                 <p>{description}</p>
               </article>
@@ -112,12 +112,19 @@ export default function Home() {
             <p>Built into the page</p>
             <h3 id="parity-title">The website becomes a working interface.</h3>
           </div>
-          <div className="landing-parity-diagram" aria-label="Customer, agent, and clinic handoff">
-            <div><span>Customer</span><strong>I need Saturday care</strong></div>
-            <span aria-hidden="true">↔</span>
-            <div className="landing-version"><span>Arboleda website + WebMCP</span><strong>Find times · prepare request</strong></div>
-            <span aria-hidden="true">↔</span>
-            <div><span>Clinic</span><strong>Accept or offer another time</strong></div>
+          <div className="landing-outcome" aria-label="Confirmed appointment outcome">
+            <div className="landing-outcome-status">
+              <span>Clinic response</span>
+              <strong>Confirmed</strong>
+            </div>
+            <div className="landing-outcome-visit">
+              <span>Luna · Dermatology</span>
+              <strong>Saturday, 09:30</strong>
+            </div>
+            <ul>
+              <li><span aria-hidden="true">✓</span> Email update sent</li>
+              <li><span aria-hidden="true">＋</span> Ready for Calendar</li>
+            </ul>
           </div>
         </div>
       </section>
@@ -125,10 +132,10 @@ export default function Home() {
       <section className="landing-close" aria-labelledby="close-title">
         <div>
           <p>One fictional clinic. One real agent interaction.</p>
-          <h2 id="close-title">Ask Arboleda for a Saturday visit.</h2>
+          <h2 id="close-title">Ask Mimo for a Saturday visit.</h2>
         </div>
         <Link className="landing-primary-cta landing-primary-cta-light" href="/sites/arboleda-01">
-          Try it on Arboleda <span aria-hidden="true">↗</span>
+          Try it on Mimo <span aria-hidden="true">↗</span>
         </Link>
       </section>
 

@@ -8,6 +8,7 @@ import {
 } from "@/features/attention/server/actions";
 import { updateAppointmentFromOwner } from "@/features/appointments/server/actions";
 import { KuroBrand } from "@/components/KuroBrand";
+import { WorkspacePulseIllustration } from "@/components/ProductIllustrations";
 import { getViewer } from "@/features/auth/server/get-viewer";
 import {
   approveSiteDraft,
@@ -20,7 +21,11 @@ import type { Json } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Website update · Kuro Agent",
+  title: "Mimo clinic workspace · Kuro Agent",
+  icons: {
+    icon: [{ url: "/mimo-icon.svg", type: "image/svg+xml" }],
+    shortcut: "/mimo-icon.svg",
+  },
 };
 
 type PageProps = {
@@ -219,12 +224,16 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
         ? "Review the exact change before it goes live."
         : guidedPlan
           ? "The evidence is clear. Shape the Saturday message."
-          : "Keep Arboleda accurate for customers and their assistants.";
+          : "Keep Mimo accurate for customers and their assistants.";
 
   return (
     <main className="workspace-shell">
       <header className="workspace-nav">
-        <KuroBrand href="/app" label={membership.organizationName} suffix="Guided demo" />
+        <KuroBrand
+          href="/app"
+          label={organizationSlug.startsWith("arboleda-demo-") ? "Mimo Veterinary Care" : membership.organizationName}
+          suffix="Guided demo"
+        />
         <div className="workspace-nav-meta">
           <Link href="/app">Switch workspace</Link>
           <span className="role-badge">{membership.role}</span>
@@ -292,12 +301,20 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
       ) : null}
 
       <section className="workspace-heading guided-heading">
-        <p className="kicker">Website settings · Step {currentStep} of 4</p>
-        <h2>{workspaceTitle}</h2>
-        <p>
-          Update the public page once. Customers and assistants will see the
-          same services and hours.
-        </p>
+        <div className="guided-heading-main">
+          <div>
+            <p className="kicker">Website settings</p>
+            <h2>{workspaceTitle}</h2>
+            <p>
+              Update the public page once. Customers and assistants will see the
+              same services and hours.
+            </p>
+          </div>
+          <div className="workspace-illustration-wrap">
+            <WorkspacePulseIllustration />
+            <p><span>One approved change</span><strong>Customer page + assistant tools</strong></p>
+          </div>
+        </div>
         <ol className="workspace-progress" aria-label="Website update progress">
           {[
             [1, "Review", "Check what changed"],
@@ -309,7 +326,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
               className={Number(step) < currentStep ? "is-complete" : Number(step) === currentStep ? "is-current" : ""}
               key={String(step)}
             >
-              <span>{String(step).padStart(2, "0")}</span>
+              <span aria-hidden="true">{Number(step) < currentStep ? "✓" : "•"}</span>
               <div><strong>{label}</strong><small>{description}</small></div>
             </li>
           ))}
@@ -323,8 +340,8 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
 
       <section className="opportunity-section" aria-labelledby="opportunity-title">
         <div className="workspace-section-heading">
-          <p className="kicker">01 · Understand</p>
-          <h2 id="opportunity-title">What changed at Arboleda?</h2>
+          <p className="kicker">Website signal</p>
+          <h2 id="opportunity-title">What changed at Mimo?</h2>
           <p>
             Customers are looking for Saturday care, but the current site does
             not make it easy enough to spot.
@@ -332,9 +349,8 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
         </div>
 
         <div className="evidence-list" aria-label="Evidence behind the website update">
-          {attention.length ? attention.map((item, index) => (
+          {attention.length ? attention.map((item) => (
             <article key={item.id}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
               <div>
                 <p>{evidenceLabels[item.kind] ?? "Business evidence"}</p>
                 <h3>{item.title}</h3>
@@ -375,10 +391,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
             {guidedPlan ? (
               <ol className="plan-steps">
                 {guidedPlanSteps.map((step) => (
-                  <li key={step.kind}>
-                    <span>{String(step.position).padStart(2, "0")}</span>
-                    {step.title}
-                  </li>
+                  <li key={step.kind}>{step.title}</li>
                 ))}
               </ol>
             ) : (
@@ -403,7 +416,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
       <section className="publication-section" aria-labelledby="publication-title">
         <div className="publication-heading">
           <div>
-            <p className="kicker">02–04 · Draft, approve, publish</p>
+            <p className="kicker">Website draft and release</p>
             <h2 id="publication-title">Make Saturday care unmistakable.</h2>
           </div>
           <p>Turn the approved evidence into one clear message, then publish it for customers and assistants together.</p>
@@ -421,8 +434,8 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
             headline: "Care that makes room for Saturday.",
             summary: "Thoughtful veterinary consultations, now with selected Saturday appointments.",
             opening_hours: {
-              weekdays: contentString(publishedHours, "weekdays") || "Monday–Friday · 08:00–18:00",
-              saturday: "Saturday · 09:00–14:00",
+              weekdays: contentString(publishedHours, "weekdays") || "Monday-Friday · 08:00-18:00",
+              saturday: "Saturday · 09:00-14:00",
             },
             cta_label: "Find an appointment",
           };
@@ -443,9 +456,9 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
           return (
             <article className="publication-card" key={site.id}>
               <div className="publication-status">
-                <div><span>01</span><strong>{draft ? `Draft v${draft.revision}` : "Draft not started"}</strong></div>
-                <div><span>02</span><strong>{hasExactApproval ? "Owner approved" : isCurrentDraftPublished ? "Approval used" : "Approval required"}</strong></div>
-                <div><span>03</span><strong>{site.published_version_id ? "Website live" : "Not published"}</strong></div>
+                <div><span>Draft</span><strong>{draft ? `Version ${draft.revision}` : "Not started"}</strong></div>
+                <div><span>Approval</span><strong>{hasExactApproval ? "Owner approved" : isCurrentDraftPublished ? "Used" : "Required"}</strong></div>
+                <div><span>Website</span><strong>{site.published_version_id ? "Live" : "Not published"}</strong></div>
               </div>
 
               {guidedPlan || draft ? (
@@ -473,7 +486,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                     <label>Page headline<input name="headline" defaultValue={contentString(content, "headline")} required /></label>
                     <label>Short introduction<textarea name="summary" defaultValue={contentString(content, "summary")} required /></label>
                     <div className="field-pair">
-                      <label>Monday–Friday hours<input name="weekdayHours" defaultValue={contentString(hours, "weekdays")} required /></label>
+                      <label>Monday-Friday hours<input name="weekdayHours" defaultValue={contentString(hours, "weekdays")} required /></label>
                       <label>Saturday hours<input name="saturdayHours" defaultValue={contentString(hours, "saturday")} required /></label>
                     </div>
                     <label>Primary button label<input name="ctaLabel" defaultValue={contentString(content, "cta_label")} required /></label>
@@ -484,7 +497,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                 </>
               ) : (
                 <div className="draft-locked">
-                  <span>02</span>
+                  <span>Draft</span>
                   <div>
                     <strong>Prepare the update above to reveal the proposed copy.</strong>
                     <p>The suggestion stays locked until the evidence becomes an action plan.</p>
@@ -517,9 +530,9 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                     </div>
                     <span>
                       {isCurrentDraftPublished
-                        ? `Version ${publishedVersion?.version_number ?? "—"} · Live for customers and assistants`
+                        ? `Version ${publishedVersion?.version_number ?? "Not available"} · Live for customers and assistants`
                         : hasExactApproval
-                          ? `Draft v${draft?.revision ?? "—"} · Approved, not live yet`
+                          ? `Draft v${draft?.revision ?? "Not available"} · Approved, not live yet`
                         : `${draft ? `Draft v${draft.revision}` : "Suggested from evidence"} · Nothing is live yet`}
                     </span>
                   </header>
@@ -537,9 +550,9 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                       <span>Assistant preview</span>
                       <h4>Structured facts from this same version</h4>
                       <ul>
-                        <li><i aria-hidden="true">01</i><strong>Opening hours</strong><small>{contentString(hours, "saturday")}</small></li>
-                        <li><i aria-hidden="true">02</i><strong>Available services</strong><small>Published clinic catalog</small></li>
-                        <li><i aria-hidden="true">03</i><strong>Appointment times</strong><small>Live availability only</small></li>
+                        <li><strong>Opening hours</strong><small>{contentString(hours, "saturday")}</small></li>
+                        <li><strong>Available services</strong><small>Published clinic catalog</small></li>
+                        <li><strong>Appointment times</strong><small>Live availability only</small></li>
                       </ul>
                     </article>
                   </div>
@@ -550,7 +563,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                 <div className="publication-actions">
                   <span>
                     {isCurrentDraftPublished
-                      ? `Version ${publishedVersion?.version_number ?? "—"} is live. Any new edit will require a fresh approval.`
+                      ? `Version ${publishedVersion?.version_number ?? "Not available"} is live. Any new edit will require a fresh approval.`
                       : `Draft v${draft.revision} is saved. Every edit requires a new approval.`}
                   </span>
                   {membership.role === "owner" ? (
@@ -615,14 +628,14 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
             <p className="kicker">The customer chapter is ready</p>
             <h2 id="customer-handoff-title">See the update from the other side.</h2>
             <p>
-              Version {firstPublishedVersion?.version_number ?? "—"} now powers both
-              Arboleda&apos;s public page and the actions available to assistants.
+              Version {firstPublishedVersion?.version_number ?? "Not available"} now powers both
+              Mimo&apos;s public page and the actions available to assistants.
             </p>
           </div>
           <ol aria-label="What is now live">
-            <li><span>01</span>Saturday hours are public</li>
-            <li><span>02</span>Assistants can read current availability</li>
-            <li><span>03</span>Customer requests return to this workspace</li>
+            <li>Saturday hours are public</li>
+            <li>Assistants can read current availability</li>
+            <li>Customer requests return to this workspace</li>
           </ol>
           <Link href={`/sites/${firstSite.slug}`}>
             Continue on the customer site <span aria-hidden="true">↗</span>

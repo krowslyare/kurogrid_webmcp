@@ -330,13 +330,13 @@ export async function executeWebMcpTool(request: ToolRequest) {
       const duration = Number(details.duration_minutes);
       const endsAt = new Date(startsAt.getTime() + duration * 60_000);
       const calendarStamp = (value: Date) => value.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-      const title = `${String(details.service)} for ${String(details.pet_name)} · Arboleda`;
+      const title = `${String(details.service)} for ${String(details.pet_name)} · Mimo`;
       const google = new URL("https://calendar.google.com/calendar/render");
       google.searchParams.set("action", "TEMPLATE");
       google.searchParams.set("text", title);
       google.searchParams.set("dates", `${calendarStamp(startsAt)}/${calendarStamp(endsAt)}`);
-      google.searchParams.set("details", "Confirmed through Arboleda's WebMCP appointment flow.");
-      google.searchParams.set("location", "Clínica Veterinaria Arboleda");
+      google.searchParams.set("details", "Confirmed through Mimo's WebMCP appointment flow.");
+      google.searchParams.set("location", "Clínica Veterinaria Mimo");
       const calendarSearch = new URLSearchParams({
         appointment: capabilities.appointment.id,
         access: capabilities.appointment.accessToken,
@@ -346,7 +346,7 @@ export async function executeWebMcpTool(request: ToolRequest) {
           title,
           starts_at: startsAt.toISOString(),
           ends_at: endsAt.toISOString(),
-          location: "Clínica Veterinaria Arboleda",
+          location: "Clínica Veterinaria Mimo",
         },
         google_calendar_url: google.toString(),
         ics_download_url: `/api/appointments/calendar?${calendarSearch}`,

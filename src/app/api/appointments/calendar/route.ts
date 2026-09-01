@@ -32,19 +32,19 @@ export async function GET(request: Request) {
 
   const startsAt = new Date(String(details.starts_at));
   const endsAt = new Date(startsAt.getTime() + Number(details.duration_minutes) * 60_000);
-  const title = `${String(details.service)} for ${String(details.pet_name)} · Arboleda`;
+  const title = `${String(details.service)} for ${String(details.pet_name)} · Mimo`;
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Kuro Agent//Arboleda Appointment//EN",
+    "PRODID:-//Kuro Agent//Mimo Appointment//EN",
     "BEGIN:VEVENT",
     `UID:${appointment}@kurogrid-webmcp`,
     `DTSTAMP:${calendarStamp(new Date())}`,
     `DTSTART:${calendarStamp(startsAt)}`,
     `DTEND:${calendarStamp(endsAt)}`,
     `SUMMARY:${escapeCalendar(title)}`,
-    "LOCATION:Clínica Veterinaria Arboleda",
-    "DESCRIPTION:Confirmed through Arboleda's WebMCP appointment flow.",
+    "LOCATION:Clínica Veterinaria Mimo",
+    "DESCRIPTION:Confirmed through Mimo's WebMCP appointment flow.",
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
   return new Response(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="arboleda-appointment.ics"',
+      "Content-Disposition": 'attachment; filename="mimo-appointment.ics"',
     },
   });
 }

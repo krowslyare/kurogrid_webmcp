@@ -56,7 +56,7 @@ preview. To send the same update through Resend, set these server-only values:
 ```bash
 APP_BASE_URL=https://your-deployment.example
 RESEND_API_KEY=re_...
-RESEND_FROM_EMAIL="Arboleda <appointments@your-verified-domain.example>"
+RESEND_FROM_EMAIL="Mimo <appointments@your-verified-domain.example>"
 ```
 
 The API key is never exposed to the browser. Delivery uses a deterministic

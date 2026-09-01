@@ -51,8 +51,14 @@ export default async function WorkspacePage() {
               <li key={membership.organizationId}>
                 <Link href={`/app/${membership.organizationSlug}`}>
                   <span className="membership-index">Continue demo ↗</span>
-                  <strong>{membership.organizationName}</strong>
-                  <span>/{membership.organizationSlug}</span>
+                  <strong>
+                    {membership.organizationSlug.startsWith("arboleda-demo-")
+                      ? "Mimo Veterinary Care"
+                      : membership.organizationName}
+                  </strong>
+                  <span>
+                    /{membership.organizationSlug.replace("arboleda-demo-", "mimo-demo-")}
+                  </span>
                 </Link>
                 <span className="role-badge">{membership.role}</span>
               </li>
