@@ -312,6 +312,24 @@ function planStateCopy(phase: PlanPhase, hasPlan: boolean) {
   }
 }
 
+function nextMoveCopy(phase: PlanPhase, hasPlan: boolean) {
+  if (!hasPlan) {
+    return "The next move is your agent’s: paste the request below and let it prepare the exact plan.";
+  }
+
+  switch (phase) {
+    case "pending": return "Your agent finished its part. The next move is yours: review the impact, then approve here.";
+    case "approved": return "Approval is recorded. Apply this exact plan once, through your agent or the manual fallback.";
+    case "applied":
+    case "customer": return "The schedule is applied. The next move belongs to the customer: they accept or decline the new time.";
+    case "completed": return "The journey is complete. The public site and assistant tools now show the same availability.";
+    case "manual": return "The next move is yours: arrange the next step with the customer manually.";
+    case "stale": return "The next move is your agent’s: prepare a fresh exact plan against the new schedule revision.";
+    case "failed": return "The next move is yours: check the plan state before asking the agent to retry.";
+    default: return "Waiting on the latest availability plan state.";
+  }
+}
+
 function stateClass(phase: PlanPhase) {
   switch (phase) {
     case "pending": return styles.statusPending;
@@ -576,10 +594,10 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
     <section className={styles.room} aria-labelledby="availability-room-title">
       <ol className={styles.workflowSteps} aria-label="Availability workflow">
         {[
-          [1, "Brief", "Rules and calendar"],
-          [2, "Verify", "Slots and conflicts"],
-          [3, "Apply", "Only when requested"],
-          [4, "Customer", "Accept the new time"],
+          [1, "Brief", "You set the rules once"],
+          [2, "Verify", "Your agent derives slots and conflicts"],
+          [3, "Apply", "Your agent only if you asked — otherwise you approve"],
+          [4, "Customer", "The affected customer decides"],
         ].map(([step, label, detail]) => (
           <li
             className={Number(step) < workflowStep ? styles.workflowComplete : Number(step) === workflowStep ? styles.workflowCurrent : ""}
@@ -614,7 +632,7 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
             <div className={styles.promptCardHead}>
               <div>
                 <span className={styles.panelLabel}>Continue with your assistant</span>
-                <strong>Paste this request into the agent that can read your calendar.</strong>
+                <strong>{nextMoveCopy(phase, hasPlan)}</strong>
               </div>
               <span className={styles.promptBadge}>One prompt</span>
             </div>

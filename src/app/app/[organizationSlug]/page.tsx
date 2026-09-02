@@ -510,7 +510,11 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
               <div>
                 <p>Content &amp; publication</p>
                 <h1 id="content-operations-title">Website operations</h1>
-                <span>Update public copy and structured assistant facts. Both views update together from one approved revision.</span>
+                <span>
+                  Update public copy and structured assistant facts. Both views
+                  update together from one approved revision. This content flow
+                  is separate from the September availability plan in Schedule.
+                </span>
               </div>
               <aside>
                 <small>Current publication</small>
