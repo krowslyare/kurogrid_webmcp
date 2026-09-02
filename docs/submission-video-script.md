@@ -1,96 +1,146 @@
 # Kuro Agent submission video
 
-Target: 2:50 to 3:00, 16:9, spoken in English.
+Target: 2:50 to 2:57, 1920 by 1080, spoken in English.
 
-Core message: a website can expose safe, contextual capabilities directly to any compatible assistant while people remain in control of consequential actions.
+Core message: a website can expose enough structured capability for an
+assistant to complete customer work and reconcile an Owner's real schedule,
+while people keep control of the decisions that affect them.
 
 ## Recording setup
 
-- Reset and provision the demo immediately before recording.
-- Keep three tabs ready: Mimo customer site, clinic workspace, and the assistant.
-- Use one customer request throughout: Luna, dermatology, Saturday morning.
-- Keep the customer site at version 1 before starting the owner chapter.
-- Use an email address that can receive the Resend update in production.
-- Hide browser bookmarks, developer tools, local URLs, and unrelated tabs.
-- Record at 1920 by 1080. Keep the cursor movement slow and intentional.
+- Reset and provision the hosted demo immediately before recording.
+- Start already signed in and record short clips, not one uninterrupted take.
+- Keep four tabs ready: Mimo, the compatible assistant, the Owner workspace,
+  and the private customer status page.
+- Use the September fixture: Luna at 10:00, Max at 12:00, external busy range
+  10:00–11:30, and proposed alternative 11:30.
+- Configure `DEMO_NOTIFICATION_EMAIL` if a real Resend inbox will be shown;
+  otherwise show the honest preview receipt.
+- Hide access codes, IDs, unrelated tabs, developer tools, and loading time.
+
+## Exact Owner prompt
+
+> Set dermatology availability for September. Tuesdays and Thursdays from 9 to 1, Saturdays from 9 to 2, thirty-minute appointments, keep lunch blocked from 12 to 1, incorporate the busy ranges from my calendar, and preserve existing bookings. Prepare the exact plan, and if it matches these constraints, approve and apply it from my authenticated Owner session. Send the customer update.
+
+The assistant should use these Owner tools:
+
+1. `get_availability_configuration`
+2. `prepare_availability_plan`
+3. `apply_availability_plan`, which appears only for the exact prepared plan
+   and binds its ID, revision, and hash
 
 ## Script and shot list
 
-### 0:00 to 0:16 | The problem
+### 0:00–0:13 | Cold open: show the result first
 
-Screen: Kuro Agent landing, then open Mimo.
-
-Narration:
-
-> Most websites are designed to answer people, but assistants still have to guess from pixels or brittle page text. Kuro Agent lets a website expose useful, contextual actions directly to an assistant, without giving up human control.
-
-### 0:16 to 0:32 | A real customer site
-
-Screen: Mimo hero, services, current hours, and the appointment section.
+Screen: fast cuts between the Owner timeline and the customer's confirmed
+11:30 receipt. Hold on `10:00–11:30 blocked`, `Luna → 11:30`, and
+`Max unchanged · 12:00`.
 
 Narration:
 
-> This is Mimo, a fictional veterinary clinic. It works as a normal customer website, including a traditional booking form. But the same page also publishes structured capabilities for assistants.
+> One instruction changed a month of clinic availability, resolved a real conflict, preserved an existing booking, and let the affected customer choose the new time. This is running through tools exposed by the website itself.
 
-### 0:32 to 1:27 | The customer moment
+### 0:13–0:33 | A customer website with native capabilities
 
-Screen: Give the assistant this request:
-
-> Find a dermatology appointment for Luna on Saturday morning and email me if the clinic changes the time.
-
-Show the assistant discovering Mimo's tools, reading live services, finding available times, and preparing the request. Return to the private review page. Pause on the exact service, time, pet, and email. Confirm only after the review is visible.
+Screen: Mimo beside the assistant. Ask it to list the tools exposed by the
+page, then show the exact five public names. Briefly show the normal booking
+form as the non-agent fallback.
 
 Narration:
 
-> I can ask my assistant naturally. It discovers the capabilities registered by this page, reads Mimo's live services and availability, and prepares a specific request. It does not submit anything silently. The page returns an exact private review, and I remain the person who decides whether to send it.
+> Mimo still works as a normal website. In a compatible browser it also publishes five customer-safe tools for content, services, live times, and appointment preparation. WebMCP adds an agent path without removing the human one.
 
-> After confirmation, the available tools change with the appointment state. The assistant can now read the latest status, but the one-time confirmation action is gone.
+### 0:33–1:19 | One Owner instruction updates the real schedule
 
-### 1:27 to 2:05 | The business updates one source of truth
-
-Screen: Clinic workspace. Show the three evidence cards. Click Prepare website update, create the draft, pause on the customer and assistant consequence previews, approve, then publish.
-
-Narration:
-
-> On the clinic side, Kuro Agent combines a customer question, a demand signal, and one approved business fact. It produces a fixed action plan and a structured site draft. The owner previews the consequences for both customers and assistants, approves that exact revision, and publishes once.
-
-> The public page and its assistant tools now read from the same immutable version. There is no second integration to update and no hidden drift between what people see and what agents can do.
-
-### 2:05 to 2:22 | Prove parity and reversibility
-
-Screen: Refresh Mimo and show the new Saturday headline and live version. Return to publication history, restore version 1, then refresh Mimo again.
+Screen: start in the Owner workspace. Paste the exact prompt once. Let the
+assistant call `get_availability_configuration`, `prepare_availability_plan`,
+and the newly available `apply_availability_plan`. Cut directly to the applied
+impact UI and the customer delivery receipt.
 
 Narration:
 
-> The change is immediately visible on the customer site and in the structured tool surface. Every version remains immutable, so the owner can restore an earlier version without rewriting history.
+> The Owner describes the whole outcome once. Their assistant already knows the calendar, so Mimo receives only normalized busy ranges, never event titles, attendees, or provider access. Mimo derives eighty-three September slots, finds one conflict, preserves Max at noon, and proposes 11:30 to Luna. Because the Owner explicitly asked to apply the matching result, the assistant completes it from the authenticated session.
 
-### 2:22 to 2:46 | Close the appointment loop
+On-screen labels:
 
-Screen: Return to the customer request. Trigger the clinic's proposed time, show the email update, accept the new time, then show the confirmed receipt and Calendar actions.
+- External context: 10:00–11:30
+- Luna: affected at 10:00
+- Max: preserved at 12:00
+- Recommended: 11:30
+- Changes applied: Yes
+- Customer update: Sent
+
+### 1:19–1:42 | Authority without a click maze
+
+Screen: briefly pair the Owner's exact prompt with the applied receipt. Show
+the manual review button only as the fallback, then focus on the blocked range,
+held alternative, preserved booking, and notification status.
 
 Narration:
 
-> Mimo can accept the request or propose a new time. The customer receives an email with a private status link, stays in control of the response, and finishes with a clear receipt plus Google Calendar and iCalendar handoff.
+> This is not an unrestricted automation toggle. The authenticated Owner explicitly requested application, and the server still revalidates the exact plan ID, revision, hash, schedule, and booking impact in one transaction. If the prompt asks only to prepare, Mimo stops for manual review. And the clinic still cannot accept the new time on Luna's behalf.
 
-### 2:46 to 2:58 | Closing statement
+### 1:42–2:10 | The notification becomes a customer workflow
 
-Screen: Confirmed receipt, then Kuro Agent mark.
+Screen: show the Resend email or preview receipt, open the private link, and
+show the proposed 11:30 time. Give the customer assistant one short prompt to
+compare it with their calendar and answer. Show
+`respond_to_appointment_proposal` with `accept: true`.
 
 Narration:
 
-> Kuro Agent turns a website from passive content into a safe capability surface. Contextual tools, exact human approval, one published truth, and a complete customer outcome.
+> Luna's owner receives a private update, opens it with their assistant, and asks one question: does this fit my calendar? The page exposes a capability specific to this proposal, so the assistant accepts 11:30. That response tool immediately disappears.
 
-## Recording priorities
+### 2:10–2:32 | Complete outcome
 
-If the recording runs long, shorten the owner chapter before touching the customer moment. Do not spend time on login, access codes, technical tool schemas, tenant IDs, test results, or implementation details. The proof is the changing capability surface and the completed customer outcome.
+Screen: show the confirmed appointment receipt, then the Google Calendar and
+ICS actions. Return briefly to the Owner receipt showing `Customer accepted`.
+
+Narration:
+
+> The appointment is now confirmed at 11:30. The customer can add it to Google Calendar or download an iCalendar file, while the clinic sees the same resolved state.
+
+### 2:32–2:50 | Public parity
+
+Screen: call `find_appointment_slots` for Saturday and show only 09:00, 09:30,
+13:00, and 13:30. Pair it with the public human booking surface.
+
+Narration:
+
+> Human visitors and assistants now read the same availability. The busy range, lunch block, Max's preserved booking, and Luna's accepted time are all excluded from the public result. There is no second agent-only schedule to drift.
+
+### 2:50–2:57 | Close
+
+Screen: Mimo, Owner receipt, and confirmed customer receipt. End on Kuro Agent
+and the live URL.
+
+Narration:
+
+> Kuro Agent turns a website into a shared operating surface for customers, owners, and their assistants.
+
+## Editing rules
+
+- Show working tool calls, not a technical architecture walkthrough.
+- Do not type long prompts live; paste them or cut directly to the result.
+- Keep tool names on screen only when they prove a capability change.
+- Remove login, provisioning, waiting, and repeated demonstrations.
+- If the cut runs long, shorten the initial customer discovery before removing
+  Owner preparation, exact approval, or customer acceptance.
 
 ## Final preflight
 
-- Customer page starts clean with three available times.
-- The assistant sees the five initial public tools.
-- Prepared state adds status and confirmation tools.
-- Confirmed state ends with status and Calendar tools.
-- Owner publish changes both the headline and live version.
-- Rollback restores the original headline as a new immutable version.
-- Resend delivery succeeds in the hosted environment.
-- The final recording stays below three minutes.
+- The first working result appears inside 10 seconds.
+- The public page exposes five customer tools.
+- The Owner begins with read and prepare; delegated apply appears only for the
+  exact prepared plan.
+- One explicit Owner prompt drives prepare and apply; no approval click is used
+  in the primary cut.
+- The manual review path remains available when the Owner asks only to prepare.
+- Luna moves from 10:00 to a proposed 11:30; Max remains at 12:00.
+- The customer accepts through the private page or its WebMCP tool.
+- The confirmed receipt exposes Google Calendar and ICS.
+- Public human and WebMCP availability match after the change.
+- Every claim shown in the video is running in the recorded build.
+- The final export is public on YouTube, includes audio, and stays below three
+  minutes.
