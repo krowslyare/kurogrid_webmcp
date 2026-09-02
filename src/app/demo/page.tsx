@@ -27,13 +27,14 @@ export default async function DemoPage({ searchParams }: PageProps) {
           <div>
             <p className="kicker">Mimo · WebMCP operations demo</p>
             <h2>Let the page coordinate the real day.</h2>
-            <p>Customer assistants can book. Owner assistants can reconcile availability, conflicts, and existing appointments.</p>
+            <p>Start here. One claim creates one clean clinic workspace, and the customer site of the same sandbox shares its data.</p>
           </div>
           <ol>
-            <li>Discover tools from the live page</li>
-            <li>Prepare September availability</li>
+            <li>Open the Owner control room and claim a clean sandbox</li>
+            <li>Prepare September availability with your agent</li>
             <li>Apply the exact plan from one Owner request</li>
-            <li>Let the customer choose the new time</li>
+            <li>Open this sandbox&apos;s customer site from the workspace</li>
+            <li>Let the customer answer the clinic&apos;s proposal</li>
           </ol>
         </aside>
 
@@ -43,16 +44,21 @@ export default async function DemoPage({ searchParams }: PageProps) {
             <p className="kicker">Isolated walkthrough</p>
             <h1>Open a resettable demo.</h1>
             <p>
-              Use the supplied code to start on Mimo or inside the clinic.
-              Both sides share the same temporary data.
+              Start here to create one clean clinic workspace. Claiming resets
+              its sandbox, so begin the guided journey before booking as a
+              customer — both views then share the same temporary data.
             </p>
           </div>
           <Link className="demo-public-link" href="/sites/mimo-01">
-            Public customer demo. No code needed
+            Explore the Mimo customer site · independent preview, no code needed
             <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
             </svg>
           </Link>
+          <p className="demo-public-note">
+            This preview is a separate fixed site. Bookings made there do not
+            appear inside a workspace you claim afterwards.
+          </p>
           <form className="auth-form" action={claimDemoSandbox}>
           <label>
             Workspace access code
@@ -71,8 +77,8 @@ export default async function DemoPage({ searchParams }: PageProps) {
               name="journey"
               defaultValue="workspace"
               options={[
+                { value: "workspace", label: "Clinic workspace", hint: "availability operations · start here" },
                 { value: "customer", label: "Mimo website", hint: "customer appointment" },
-                { value: "workspace", label: "Clinic workspace", hint: "availability operations" },
               ]}
             />
           </div>
