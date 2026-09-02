@@ -347,6 +347,204 @@ export type Database = {
           },
         ];
       };
+      availability_plans: {
+        Row: {
+          applied_at: string | null;
+          applied_by: string | null;
+          applied_result: Json | null;
+          apply_idempotency_key: string | null;
+          approval_expires_at: string | null;
+          approved_at: string | null;
+          approved_by: string | null;
+          approved_configuration_hash: string | null;
+          approved_plan_hash: string | null;
+          approved_revision: number | null;
+          base_configuration_hash: string | null;
+          base_configuration_id: string | null;
+          base_configuration_revision: number;
+          configuration: Json;
+          consumed_at: string | null;
+          created_at: string;
+          id: string;
+          organization_id: string;
+          plan_hash: string;
+          prepare_idempotency_key: string;
+          prepared_by: string;
+          preview: Json;
+          preview_hash: string;
+          service_id: string;
+          site_id: string;
+          status: Database["public"]["Enums"]["availability_plan_status"];
+          updated_at: string;
+        };
+        Insert: {
+          applied_at?: string | null;
+          applied_by?: string | null;
+          applied_result?: Json | null;
+          apply_idempotency_key?: string | null;
+          approval_expires_at?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          approved_configuration_hash?: string | null;
+          approved_plan_hash?: string | null;
+          approved_revision?: number | null;
+          base_configuration_hash?: string | null;
+          base_configuration_id?: string | null;
+          base_configuration_revision?: number;
+          configuration: Json;
+          consumed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          organization_id: string;
+          plan_hash: string;
+          prepare_idempotency_key: string;
+          prepared_by: string;
+          preview: Json;
+          preview_hash: string;
+          service_id: string;
+          site_id: string;
+          status?: Database["public"]["Enums"]["availability_plan_status"];
+          updated_at?: string;
+        };
+        Update: {
+          applied_at?: string | null;
+          applied_by?: string | null;
+          applied_result?: Json | null;
+          apply_idempotency_key?: string | null;
+          approval_expires_at?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          approved_configuration_hash?: string | null;
+          approved_plan_hash?: string | null;
+          approved_revision?: number | null;
+          base_configuration_hash?: string | null;
+          base_configuration_id?: string | null;
+          base_configuration_revision?: number;
+          configuration?: Json;
+          consumed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          organization_id?: string;
+          plan_hash?: string;
+          prepare_idempotency_key?: string;
+          prepared_by?: string;
+          preview?: Json;
+          preview_hash?: string;
+          service_id?: string;
+          site_id?: string;
+          status?: Database["public"]["Enums"]["availability_plan_status"];
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "availability_plans_base_configuration_tenant_fkey";
+            columns: ["base_configuration_id", "organization_id"];
+            isOneToOne: false;
+            referencedRelation: "clinic_availability_configurations";
+            referencedColumns: ["id", "organization_id"];
+          },
+          {
+            foreignKeyName: "availability_plans_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "availability_plans_service_tenant_fkey";
+            columns: ["service_id", "organization_id"];
+            isOneToOne: false;
+            referencedRelation: "clinic_services";
+            referencedColumns: ["id", "organization_id"];
+          },
+          {
+            foreignKeyName: "availability_plans_site_tenant_fkey";
+            columns: ["site_id", "organization_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id", "organization_id"];
+          },
+        ];
+      };
+      clinic_availability_configurations: {
+        Row: {
+          busy_intervals: Json;
+          configuration_hash: string;
+          created_at: string;
+          id: string;
+          organization_id: string;
+          period_end: string;
+          period_start: string;
+          preserve_existing_bookings: boolean;
+          recurring_blocked_ranges: Json;
+          revision: number;
+          service_id: string;
+          site_id: string;
+          slot_duration_minutes: number;
+          timezone: string;
+          updated_at: string;
+          weekly_rules: Json;
+        };
+        Insert: {
+          busy_intervals?: Json;
+          configuration_hash: string;
+          created_at?: string;
+          id?: string;
+          organization_id: string;
+          period_end: string;
+          period_start: string;
+          preserve_existing_bookings?: boolean;
+          recurring_blocked_ranges?: Json;
+          revision?: number;
+          service_id: string;
+          site_id: string;
+          slot_duration_minutes: number;
+          timezone?: string;
+          updated_at?: string;
+          weekly_rules: Json;
+        };
+        Update: {
+          busy_intervals?: Json;
+          configuration_hash?: string;
+          created_at?: string;
+          id?: string;
+          organization_id?: string;
+          period_end?: string;
+          period_start?: string;
+          preserve_existing_bookings?: boolean;
+          recurring_blocked_ranges?: Json;
+          revision?: number;
+          service_id?: string;
+          site_id?: string;
+          slot_duration_minutes?: number;
+          timezone?: string;
+          updated_at?: string;
+          weekly_rules?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "clinic_availability_configurations_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "clinic_availability_configurations_service_tenant_fkey";
+            columns: ["service_id", "organization_id"];
+            isOneToOne: false;
+            referencedRelation: "clinic_services";
+            referencedColumns: ["id", "organization_id"];
+          },
+          {
+            foreignKeyName: "clinic_availability_configurations_site_tenant_fkey";
+            columns: ["site_id", "organization_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id", "organization_id"];
+          },
+        ];
+      };
       clinic_services: {
         Row: {
           active: boolean;
@@ -820,6 +1018,32 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      approve_and_apply_availability_plan: {
+        Args: {
+          p_apply_idempotency_key: string;
+          p_expected_revision: number;
+          p_plan_hash: string;
+          p_plan_id: string;
+        };
+        Returns: Json;
+      };
+      apply_approved_availability_plan: {
+        Args: {
+          p_apply_idempotency_key: string;
+          p_expected_revision: number;
+          p_plan_hash: string;
+          p_plan_id: string;
+        };
+        Returns: Json;
+      };
+      approve_availability_plan: {
+        Args: {
+          p_expected_revision: number;
+          p_plan_hash: string;
+          p_plan_id: string;
+        };
+        Returns: Json;
+      };
       acknowledge_lead_attention: {
         Args: { p_attention_item_id: string; p_expected_revision: number };
         Returns: number;
@@ -981,6 +1205,7 @@ export type Database = {
     Enums: {
       action_plan_step_kind:
         "acknowledge_attention" | "draft_site_update" | "review_publication";
+      availability_plan_status: "prepared" | "approved" | "applied";
       appointment_request_status:
         | "prepared"
         | "requested"
@@ -1127,6 +1352,7 @@ export const Constants = {
         "draft_site_update",
         "review_publication",
       ],
+      availability_plan_status: ["prepared", "approved", "applied"],
       appointment_request_status: [
         "prepared",
         "requested",

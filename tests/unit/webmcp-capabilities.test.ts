@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { toolNamesForState } from "../../src/features/webmcp/contracts.ts";
+import {
+  definitionsForNames,
+  toolNamesForState,
+} from "../../src/features/webmcp/contracts.ts";
 
 const completeState = {
   scope: "authenticated" as const,
@@ -13,10 +16,14 @@ const completeState = {
   hasPublished: true,
   hasActiveApproval: true,
   versionCount: 2,
+  latestAvailabilityPlanStatus: "approved" as const,
 };
 
-test("Owner receives the complete ten-tool surface only when state allows it", () => {
+test("Owner receives the primary availability surface plus retained tools", () => {
   assert.deepEqual(toolNamesForState({ ...completeState, role: "owner" }), [
+    "get_availability_configuration",
+    "prepare_availability_plan",
+    "apply_approved_availability_plan",
     "get_attention",
     "create_action_plan",
     "acknowledge_lead_attention",
@@ -33,10 +40,88 @@ test("Owner receives the complete ten-tool surface only when state allows it", (
 test("Member retains evidence, draft, preview, and reads without publish or rollback", () => {
   const names = toolNamesForState({ ...completeState, role: "member" });
 
+  assert.equal(names.includes("get_availability_configuration"), false);
+  assert.equal(names.includes("prepare_availability_plan"), false);
+  assert.equal(names.includes("apply_availability_plan"), false);
+  assert.equal(names.includes("apply_approved_availability_plan"), false);
   assert.equal(names.includes("publish_site_draft"), false);
   assert.equal(names.includes("rollback_site_version"), false);
   assert.equal(names.includes("create_or_patch_site_draft"), true);
   assert.equal(names.includes("preview_publish_consequences"), true);
+});
+
+test("Availability apply follows the prepared to approved to applied transition", () => {
+  const prepared = toolNamesForState({
+    ...completeState,
+    role: "owner",
+    latestAvailabilityPlanStatus: "prepared",
+  });
+  const approved = toolNamesForState({
+    ...completeState,
+    role: "owner",
+    latestAvailabilityPlanStatus: "approved",
+  });
+  const applied = toolNamesForState({
+    ...completeState,
+    role: "owner",
+    latestAvailabilityPlanStatus: "applied",
+  });
+
+  assert.equal(prepared.includes("get_availability_configuration"), true);
+  assert.equal(prepared.includes("prepare_availability_plan"), true);
+  assert.equal(prepared.includes("apply_availability_plan"), true);
+  assert.equal(prepared.includes("apply_approved_availability_plan"), false);
+  assert.equal(approved.includes("apply_availability_plan"), false);
+  assert.equal(approved.includes("apply_approved_availability_plan"), true);
+  assert.equal(applied.includes("get_availability_configuration"), true);
+  assert.equal(applied.includes("prepare_availability_plan"), true);
+  assert.equal(applied.includes("apply_availability_plan"), false);
+  assert.equal(applied.includes("apply_approved_availability_plan"), false);
+});
+
+test("Delegated availability apply binds the exact prepared plan", () => {
+  const [definition] = definitionsForNames(["apply_availability_plan"]);
+  const schema = definition.inputSchema as {
+    properties: Record<string, Record<string, unknown>>;
+    required: string[];
+    additionalProperties: boolean;
+  };
+
+  assert.deepEqual(schema.required, [
+    "plan_id",
+    "expected_revision",
+    "plan_hash",
+    "idempotency_key",
+  ]);
+  assert.equal(schema.additionalProperties, false);
+  assert.equal(schema.properties.plan_hash.pattern, "^[0-9a-f]{64}$");
+});
+
+test("Availability prepare schema is bounded and cannot accept agent-derived impact", () => {
+  const [definition] = definitionsForNames(["prepare_availability_plan"]);
+  const schema = definition.inputSchema as {
+    properties: Record<string, Record<string, unknown>>;
+    required: string[];
+    additionalProperties: boolean;
+  };
+
+  assert.deepEqual(schema.required, [
+    "service_slug",
+    "period_start",
+    "period_end",
+    "timezone",
+    "slot_duration_minutes",
+    "weekly_ranges",
+    "recurring_blocks",
+    "busy_intervals",
+    "preserve_existing_bookings",
+    "idempotency_key",
+  ]);
+  assert.equal(schema.additionalProperties, false);
+  assert.equal(schema.properties.preserve_existing_bookings.const, true);
+  assert.equal("appointment_ids" in schema.properties, false);
+  assert.equal("alternatives" in schema.properties, false);
+  assert.equal(schema.properties.busy_intervals.maxItems, 100);
 });
 
 test("Owner publish disappears when exact approval is absent", () => {

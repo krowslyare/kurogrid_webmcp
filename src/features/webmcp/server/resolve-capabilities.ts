@@ -4,6 +4,7 @@ import { getViewer } from "@/features/auth/server/get-viewer";
 import { createClient } from "@/lib/supabase/server";
 
 import {
+  type AvailabilityPlanStatus,
   definitionsForNames,
   toolNamesForState,
   type WebMcpToolName,
@@ -24,6 +25,86 @@ type AppointmentStatus =
   | "declined"
   | "cancelled";
 
+type AvailabilityPlanRow = {
+  id: string;
+  status: string;
+  base_configuration_revision: number;
+  plan_hash: string;
+  approval_expires_at: string | null;
+};
+
+type LatestAvailabilityPlan = {
+  id: string;
+  status: AvailabilityPlanStatus;
+  baseConfigurationRevision: number;
+  planHash: string;
+  approvalExpiresAt: string | null;
+  canApply: boolean;
+};
+
+type AvailabilityProposalQuery = {
+  select(columns: string): AvailabilityProposalQuery;
+  eq(column: string, value: string): AvailabilityProposalQuery;
+  order(column: string, options: { ascending: boolean }): AvailabilityProposalQuery;
+  limit(count: number): AvailabilityProposalQuery;
+  maybeSingle(): Promise<{ data: unknown; error: unknown | null }>;
+};
+
+type AvailabilityProposalClient = {
+  from(relation: string): AvailabilityProposalQuery;
+};
+
+function isAvailabilityPlanStatus(value: unknown): value is AvailabilityPlanStatus {
+  return value === "prepared" || value === "approved" || value === "applied";
+}
+
+async function resolveLatestAvailabilityPlan(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  organizationId: string,
+  siteId: string,
+): Promise<LatestAvailabilityPlan | undefined> {
+  const result = await (supabase as unknown as AvailabilityProposalClient)
+    .from("availability_plans")
+    .select("id, status, base_configuration_revision, plan_hash, approval_expires_at")
+    .eq("organization_id", organizationId)
+    .eq("site_id", siteId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (result.error) {
+    throw new Error("Unable to resolve availability capability state.", {
+      cause: result.error,
+    });
+  }
+  if (!result.data) return undefined;
+
+  const row = result.data as unknown as AvailabilityPlanRow;
+  if (
+    typeof row.id !== "string"
+    || !isAvailabilityPlanStatus(row.status)
+    || !Number.isInteger(row.base_configuration_revision)
+    || typeof row.plan_hash !== "string"
+  ) {
+    return undefined;
+  }
+
+  const approvalExpiresAt = typeof row.approval_expires_at === "string"
+    ? row.approval_expires_at
+    : null;
+
+  return {
+    id: row.id,
+    status: row.status,
+    baseConfigurationRevision: row.base_configuration_revision,
+    planHash: row.plan_hash,
+    approvalExpiresAt,
+    canApply: row.status === "approved"
+      && Boolean(approvalExpiresAt)
+      && new Date(approvalExpiresAt!).getTime() > Date.now(),
+  };
+}
+
 export type ResolvedCapabilities = {
   scope: "public" | "authenticated";
   role?: "owner" | "member";
@@ -34,6 +115,7 @@ export type ResolvedCapabilities = {
   draft?: { id: string; revision: number; content: unknown };
   published?: { versionId: string; content: unknown };
   activeApproval?: { id: string; consequenceHash: string };
+  latestAvailabilityPlan?: LatestAvailabilityPlan;
   attention: AttentionItem[];
   versions: Array<{ id: string; versionNumber: number }>;
   appointment?: {
@@ -207,6 +289,14 @@ export async function resolveAuthenticatedCapabilities(
     });
   }
 
+  const latestAvailabilityPlan = site && membership.role === "owner"
+    ? await resolveLatestAvailabilityPlan(
+        supabase,
+        membership.organizationId,
+        site.id,
+      )
+    : undefined;
+
   const plannedAttention = new Set(
     plansResult.data.map((plan) => plan.attention_item_id),
   );
@@ -225,6 +315,11 @@ export async function resolveAuthenticatedCapabilities(
     hasPublished: Boolean(site?.published_version_id),
     hasActiveApproval: Boolean(activeApprovalResult.data),
     versionCount: versions.length,
+    latestAvailabilityPlanStatus: latestAvailabilityPlan?.canApply
+      ? "approved"
+      : latestAvailabilityPlan?.status === "approved"
+        ? "prepared"
+        : latestAvailabilityPlan?.status,
   });
   const publishedVersion = versions.find(
     (version) => version.id === site?.published_version_id,
@@ -249,6 +344,7 @@ export async function resolveAuthenticatedCapabilities(
           consequenceHash: activeApprovalResult.data.consequence_hash,
         }
       : undefined,
+    latestAvailabilityPlan,
     attention,
     versions: versions.map((version) => ({
       id: version.id,
@@ -262,6 +358,15 @@ export async function resolveAuthenticatedCapabilities(
       draft ? [draft.id, draft.revision] : null,
       site?.published_version_id ?? null,
       activeApprovalResult.data?.id ?? null,
+      latestAvailabilityPlan
+        ? [
+            latestAvailabilityPlan.id,
+            latestAvailabilityPlan.status,
+            latestAvailabilityPlan.baseConfigurationRevision,
+            latestAvailabilityPlan.planHash,
+            latestAvailabilityPlan.approvalExpiresAt,
+          ]
+        : null,
       versions.map((version) => version.id),
       names,
     ]),

@@ -2,13 +2,13 @@
 
 ### Websites assistants can safely use
 
-Kuro Agent demonstrates a customer journey in which a compatible AI assistant
-discovers actions directly from a business website, reads live information,
-prepares a request, and stops before a consequential action requires human
-approval.
+Kuro Agent demonstrates two connected WebMCP journeys: a customer assistant can
+complete an appointment outcome from a normal business website, and an Owner's
+assistant can turn operating intent plus normalized calendar conflicts into an
+exact availability plan without silently moving existing bookings.
 
 [Live product](https://webmcp.kurogrid.com) ·
-[Customer demo](https://webmcp.kurogrid.com/sites/arboleda-01) ·
+[Customer demo](https://webmcp.kurogrid.com/sites/mimo-01) ·
 [Architecture](docs/architecture.md) ·
 [Security model](docs/security.md) ·
 [Video script](docs/submission-video-script.md)
@@ -30,6 +30,14 @@ Kuro Agent makes the website itself a contextual capability surface:
 5. The clinic accepts the request or proposes another time.
 6. The customer receives a private update and can add the result to Calendar.
 
+On the clinic side, an Owner can ask an assistant to configure a month of
+service availability in one instruction. Mimo computes the generated slots,
+conflicts, preserved bookings, and nearest valid alternatives. When that same
+Owner instruction explicitly says to apply the matching result, the assistant
+can approve and apply the exact plan from the authenticated session. Asking
+only to prepare still stops for manual review. Each affected customer keeps
+control of the proposed time.
+
 The human website remains fully usable without WebMCP, including a traditional
 booking form.
 
@@ -39,8 +47,8 @@ A booking form creates a record. Kuro Agent demonstrates a broader contract:
 
 - **Contextual discovery:** tools appear only when the current role, resource,
   and state allow them.
-- **Human authority:** the assistant can prepare work, but exact one-shot
-  approval protects consequential publication and customer actions.
+- **Human authority:** an authenticated Owner may delegate exact application in
+  the prompt or use the manual fallback; customers alone decide proposed times.
 - **One published truth:** the public page and its WebMCP tools resolve the same
   immutable site version.
 - **Role boundaries:** Members can prepare drafts; only Owners can publish or
@@ -51,6 +59,9 @@ A booking form creates a record. Kuro Agent demonstrates a broader contract:
   rollback restores an earlier version without rewriting history.
 - **A completed outcome:** the flow ends with a clinic response, private status
   link, email update, and Calendar handoff.
+- **Derived operational impact:** the agent supplies desired ranges and
+  normalized busy intervals; Mimo derives affected bookings and alternatives
+  server-side instead of trusting agent-authored consequences.
 
 WebMCP registration is not treated as authorization. Every execution is
 resolved again on the server against the current session, tenant, role, and
@@ -66,13 +77,17 @@ returns to a private review page before it can be sent.
 
 ### Clinic: Kuro Agent workspace
 
-The workspace combines a synthetic customer signal, analytics snapshot, and
-verified business fact into a fixed action plan. The Owner can create a site
-draft, preview the consequences for people and assistants, approve the exact
-revision, publish it, prove public parity, and roll it back.
+The primary workspace is an availability control room. The Owner's assistant
+can read the current schedule, prepare a September plan, and apply that exact
+plan when the Owner's instruction explicitly asks it to. The server binds the
+plan ID, revision, and hash and revalidates the schedule and booking impact in
+one transaction. The concrete fixture blocks an external 10:00–11:30 conflict,
+proposes 11:30 to Luna, and preserves Max's existing 12:00 booking even though
+future lunch times are blocked.
 
-The synthetic evidence demonstrates cross-module reasoning. It is intentionally
-not a general CRM, analytics suite, workflow engine, or site builder.
+The earlier editorial draft, publication, and rollback workflow remains as a
+secondary surface. Neither workflow is a general CRM, calendar sync product,
+or workflow builder.
 
 ## WebMCP surface
 
@@ -85,6 +100,11 @@ registered.
 Owner capabilities include:
 
 ```text
+get_availability_configuration
+prepare_availability_plan
+apply_availability_plan           # exact Owner-delegated path after prepare
+apply_approved_availability_plan  # appears only after exact Owner approval
+
 get_attention
 create_action_plan
 acknowledge_lead_attention
@@ -104,7 +124,7 @@ state. See the complete [public scope](docs/public-scope.md) and
 
 ### Observe the native capability surface
 
-Open the [Mimo customer demo](https://webmcp.kurogrid.com/sites/arboleda-01)
+Open the [Mimo customer demo](https://webmcp.kurogrid.com/sites/mimo-01)
 in a compatible WebMCP host. The reviewed Chrome setup requires the WebMCP
 testing flag described in the compatibility notes. The initial public profile
 registers five tools:
@@ -125,7 +145,7 @@ Without a compatible host, the server-resolved public profile remains
 inspectable as JSON:
 
 ```bash
-curl 'https://webmcp.kurogrid.com/api/webmcp/capabilities?siteSlug=arboleda-01'
+curl 'https://webmcp.kurogrid.com/api/webmcp/capabilities?siteSlug=mimo-01'
 ```
 
 That endpoint proves the schema and contextual profile, while the submission
@@ -141,7 +161,7 @@ Browser-native WebMCP registration
         │ same-origin execution
         ▼
 Next.js application layer
-        │ identity + role + revision + approval + tenant checks
+        │ identity + role + exact plan + tenant checks
         ▼
 Supabase Auth + Postgres + RLS + audit log
         │
@@ -166,6 +186,10 @@ by a bounded lease pool, separated by organization, and reset for reuse.
 
 The verified release covers:
 
+- Owner availability planning from weekly rules and normalized busy intervals
+- server-derived conflict detection and deterministic nearest-later alternatives
+- exact Owner approval before availability application
+- customer-controlled proposal acceptance and public slot parity
 - Owner publish and immutable rollback
 - Member draft access without publish or rollback
 - parity between public HTML and public WebMCP data
@@ -216,10 +240,12 @@ the same appointment update through Resend, configure these server-only values:
 APP_BASE_URL=https://your-deployment.example
 RESEND_API_KEY=re_...
 RESEND_FROM_EMAIL="Mimo <appointments@your-verified-domain.example>"
+DEMO_NOTIFICATION_EMAIL=your-demo-inbox@example.com
 ```
 
-Provider failure does not roll back the appointment or invalidate its private
-status link.
+Synthetic `.test` addresses remain in preview mode unless
+`DEMO_NOTIFICATION_EMAIL` is set. Provider failure does not roll back the
+appointment or invalidate its private status link.
 
 ## Project boundary
 

@@ -80,7 +80,12 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
             <button type="submit">Sign in</button>
           </form>
-          <Link className="auth-back-link" href="/demo">Need a new demo slot? Start here ↗</Link>
+          <Link className="auth-back-link" href="/demo">
+            Need a new demo slot? Start here
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+            </svg>
+          </Link>
         </section>
       </div>
     </main>

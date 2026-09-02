@@ -18,7 +18,8 @@ export default function Home() {
         <nav aria-label="Primary navigation">
           <a href="#workflow">How it works</a>
           <a href="#why-webmcp">Why it matters</a>
-          <Link className="landing-nav-cta" href="/sites/arboleda-01">Try customer demo</Link>
+          <Link href="/demo">Staff control room</Link>
+          <Link className="landing-nav-cta" href="/sites/mimo-01">Try customer demo</Link>
         </nav>
       </header>
 
@@ -34,12 +35,22 @@ export default function Home() {
             approve it before anything is sent.
           </p>
           <div className="landing-actions">
-            <Link className="landing-primary-cta" href="/sites/arboleda-01">
-              Try the customer demo <span aria-hidden="true">↗</span>
+            <Link className="landing-primary-cta" href="/sites/mimo-01">
+              Try the customer demo
+              <span className="landing-cta-arrow" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+                </svg>
+              </span>
             </Link>
-            <a className="landing-secondary-link" href="#workflow">
-              See the complete story <span aria-hidden="true">↓</span>
-            </a>
+            <Link className="landing-secondary-link" href="/demo">
+              Staff control room
+              <span className="landing-inline-arrow" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+                </svg>
+              </span>
+            </Link>
           </div>
           <ul className="landing-proof" aria-label="Product guarantees">
             <li>Live availability</li>
@@ -134,8 +145,13 @@ export default function Home() {
           <p>One fictional clinic. One real agent interaction.</p>
           <h2 id="close-title">Ask Mimo for a Saturday visit.</h2>
         </div>
-        <Link className="landing-primary-cta landing-primary-cta-light" href="/sites/arboleda-01">
-          Try it on Mimo <span aria-hidden="true">↗</span>
+        <Link className="landing-primary-cta landing-primary-cta-light" href="/sites/mimo-01">
+          Try it on Mimo
+          <span className="landing-cta-arrow" aria-hidden="true">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+            </svg>
+          </span>
         </Link>
       </section>
 

@@ -1,4 +1,8 @@
 export const WEBMCP_TOOL_NAMES = [
+  "get_availability_configuration",
+  "prepare_availability_plan",
+  "apply_availability_plan",
+  "apply_approved_availability_plan",
   "get_attention",
   "create_action_plan",
   "acknowledge_lead_attention",
@@ -20,6 +24,8 @@ export const WEBMCP_TOOL_NAMES = [
 
 export type WebMcpToolName = (typeof WEBMCP_TOOL_NAMES)[number];
 
+export type AvailabilityPlanStatus = "prepared" | "approved" | "applied";
+
 export type CapabilityState = {
   scope: "public" | "authenticated";
   role?: "owner" | "member";
@@ -31,6 +37,7 @@ export type CapabilityState = {
   hasPublished: boolean;
   hasActiveApproval: boolean;
   versionCount: number;
+  latestAvailabilityPlanStatus?: AvailabilityPlanStatus;
   appointmentStatus?: "prepared" | "requested" | "confirmed" | "time_proposed" | "declined" | "cancelled";
   canConfirmAppointment?: boolean;
 };
@@ -63,6 +70,18 @@ export function toolNamesForState(state: CapabilityState): WebMcpToolName[] {
 
   const names: WebMcpToolName[] = [];
 
+  if (state.role === "owner" && state.hasSite) {
+    names.push("get_availability_configuration", "prepare_availability_plan");
+
+    if (state.latestAvailabilityPlanStatus === "prepared") {
+      names.push("apply_availability_plan");
+    }
+
+    if (state.latestAvailabilityPlanStatus === "approved") {
+      names.push("apply_approved_availability_plan");
+    }
+  }
+
   if (state.hasAttention) names.push("get_attention");
   if (state.hasUnplannedAttention) names.push("create_action_plan");
   if (state.hasOpenLead) names.push("acknowledge_lead_attention");
@@ -91,6 +110,45 @@ const uuid = {
   format: "uuid",
 } as const;
 
+const dayOfWeek = {
+  type: "integer",
+  minimum: 0,
+  maximum: 6,
+} as const;
+
+const localTime = {
+  type: "string",
+  pattern: "^(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$",
+} as const;
+
+const availabilityRange = {
+  type: "object",
+  properties: {
+    day_of_week: dayOfWeek,
+    starts_at: localTime,
+    ends_at: localTime,
+  },
+  required: ["day_of_week", "starts_at", "ends_at"],
+  additionalProperties: false,
+} as const;
+
+const busyInterval = {
+  type: "object",
+  properties: {
+    starts_at: { type: "string", format: "date-time", maxLength: 40 },
+    ends_at: { type: "string", format: "date-time", maxLength: 40 },
+    source: {
+      type: "string",
+      enum: [
+        "calendar",
+        "manual",
+      ],
+    },
+  },
+  required: ["starts_at", "ends_at", "source"],
+  additionalProperties: false,
+} as const;
+
 export type WebMcpToolDefinition = {
   name: WebMcpToolName;
   title: string;
@@ -103,6 +161,85 @@ export type WebMcpToolDefinition = {
 };
 
 const definitions: Record<WebMcpToolName, WebMcpToolDefinition> = {
+  get_availability_configuration: {
+    name: "get_availability_configuration",
+    title: "Get availability configuration",
+    description: "Read the Owner's current service duration, weekly ranges, recurring blocks, busy intervals, schedule revision, and booking impact summary without exposing provider credentials or event details.",
+    inputSchema: emptyInput,
+    annotations: { readOnlyHint: true },
+  },
+  prepare_availability_plan: {
+    name: "prepare_availability_plan",
+    title: "Prepare availability plan",
+    description: "Prepare one exact private availability plan. Existing bookings remain preserved; the server derives any affected bookings and valid alternatives from normalized busy intervals. This does not apply changes or notify customers.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        service_slug: { type: "string", minLength: 1, maxLength: 80 },
+        period_start: { type: "string", format: "date" },
+        period_end: { type: "string", format: "date" },
+        timezone: { type: "string", minLength: 1, maxLength: 64 },
+        slot_duration_minutes: { type: "integer", minimum: 5, maximum: 480 },
+        weekly_ranges: {
+          type: "array",
+          maxItems: 28,
+          items: availabilityRange,
+        },
+        recurring_blocks: {
+          type: "array",
+          maxItems: 28,
+          items: availabilityRange,
+        },
+        busy_intervals: {
+          type: "array",
+          maxItems: 100,
+          items: busyInterval,
+        },
+        preserve_existing_bookings: { type: "boolean", const: true },
+        idempotency_key: uuid,
+      },
+      required: [
+        "service_slug",
+        "period_start",
+        "period_end",
+        "timezone",
+        "slot_duration_minutes",
+        "weekly_ranges",
+        "recurring_blocks",
+        "busy_intervals",
+        "preserve_existing_bookings",
+        "idempotency_key",
+      ],
+      additionalProperties: false,
+    },
+  },
+  apply_availability_plan: {
+    name: "apply_availability_plan",
+    title: "Apply availability plan",
+    description: "Approve and apply one exact prepared availability plan under the authenticated Owner's authority. Use when the Owner explicitly asked the agent to apply the matching plan; the server revalidates its ID, revision, hash, schedule, and booking impact atomically.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        plan_id: uuid,
+        expected_revision: { type: "integer", minimum: 0 },
+        plan_hash: { type: "string", pattern: "^[0-9a-f]{64}$" },
+        idempotency_key: uuid,
+      },
+      required: ["plan_id", "expected_revision", "plan_hash", "idempotency_key"],
+      additionalProperties: false,
+    },
+  },
+  apply_approved_availability_plan: {
+    name: "apply_approved_availability_plan",
+    title: "Apply approved availability plan",
+    description: "Apply only the latest exact availability plan approved by an authenticated Owner outside WebMCP. The server revalidates and consumes that approval atomically.",
+    inputSchema: {
+      type: "object",
+      properties: { idempotency_key: uuid },
+      required: ["idempotency_key"],
+      additionalProperties: false,
+    },
+  },
   get_attention: {
     name: "get_attention",
     title: "Get attention",

@@ -16,13 +16,19 @@ documentation from the private Kurogrid Portal.
 
 ## Product boundary
 
-- Build one demonstrable path: evidence -> fixed action plan -> site draft ->
-  exact preview -> publish -> public parity -> rollback.
-- Synthetic lead and analytics records are evidence fixtures, not general CRM
-  or analytics products.
-- Keep the public website derived only from a published site version.
-- Do not add billing, providers, real communications, workflow engines, grants
-  frameworks, or private Portal compatibility unless the public scope changes.
+- Build one primary operational path: an authenticated Owner describes
+  availability rules, an agent combines that intent with normalized external
+  busy intervals, Mimo derives slots and booking conflicts, the Owner reviews
+  the exact plan, and affected customers decide on proposed alternatives.
+- The public website and public WebMCP tools must resolve the same current
+  services, slots, holds, and appointment state.
+- Calendar providers remain external agent context. Store only normalized busy
+  intervals, never provider credentials, event titles, attendees, or notes.
+- Editorial drafts, publication versions, and rollback remain a secondary
+  content-operations demonstration, not the primary challenge story.
+- Do not add billing, calendar OAuth, background synchronization, generic
+  workflow engines, multi-resource scheduling, grants frameworks, or private
+  Portal compatibility.
 
 ## Security boundary
 
@@ -33,8 +39,9 @@ documentation from the private Kurogrid Portal.
   server-side and are not a substitute for tenant checks.
 - New exposed tables require explicit grants and RLS policies. Views must use
   `security_invoker` unless there is a reviewed reason not to.
-- Publish consumes a one-shot approval for the exact draft revision and emits
-  an audit record. Conflicts fail closed.
+- Consequential publication and availability application consume one-shot
+  approvals for exact current revisions and emit audit records. Conflicts and
+  stale plans fail closed.
 - WebMCP tools must be refreshed when auth, role, organization, or resource
   state changes; abort stale registrations.
 

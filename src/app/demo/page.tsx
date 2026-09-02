@@ -25,15 +25,15 @@ export default async function DemoPage({ searchParams }: PageProps) {
         <aside className="auth-context demo-context" aria-label="Demo workflow overview">
           <KuroBrand className="auth-context-brand" />
           <div>
-            <p className="kicker">Mimo · Live appointment demo</p>
-            <h2>Ask for a visit. Let the page do more than answer.</h2>
-            <p>Your assistant can find a current time, prepare the request, and stop before anything is sent.</p>
+            <p className="kicker">Mimo · WebMCP operations demo</p>
+            <h2>Let the page coordinate the real day.</h2>
+            <p>Customer assistants can book. Owner assistants can reconcile availability, conflicts, and existing appointments.</p>
           </div>
           <ol>
-            <li>Ask for Saturday care</li>
-            <li>Review before sending</li>
-            <li>Receive the clinic&apos;s response</li>
-            <li>Return by email and add it to Calendar</li>
+            <li>Discover tools from the live page</li>
+            <li>Prepare September availability</li>
+            <li>Apply the exact plan from one Owner request</li>
+            <li>Let the customer choose the new time</li>
           </ol>
         </aside>
 
@@ -47,8 +47,11 @@ export default async function DemoPage({ searchParams }: PageProps) {
               Both sides share the same temporary data.
             </p>
           </div>
-          <Link className="demo-public-link" href="/sites/arboleda-01">
-            Public customer demo. No code needed ↗
+          <Link className="demo-public-link" href="/sites/mimo-01">
+            Public customer demo. No code needed
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+            </svg>
           </Link>
           <form className="auth-form" action={claimDemoSandbox}>
           <label>
@@ -66,10 +69,10 @@ export default async function DemoPage({ searchParams }: PageProps) {
             <span className="kuro-field-label">Open first</span>
             <KuroSelect
               name="journey"
-              defaultValue="customer"
+              defaultValue="workspace"
               options={[
                 { value: "customer", label: "Mimo website", hint: "customer appointment" },
-                { value: "workspace", label: "Clinic workspace", hint: "requests and publishing" },
+                { value: "workspace", label: "Clinic workspace", hint: "availability operations" },
               ]}
             />
           </div>
@@ -79,8 +82,8 @@ export default async function DemoPage({ searchParams }: PageProps) {
               name="role"
               defaultValue="owner"
               options={[
-                { value: "owner", label: "Owner", hint: "can approve and publish" },
-                { value: "member", label: "Member", hint: "can prepare drafts only" },
+                { value: "owner", label: "Owner", hint: "can delegate exact application" },
+                { value: "member", label: "Member", hint: "reviews and prepares" },
               ]}
             />
           </div>

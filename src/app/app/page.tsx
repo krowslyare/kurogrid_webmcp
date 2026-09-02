@@ -7,7 +7,11 @@ import { KuroBrand } from "@/components/KuroBrand";
 import { getViewer } from "@/features/auth/server/get-viewer";
 
 export const metadata: Metadata = {
-  title: "Workspace · Kurogrid WebMCP",
+  title: "Mimo clinic workspace · Kuro Agent",
+  icons: {
+    icon: [{ url: "/mimo-icon.svg", type: "image/svg+xml" }],
+    shortcut: "/mimo-icon.svg",
+  },
 };
 
 export default async function WorkspacePage() {
@@ -50,14 +54,19 @@ export default async function WorkspacePage() {
             {viewer.memberships.map((membership) => (
               <li key={membership.organizationId}>
                 <Link href={`/app/${membership.organizationSlug}`}>
-                  <span className="membership-index">Continue demo ↗</span>
+                  <span className="membership-index">
+                    Continue demo
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+                    </svg>
+                  </span>
                   <strong>
-                    {membership.organizationSlug.startsWith("arboleda-demo-")
+                    {membership.organizationSlug.startsWith("mimo-demo-")
                       ? "Mimo Veterinary Care"
                       : membership.organizationName}
                   </strong>
                   <span>
-                    /{membership.organizationSlug.replace("arboleda-demo-", "mimo-demo-")}
+                    /{membership.organizationSlug}
                   </span>
                 </Link>
                 <span className="role-badge">{membership.role}</span>
