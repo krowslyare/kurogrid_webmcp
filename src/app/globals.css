@@ -510,6 +510,7 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .appointment-status.is-time_proposed { background: #f1e4bc; }
 .appointment-owner-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .appointment-owner-actions button { margin: 0; white-space: nowrap; }
+.appointment-no-alternative { align-self: center; max-width: 220px; color: var(--muted); font-size: 10.5px; line-height: 1.5; text-align: right; }
 .appointment-empty { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 18px; align-items: center; margin-top: 34px; padding-top: 24px; border-top: 1px solid var(--line); }
 .appointment-empty > span { color: #93998f; font: 10px/1 var(--font-mono), ui-monospace, monospace; }
 .appointment-empty > div { display: grid; gap: 4px; }

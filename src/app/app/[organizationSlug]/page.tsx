@@ -170,7 +170,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
 
   const { data: appointmentRequests, error: appointmentError } = await supabase
     .from("appointment_requests")
-    .select("id, access_token, status, pet_name, customer_email, proposed_starts_at, created_at, clinic_services(name, duration_minutes), appointment_slots(starts_at)")
+    .select("id, access_token, status, pet_name, customer_email, proposed_starts_at, created_at, service_id, site_id, clinic_services(name, duration_minutes), appointment_slots(starts_at)")
     .eq("organization_id", membership.organizationId)
     .neq("status", "prepared")
     .order("created_at", { ascending: false });
@@ -178,6 +178,33 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
   if (appointmentError) {
     throw new Error("Unable to load customer appointment requests.", {
       cause: appointmentError,
+    });
+  }
+
+  // Proposal alternatives must be real, currently available slots — the same
+  // state the availability plan derives — never a blind offset from the
+  // requested time.
+  const proposalServiceIds = Array.from(
+    new Set(
+      appointmentRequests
+        .filter((request) => request.status === "requested")
+        .map((request) => request.service_id),
+    ),
+  );
+  const { data: availableSlots, error: availableSlotsError } = proposalServiceIds.length
+    ? await supabase
+        .from("appointment_slots")
+        .select("service_id, starts_at")
+        .in("site_id", siteIds)
+        .in("service_id", proposalServiceIds)
+        .eq("available", true)
+        .gt("starts_at", new Date().toISOString())
+        .order("starts_at", { ascending: true })
+    : { data: [], error: null };
+
+  if (availableSlotsError) {
+    throw new Error("Unable to load proposal alternatives.", {
+      cause: availableSlotsError,
     });
   }
 
@@ -411,7 +438,11 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
               <div className="appointment-request-list">
                 {appointmentRequests.map((request) => {
                   const requestedAt = request.appointment_slots.starts_at;
-                  const nextProposal = new Date(new Date(requestedAt).getTime() + 60 * 60_000).toISOString();
+                  const nextProposal = (availableSlots ?? []).find(
+                    (slot) =>
+                      slot.service_id === request.service_id
+                      && new Date(slot.starts_at).getTime() > new Date(requestedAt).getTime(),
+                  )?.starts_at;
                   return (
                     <article key={request.id}>
                       <div className="appointment-request-main">
@@ -439,13 +470,19 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                             <input name="decision" type="hidden" value="confirm" />
                             <button className="primary-action" type="submit">Accept requested time</button>
                           </form>
-                          <form action={updateAppointmentFromOwner}>
-                            <input name="organizationSlug" type="hidden" value={organizationSlug} />
-                            <input name="requestId" type="hidden" value={request.id} />
-                            <input name="decision" type="hidden" value="propose" />
-                            <input name="proposedStartsAt" type="hidden" value={nextProposal} />
-                            <button className="secondary-action" type="submit">Propose {appointmentTime(nextProposal)}</button>
-                          </form>
+                          {nextProposal ? (
+                            <form action={updateAppointmentFromOwner}>
+                              <input name="organizationSlug" type="hidden" value={organizationSlug} />
+                              <input name="requestId" type="hidden" value={request.id} />
+                              <input name="decision" type="hidden" value="propose" />
+                              <input name="proposedStartsAt" type="hidden" value={nextProposal} />
+                              <button className="secondary-action" type="submit">Propose {appointmentTime(nextProposal)}</button>
+                            </form>
+                          ) : (
+                            <small className="appointment-no-alternative">
+                              No later opening left to propose — accept the requested time or decline.
+                            </small>
+                          )}
                         </div>
                       ) : null}
                     </article>
