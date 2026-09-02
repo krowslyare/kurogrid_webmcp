@@ -147,6 +147,7 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .landing-close { min-height: 240px; display: flex; align-items: center; justify-content: space-between; gap: 40px; margin-top: 24px; padding: 48px 56px; border-radius: 18px; color: #f2f4ed; background: var(--l-ink); }
 .landing-close > div > p { margin: 0 0 10px; color: var(--l-acid); font: 700 9px/1 var(--font-mono), ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
 .landing-close h2 { max-width: 650px; font-size: clamp(34px, 4vw, 54px); line-height: .95; }
+.landing-close-note { max-width: 460px; margin: 18px 0 0; color: rgba(242,244,237,.66); font-size: 12.5px; line-height: 1.6; }
 .landing-primary-cta-light { background: var(--l-acid); color: var(--l-ink); box-shadow: 0 4px 18px rgba(214,245,116,.28); }
 .landing-primary-cta-light .landing-cta-arrow { background: rgba(17,21,16,.08); color: var(--l-deep); }
 .landing-primary-cta-light:hover { background: #def78a; transform: translateY(-2px); box-shadow: 0 8px 26px rgba(214,245,116,.38); color: var(--l-ink); }
@@ -287,7 +288,6 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .auth-form label small { color: var(--muted); font-size: 10px; font-weight: 500; }
 .auth-form button, .text-button { border: 0; cursor: pointer; font: inherit; }
 .auth-form button { height: 50px; margin-top: 4px; border-radius: 10px; background: var(--ink); color: var(--acid); font-weight: 700; }
-.auth-form:has(input[name="journey"][value="customer"]) .demo-role-field { display: none; }
 .form-error { margin: -3px 0 0; color: #a52b28; font-size: 13px; }
 .auth-back-link { display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-top: 28px; color: var(--muted); font-size: 11px; text-align: center; text-decoration: none; transition: color .18s ease; }
 .auth-back-link:hover { color: var(--deep); }
@@ -297,6 +297,7 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .demo-public-link:hover { border-color: rgba(24,63,49,.4); background: rgba(24,63,49,.03); }
 .demo-public-link svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: transform .25s cubic-bezier(.34,1.56,.64,1); }
 .demo-public-link:hover svg { transform: translate(2px, -2px); }
+.demo-public-note { margin: -14px 0 24px; color: var(--muted); font-size: 10.5px; line-height: 1.55; }
 
 .workspace-shell { width: min(1240px, calc(100% - 40px)); margin-inline: auto; padding-bottom: 80px; }
 .workspace-nav { height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--line); }
@@ -508,6 +509,7 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .appointment-status.is-time_proposed { background: #f1e4bc; }
 .appointment-owner-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .appointment-owner-actions button { margin: 0; white-space: nowrap; }
+.appointment-no-alternative { align-self: center; max-width: 220px; color: var(--muted); font-size: 10.5px; line-height: 1.5; text-align: right; }
 .appointment-empty { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 18px; align-items: center; margin-top: 34px; padding-top: 24px; border-top: 1px solid var(--line); }
 .appointment-empty > span { color: #93998f; font: 10px/1 var(--font-mono), ui-monospace, monospace; }
 .appointment-empty > div { display: grid; gap: 4px; }

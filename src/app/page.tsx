@@ -18,8 +18,8 @@ export default function Home() {
         <nav aria-label="Primary navigation">
           <a href="#workflow">How it works</a>
           <a href="#why-webmcp">Why it matters</a>
-          <Link href="/demo">Staff control room</Link>
-          <Link className="landing-nav-cta" href="/sites/mimo-01">Try customer demo</Link>
+          <Link href="/sites/mimo-01">Customer site preview</Link>
+          <Link className="landing-nav-cta" href="/demo">Run the full demo</Link>
         </nav>
       </header>
 
@@ -28,23 +28,23 @@ export default function Home() {
           <p className="landing-kicker">
             <span aria-hidden="true" /> Websites assistants can safely use
           </p>
-          <h1>Let customers book through the agent they already use.</h1>
+          <h1>Customers book with their AI agent. Clinics manage availability with theirs.</h1>
           <p className="landing-lede">
             Kuro Agent turns a business website into actions AI assistants can
-            safely use. Customers find a time, review the exact request, and
-            approve it before anything is sent.
+            safely use. Customers approve every request before it is sent, and
+            the clinic applies one exact availability plan at a time.
           </p>
           <div className="landing-actions">
-            <Link className="landing-primary-cta" href="/sites/mimo-01">
-              Try the customer demo
+            <Link className="landing-primary-cta" href="/demo">
+              Run the full demo
               <span className="landing-cta-arrow" aria-hidden="true">
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
                 </svg>
               </span>
             </Link>
-            <Link className="landing-secondary-link" href="/demo">
-              Staff control room
+            <Link className="landing-secondary-link" href="/sites/mimo-01">
+              Explore the customer site
               <span className="landing-inline-arrow" aria-hidden="true">
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
@@ -144,6 +144,11 @@ export default function Home() {
         <div>
           <p>One fictional clinic. One real agent interaction.</p>
           <h2 id="close-title">Ask Mimo for a Saturday visit.</h2>
+          <p className="landing-close-note">
+            Independent preview of the customer site. The full guided journey —
+            clinic plan, approval, and the customer&apos;s answer — starts in the
+            control room.
+          </p>
         </div>
         <Link className="landing-primary-cta landing-primary-cta-light" href="/sites/mimo-01">
           Try it on Mimo
