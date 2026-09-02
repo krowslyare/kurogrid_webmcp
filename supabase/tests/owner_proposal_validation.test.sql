@@ -5,7 +5,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(16);
+select plan(17);
 
 select has_function(
   'public',
@@ -294,6 +294,15 @@ select is(
   (select status from public.appointment_requests where pet_name = 'Rocky'),
   'time_proposed'::public.appointment_request_status,
   'the request moves to time_proposed'
+);
+
+select is(
+  (select available
+   from public.appointment_slots as slot
+   join proposal_test_context as context on context.site_id = slot.site_id
+   where (slot.starts_at at time zone 'America/Lima')::time = time '11:30'),
+  false,
+  'the proposed alternative is held before the customer responds'
 );
 
 select results_eq(

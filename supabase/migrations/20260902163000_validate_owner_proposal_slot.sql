@@ -38,12 +38,13 @@ begin
 
     -- The requested slot itself is unavailable while held, so this single rule
     -- rejects busy ranges, confirmed bookings, and plan-disabled times alike.
-    select slot.* into v_proposed_slot
-    from public.appointment_slots as slot
+    update public.appointment_slots as slot
+    set available = false
     where slot.site_id = v_request.site_id
       and slot.service_id = v_request.service_id
       and slot.starts_at = p_proposed_starts_at
-      and slot.available;
+      and slot.available
+    returning slot.* into v_proposed_slot;
 
     if v_proposed_slot.id is null then
       raise exception using errcode = '22023', message = 'appointment_proposal_slot_unavailable';
