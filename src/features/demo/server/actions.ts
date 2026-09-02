@@ -112,7 +112,7 @@ export async function claimDemoSandbox(formData: FormData) {
   });
 
   if (journey === "customer") {
-    const siteSlug = lease.organization_slug.replace("arboleda-demo-", "arboleda-");
+    const siteSlug = lease.organization_slug.replace("mimo-demo-", "mimo-");
     redirect(`/sites/${siteSlug}`);
   }
 

@@ -26,17 +26,6 @@ type AgentActivity = {
   title: string;
 };
 
-const publicCapabilityLabels: Record<string, string> = {
-  get_site_content: "Published care details",
-  get_opening_hours: "Current opening hours",
-  get_clinic_services: "Available services",
-  find_appointment_slots: "Live appointment times",
-  prepare_appointment_request: "Prepare a request",
-  confirm_appointment_request: "Submit reviewed request",
-  get_appointment_status: "Latest appointment status",
-  respond_to_appointment_proposal: "Respond to the clinic",
-  get_appointment_calendar_event: "Calendar handoff",
-};
 
 function toolActivity(
   name: string,
@@ -45,6 +34,14 @@ function toolActivity(
 ): AgentActivity | null {
   if (presentation === "workspace") {
     switch (name) {
+      case "get_availability_configuration":
+        return { title: "Availability configuration read", detail: "Current ranges, recurring blocks, busy intervals, and booking impact were read before changing anything." };
+      case "prepare_availability_plan":
+        return { title: "Availability plan prepared", detail: "Mimo derived affected bookings and valid alternatives; existing bookings remain preserved and nothing was applied." };
+      case "apply_availability_plan":
+        return { title: "Owner request completed", detail: "The exact plan was approved and applied from this Owner session; the customer notification status is now visible." };
+      case "apply_approved_availability_plan":
+        return { title: "Approved availability applied", detail: "The exact Owner-approved plan changed availability; proposal and notification status are now visible." };
       case "get_attention": {
         const items = Array.isArray(result.attention) ? result.attention.length : 0;
         return { title: "Business evidence read", detail: `${items} signals checked before preparing any change.` };
@@ -61,6 +58,8 @@ function toolActivity(
         return { title: "Publication preview ready", detail: "Human-facing copy and assistant-facing facts were derived from the same draft." };
       case "publish_site_draft":
         return { title: "One version published", detail: "Customers and assistants now read the same immutable website version." };
+      case "get_opening_hours":
+        return { title: "Opening hours checked", detail: "The assistant read the current published hours before suggesting a change." };
       case "list_site_versions":
         return { title: "Publication history checked", detail: "The assistant read the reversible version history without changing it." };
       case "rollback_site_version":
@@ -71,6 +70,10 @@ function toolActivity(
   }
 
   switch (name) {
+    case "get_site_content":
+      return { title: "Published information read", detail: "The assistant checked the same current information shown on this page." };
+    case "get_opening_hours":
+      return { title: "Opening hours checked", detail: "The assistant read the current published hours before suggesting a visit." };
     case "get_clinic_services": {
       const services = Array.isArray(result.services) ? result.services.length : 0;
       return { title: "Published services read", detail: `${services} current ${services === 1 ? "service" : "services"} checked on this page.` };
@@ -131,6 +134,17 @@ export function WebMcpRegistrar({
       sessionStorage.removeItem(activityStorageKey);
     }
   }, [activityStorageKey]);
+
+  useEffect(() => {
+    if (!activity) return;
+
+    const timeout = window.setTimeout(() => {
+      setActivity(null);
+      if (activityStorageKey) sessionStorage.removeItem(activityStorageKey);
+    }, 6_500);
+
+    return () => window.clearTimeout(timeout);
+  }, [activity, activityStorageKey]);
 
   useEffect(() => {
     const modelContext = document.modelContext;
@@ -200,10 +214,14 @@ export function WebMcpRegistrar({
                       }),
                       signal: options?.signal,
                     });
-                    const result = await executeResponse.json();
+                    const result = (await executeResponse.json()) as Record<string, unknown>;
 
                     if (!executeResponse.ok) {
-                      throw new Error(result.error ?? "tool_execution_failed");
+                      throw new Error(
+                        typeof result.error === "string"
+                          ? result.error
+                          : "tool_execution_failed",
+                      );
                     }
 
                     const nextActivity = toolActivity(definition.name, result, presentation);
@@ -212,18 +230,17 @@ export function WebMcpRegistrar({
                       if (activityStorageKey) {
                         sessionStorage.setItem(
                           activityStorageKey,
-                          JSON.stringify({ ...nextActivity, expiresAt: Date.now() + 120_000 }),
+                          JSON.stringify({ ...nextActivity, expiresAt: Date.now() + 10_000 }),
                         );
                       }
                     }
 
-                    if (result.capabilities_changed) {
+                    if (result.capabilities_changed === true) {
+                      router.refresh();
                       if (typeof result.navigate_to === "string") {
                         router.push(result.navigate_to);
-                      } else {
-                        router.refresh();
-                        void refresh();
                       }
+                      void refresh();
                     }
 
                     return result;
@@ -265,9 +282,6 @@ export function WebMcpRegistrar({
   }, [accessToken, activityStorageKey, appointmentId, confirmationToken, contextKey, organizationSlug, presentation, router, siteSlug]);
 
   const publicPresentation = presentation === "public-site";
-  const publicLabels = [...new Set(
-    state.names.map((name) => publicCapabilityLabels[name]).filter(Boolean),
-  )];
 
   if (!publicPresentation) {
     const statusLabel = state.status === "active"
@@ -324,7 +338,10 @@ export function WebMcpRegistrar({
   return (
     <>
       {activity ? (
-        <aside className="agent-activity-receipt" aria-live="polite">
+        <aside
+          className={`agent-activity-receipt${appointmentId ? " is-appointment" : ""}`}
+          aria-live="polite"
+        >
           <div aria-hidden="true">AI</div>
           <span>
             <small>Assistant activity</small>
@@ -341,25 +358,6 @@ export function WebMcpRegistrar({
           >×</button>
         </aside>
       ) : null}
-      <aside className="agent-access public-agent-access" aria-live="polite">
-        <div>
-          <p className="kicker">Connected information</p>
-          <strong>
-            {state.status === "active"
-              ? "Up to date for people and assistants"
-              : state.status === "unsupported"
-                ? "You are viewing the latest published information"
-                : state.status === "error"
-                  ? "Published information is still available on this page"
-                  : "Checking the latest published information"}
-          </strong>
-        </div>
-        {publicLabels.length ? (
-          <ul>
-            {publicLabels.map((label) => <li key={label}>{label}</li>)}
-          </ul>
-        ) : null}
-      </aside>
     </>
   );
 }

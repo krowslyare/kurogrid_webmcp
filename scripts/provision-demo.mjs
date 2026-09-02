@@ -80,8 +80,8 @@ for (let slot = 1; slot <= capacity; slot += 1) {
 
   const organization = await admin.from("organizations").upsert({
     id: organizationId,
-    slug: `arboleda-demo-${suffix}`,
-    name: `Clínica Veterinaria Arboleda · Sandbox ${suffix}`,
+    slug: `mimo-demo-${suffix}`,
+    name: `Mimo Veterinary Care · Sandbox ${suffix}`,
   });
   assertNoError(organization.error, `organization slot ${slot}`);
 
@@ -94,7 +94,7 @@ for (let slot = 1; slot <= capacity; slot += 1) {
   const site = await admin.from("sites").upsert({
     id: siteId,
     organization_id: organizationId,
-    slug: `arboleda-${suffix}`,
+    slug: `mimo-${suffix}`,
   });
   assertNoError(site.error, `site slot ${slot}`);
 

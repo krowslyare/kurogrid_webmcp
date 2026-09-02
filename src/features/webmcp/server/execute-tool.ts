@@ -1,7 +1,9 @@
 import "server-only";
 
 import type { Json } from "@/lib/supabase/database.types";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { sendAppointmentUpdate } from "@/features/appointments/server/notifications";
 
 import {
   WEBMCP_TOOL_NAMES,
@@ -59,14 +61,29 @@ function uuidInput(input: Record<string, unknown>, name: string) {
   return value;
 }
 
+function planHashInput(input: Record<string, unknown>, name: string) {
+  const value = input[name];
+
+  if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value)) {
+    throw new Error(`invalid_${name}`);
+  }
+
+  return value;
+}
+
 function integerInput(
   input: Record<string, unknown>,
   name: string,
   minimum: number,
+  maximum = Number.POSITIVE_INFINITY,
 ) {
   const value = input[name];
 
-  if (!Number.isInteger(value) || (value as number) < minimum) {
+  if (
+    !Number.isInteger(value)
+    || (value as number) < minimum
+    || (value as number) > maximum
+  ) {
     throw new Error(`invalid_${name}`);
   }
 
@@ -89,6 +106,287 @@ function booleanInput(input: Record<string, unknown>, name: string) {
   const value = input[name];
   if (typeof value !== "boolean") throw new Error(`invalid_${name}`);
   return value;
+}
+
+const availabilityBusySources = new Set([
+  "calendar",
+  "manual",
+]);
+
+const localTimePattern = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
+const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+const dateTimePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
+
+type AvailabilityRangeInput = {
+  day_of_week: number;
+  starts_at: string;
+  ends_at: string;
+};
+
+type AvailabilityBusyIntervalInput = {
+  starts_at: string;
+  ends_at: string;
+  source: string;
+};
+
+type AvailabilityPlanInput = {
+  service_slug: string;
+  period_start: string;
+  period_end: string;
+  timezone: string;
+  slot_duration_minutes: number;
+  weekly_ranges: AvailabilityRangeInput[];
+  recurring_blocks: AvailabilityRangeInput[];
+  busy_intervals: AvailabilityBusyIntervalInput[];
+  preserve_existing_bookings: true;
+  idempotency_key: string;
+};
+
+type UnregisteredRpcResult = {
+  data: unknown;
+  error: unknown | null;
+};
+
+type UnregisteredRpcClient = {
+  rpc(name: string, args: Record<string, unknown>): Promise<UnregisteredRpcResult>;
+};
+
+function callUnregisteredRpc(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  name: string,
+  args: Record<string, unknown>,
+) {
+  return (supabase as unknown as UnregisteredRpcClient).rpc(name, args);
+}
+
+function recordInput(value: unknown, errorName: string) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(errorName);
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function dateInput(input: Record<string, unknown>, name: string) {
+  const value = stringInput(input, name, 10);
+  if (!datePattern.test(value)) throw new Error(`invalid_${name}`);
+
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new Error(`invalid_${name}`);
+  }
+
+  return value;
+}
+
+function localTimeInput(input: Record<string, unknown>, name: string) {
+  const value = stringInput(input, name, 8);
+  if (!localTimePattern.test(value)) throw new Error(`invalid_${name}`);
+  return value;
+}
+
+function localTimeMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function dateTimeInput(input: Record<string, unknown>, name: string) {
+  const value = stringInput(input, name, 40);
+  if (!dateTimePattern.test(value) || Number.isNaN(Date.parse(value))) {
+    throw new Error(`invalid_${name}`);
+  }
+  return value;
+}
+
+function availabilityRangeInput(value: unknown, name: string): AvailabilityRangeInput {
+  const range = recordInput(value, `invalid_${name}`);
+  exactInputKeys(range, ["day_of_week", "starts_at", "ends_at"]);
+
+  const startsAt = localTimeInput(range, "starts_at");
+  const endsAt = localTimeInput(range, "ends_at");
+  if (localTimeMinutes(startsAt) >= localTimeMinutes(endsAt)) {
+    throw new Error(`invalid_${name}`);
+  }
+
+  return {
+    day_of_week: integerInput(range, "day_of_week", 0, 6),
+    starts_at: startsAt,
+    ends_at: endsAt,
+  };
+}
+
+function availabilityRangesInput(
+  input: Record<string, unknown>,
+  name: "weekly_ranges" | "recurring_blocks",
+) {
+  const value = input[name];
+  if (
+    !Array.isArray(value)
+    || value.length > 28
+    || (name === "weekly_ranges" && value.length === 0)
+  ) {
+    throw new Error(`invalid_${name}`);
+  }
+
+  return value.map((range) => availabilityRangeInput(range, name));
+}
+
+function availabilityBusyIntervalsInput(input: Record<string, unknown>) {
+  const value = input.busy_intervals;
+  if (!Array.isArray(value) || value.length > 100) {
+    throw new Error("invalid_busy_intervals");
+  }
+
+  return value.map((interval) => {
+    const item = recordInput(interval, "invalid_busy_intervals");
+    exactInputKeys(item, ["starts_at", "ends_at", "source"]);
+
+    const startsAt = dateTimeInput(item, "starts_at");
+    const endsAt = dateTimeInput(item, "ends_at");
+    if (Date.parse(startsAt) >= Date.parse(endsAt)) {
+      throw new Error("invalid_busy_intervals");
+    }
+
+    const source = stringInput(item, "source", 32);
+    if (!availabilityBusySources.has(source)) {
+      throw new Error("invalid_busy_interval_source");
+    }
+
+    return { starts_at: startsAt, ends_at: endsAt, source };
+  });
+}
+
+function availabilityPlanInput(input: Record<string, unknown>): AvailabilityPlanInput {
+  const periodStart = dateInput(input, "period_start");
+  const periodEnd = dateInput(input, "period_end");
+  const periodStartMs = Date.parse(`${periodStart}T00:00:00.000Z`);
+  const periodEndMs = Date.parse(`${periodEnd}T00:00:00.000Z`);
+  const periodDays = (periodEndMs - periodStartMs) / 86_400_000;
+
+  if (periodDays <= 0 || periodDays > 366) {
+    throw new Error("invalid_availability_period");
+  }
+
+  const timezone = stringInput(input, "timezone", 64);
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format();
+  } catch {
+    throw new Error("invalid_timezone");
+  }
+
+  const slotDuration = integerInput(input, "slot_duration_minutes", 5, 180);
+  if (slotDuration % 5 !== 0) throw new Error("invalid_slot_duration_minutes");
+
+  if (input.preserve_existing_bookings !== true) {
+    throw new Error("preserve_existing_bookings_must_be_true");
+  }
+
+  return {
+    service_slug: stringInput(input, "service_slug", 80),
+    period_start: periodStart,
+    period_end: periodEnd,
+    timezone,
+    slot_duration_minutes: slotDuration,
+    weekly_ranges: availabilityRangesInput(input, "weekly_ranges"),
+    recurring_blocks: availabilityRangesInput(input, "recurring_blocks"),
+    busy_intervals: availabilityBusyIntervalsInput(input),
+    preserve_existing_bookings: true,
+    idempotency_key: uuidInput(input, "idempotency_key"),
+  };
+}
+
+function availabilityObjectResult(data: unknown, errorName: string) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error(errorName);
+  }
+
+  return data as Record<string, unknown>;
+}
+
+function shapedAvailabilityPlanResult(data: unknown, changesApplied: boolean) {
+  const plan = availabilityObjectResult(data, "availability_plan_unavailable");
+  const notificationsSent = changesApplied && plan.notifications_sent === true;
+
+  return {
+    availability_plan: plan,
+    changes_applied: changesApplied,
+    notifications_sent: notificationsSent,
+    capabilities_changed: true,
+  };
+}
+
+async function deliverAvailabilityNotifications(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  capabilities: ResolvedCapabilities,
+  applied: Record<string, unknown>,
+  planId: string,
+) {
+  const pendingNotifications = Array.isArray(applied.customer_notifications)
+    ? applied.customer_notifications
+        .map((value) => value && typeof value === "object" && !Array.isArray(value)
+          ? value as Record<string, unknown>
+          : null)
+        .filter((value): value is Record<string, unknown> => Boolean(value))
+    : [];
+  const serviceId = typeof applied.service_id === "string"
+    ? applied.service_id
+    : null;
+  const serviceResult = serviceId
+    ? await supabase
+        .from("clinic_services")
+        .select("name")
+        .eq("id", serviceId)
+        .maybeSingle()
+    : { data: null, error: null };
+
+  if (serviceResult.error) throw serviceResult.error;
+
+  const deliveries = capabilities.siteSlug
+    ? await Promise.all(pendingNotifications.map((notification) =>
+        sendAppointmentUpdate({
+          requestId: String(notification.appointment_id),
+          accessToken: String(notification.access_token),
+          siteSlug: capabilities.siteSlug!,
+          customerEmail: String(notification.customer_email),
+          petName: String(notification.pet_name),
+          service: serviceResult.data?.name ?? "Dermatology consultation",
+          startsAt: String(notification.proposed_starts_at),
+          status: "time_proposed",
+        })))
+    : [];
+  const notificationsSent = deliveries.length > 0
+    && deliveries.every((delivery) => delivery.status === "sent");
+  const notificationStatus = deliveries.some((delivery) => delivery.status === "failed")
+    ? "failed"
+    : notificationsSent
+      ? "sent"
+      : deliveries.some((delivery) => delivery.status === "preview")
+        ? "preview"
+        : "not_attempted";
+  const appliedWithDelivery = {
+    ...applied,
+    notification_count: deliveries.length,
+    notification_deliveries: deliveries,
+    notification_status: notificationStatus,
+    notifications_sent: notificationsSent,
+  };
+
+  if (capabilities.organizationId) {
+    const admin = createAdminClient();
+    const { error: receiptError } = await admin
+      .from("availability_plans")
+      .update({ applied_result: appliedWithDelivery as Json })
+      .eq("id", planId)
+      .eq("organization_id", capabilities.organizationId);
+
+    if (receiptError) throw receiptError;
+  }
+
+  return {
+    appliedWithDelivery,
+    deliveries,
+    notificationsSent,
+  };
 }
 
 function isToolName(name: string): name is WebMcpToolName {
@@ -146,6 +444,190 @@ export async function executeWebMcpTool(request: ToolRequest) {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return { attention: data };
+    }
+
+    case "get_availability_configuration": {
+      exactInputKeys(input, []);
+      if (capabilities.scope !== "authenticated" || capabilities.role !== "owner") {
+        throw new Error("availability_owner_required");
+      }
+      if (!capabilities.siteId) throw new Error("site_unavailable");
+
+      const serviceResult = await supabase
+        .from("clinic_services")
+        .select("id")
+        .eq("site_id", capabilities.siteId)
+        .eq("slug", "dermatology")
+        .eq("active", true)
+        .maybeSingle();
+      if (serviceResult.error) throw serviceResult.error;
+      if (!serviceResult.data) throw new Error("availability_service_unavailable");
+
+      const { data, error } = await callUnregisteredRpc(
+        supabase,
+        "get_availability_configuration",
+        {
+          p_site_id: capabilities.siteId,
+          p_service_id: serviceResult.data.id,
+        },
+      );
+      if (error) throw error;
+      return {
+        availability_configuration: availabilityObjectResult(
+          data,
+          "availability_configuration_unavailable",
+        ),
+      };
+    }
+
+    case "prepare_availability_plan": {
+      exactInputKeys(input, [
+        "busy_intervals",
+        "idempotency_key",
+        "period_end",
+        "period_start",
+        "preserve_existing_bookings",
+        "recurring_blocks",
+        "service_slug",
+        "slot_duration_minutes",
+        "timezone",
+        "weekly_ranges",
+      ]);
+      if (capabilities.scope !== "authenticated" || capabilities.role !== "owner") {
+        throw new Error("availability_owner_required");
+      }
+      if (!capabilities.siteId) throw new Error("site_unavailable");
+
+      const planInput = availabilityPlanInput(input);
+      const serviceResult = await supabase
+        .from("clinic_services")
+        .select("id")
+        .eq("site_id", capabilities.siteId)
+        .eq("slug", planInput.service_slug)
+        .eq("active", true)
+        .maybeSingle();
+      if (serviceResult.error) throw serviceResult.error;
+      if (!serviceResult.data) throw new Error("availability_service_unavailable");
+      const { data, error } = await callUnregisteredRpc(
+        supabase,
+        "prepare_availability_plan",
+        {
+          p_site_id: capabilities.siteId,
+          p_service_id: serviceResult.data.id,
+          p_configuration: {
+            period_start: planInput.period_start,
+            period_end: planInput.period_end,
+            timezone: planInput.timezone,
+            slot_duration_minutes: planInput.slot_duration_minutes,
+            weekly_ranges: planInput.weekly_ranges,
+            recurring_blocks: planInput.recurring_blocks,
+            busy_intervals: planInput.busy_intervals,
+            preserve_existing_bookings: planInput.preserve_existing_bookings,
+          },
+          p_prepare_idempotency_key: planInput.idempotency_key,
+        },
+      );
+      if (error) throw error;
+
+      return {
+        ...shapedAvailabilityPlanResult(data, false),
+        preserve_existing_bookings: true,
+      };
+    }
+
+    case "apply_approved_availability_plan": {
+      exactInputKeys(input, ["idempotency_key"]);
+      if (capabilities.scope !== "authenticated" || capabilities.role !== "owner") {
+        throw new Error("availability_owner_required");
+      }
+      if (!capabilities.siteId || !capabilities.latestAvailabilityPlan?.canApply) {
+        throw new Error("exact_owner_approval_required");
+      }
+
+      const { data, error } = await callUnregisteredRpc(
+        supabase,
+        "apply_approved_availability_plan",
+        {
+          p_plan_id: capabilities.latestAvailabilityPlan.id,
+          p_expected_revision:
+            capabilities.latestAvailabilityPlan.baseConfigurationRevision,
+          p_plan_hash: capabilities.latestAvailabilityPlan.planHash,
+          p_apply_idempotency_key: uuidInput(input, "idempotency_key"),
+        },
+      );
+      if (error) throw error;
+      const applied = availabilityObjectResult(
+        data,
+        "availability_plan_unavailable",
+      );
+      const { appliedWithDelivery, deliveries, notificationsSent } =
+        await deliverAvailabilityNotifications(
+          supabase,
+          capabilities,
+          applied,
+          capabilities.latestAvailabilityPlan.id,
+        );
+
+      return {
+        ...shapedAvailabilityPlanResult(appliedWithDelivery, true),
+        notification_deliveries: deliveries,
+        notifications_sent: notificationsSent,
+      };
+    }
+
+    case "apply_availability_plan": {
+      exactInputKeys(input, [
+        "expected_revision",
+        "idempotency_key",
+        "plan_hash",
+        "plan_id",
+      ]);
+      if (capabilities.scope !== "authenticated" || capabilities.role !== "owner") {
+        throw new Error("availability_owner_required");
+      }
+
+      const latestPlan = capabilities.latestAvailabilityPlan;
+      const planId = uuidInput(input, "plan_id");
+      const expectedRevision = integerInput(input, "expected_revision", 0);
+      const planHash = planHashInput(input, "plan_hash");
+      if (
+        !capabilities.siteId
+        || latestPlan?.status !== "prepared"
+        || latestPlan.id !== planId
+        || latestPlan.baseConfigurationRevision !== expectedRevision
+        || latestPlan.planHash !== planHash
+      ) {
+        throw new Error("prepared_availability_plan_changed");
+      }
+
+      const { data, error } = await callUnregisteredRpc(
+        supabase,
+        "approve_and_apply_availability_plan",
+        {
+          p_plan_id: planId,
+          p_expected_revision: expectedRevision,
+          p_plan_hash: planHash,
+          p_apply_idempotency_key: uuidInput(input, "idempotency_key"),
+        },
+      );
+      if (error) throw error;
+      const applied = availabilityObjectResult(
+        data,
+        "availability_plan_unavailable",
+      );
+      const { appliedWithDelivery, deliveries, notificationsSent } =
+        await deliverAvailabilityNotifications(
+          supabase,
+          capabilities,
+          applied,
+          planId,
+        );
+
+      return {
+        ...shapedAvailabilityPlanResult(appliedWithDelivery, true),
+        notification_deliveries: deliveries,
+        notifications_sent: notificationsSent,
+      };
     }
 
     case "create_action_plan": {

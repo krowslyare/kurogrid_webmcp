@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
   acknowledgeLeadAttention,
@@ -10,6 +11,7 @@ import { updateAppointmentFromOwner } from "@/features/appointments/server/actio
 import { KuroBrand } from "@/components/KuroBrand";
 import { WorkspacePulseIllustration } from "@/components/ProductIllustrations";
 import { getViewer } from "@/features/auth/server/get-viewer";
+import { AvailabilityControlRoom } from "@/features/availability/ui/AvailabilityControlRoom";
 import {
   approveSiteDraft,
   publishSiteDraft,
@@ -30,7 +32,7 @@ export const metadata: Metadata = {
 
 type PageProps = {
   params: Promise<{ organizationSlug: string }>;
-  searchParams: Promise<{ appointment?: string; mode?: string }>;
+  searchParams: Promise<{ appointment?: string; mode?: string; availability?: string; tab?: string }>;
 };
 
 function contentObject(content: Json | undefined) {
@@ -41,6 +43,12 @@ function contentObject(content: Json | undefined) {
 
 function contentString(content: Record<string, Json | undefined>, key: string) {
   return typeof content[key] === "string" ? content[key] : "";
+}
+
+function objectRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
 }
 
 const evidenceLabels: Record<string, string> = {
@@ -162,7 +170,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
 
   const { data: appointmentRequests, error: appointmentError } = await supabase
     .from("appointment_requests")
-    .select("id, status, pet_name, customer_email, proposed_starts_at, created_at, clinic_services(name, duration_minutes), appointment_slots(starts_at)")
+    .select("id, access_token, status, pet_name, customer_email, proposed_starts_at, created_at, clinic_services(name, duration_minutes), appointment_slots(starts_at)")
     .eq("organization_id", membership.organizationId)
     .neq("status", "prepared")
     .order("created_at", { ascending: false });
@@ -172,6 +180,22 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
       cause: appointmentError,
     });
   }
+
+  // The availability vertical can be deployed before its optional plan table is
+  // present in a local database. Keep the existing workspace usable in that
+  // case; the control room renders an honest empty state instead of a fixture
+  // pretending to be a persisted plan.
+  const availabilityDb = supabase as unknown as SupabaseClient;
+  const { data: latestAvailabilityPlan, error: availabilityPlanError } = await availabilityDb
+    .from("availability_plans")
+    .select("*")
+    .eq("organization_id", membership.organizationId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const availabilityPlan = availabilityPlanError
+    ? null
+    : objectRecord(latestAvailabilityPlan);
 
   const capabilityContextKey = JSON.stringify([
     membership.role,
@@ -187,6 +211,17 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
       approval.expires_at,
     ]),
     appointmentRequests.map((request) => [request.id, request.status, request.proposed_starts_at]),
+    availabilityPlan
+      ? [
+          availabilityPlan.id ?? availabilityPlan.plan_id ?? availabilityPlan.availability_plan_id ?? null,
+          availabilityPlan.status ?? availabilityPlan.plan_status ?? availabilityPlan.state ?? null,
+          availabilityPlan.base_configuration_revision ?? null,
+          availabilityPlan.plan_hash ?? null,
+          availabilityPlan.configuration ?? null,
+          availabilityPlan.preview ?? null,
+          availabilityPlan.applied_result ?? null,
+        ]
+      : null,
   ]);
 
   const guidedAttention = attention.find((item) => item.kind === "synthetic_lead")
@@ -225,80 +260,228 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
         : guidedPlan
           ? "The evidence is clear. Shape the Saturday message."
           : "Keep Mimo accurate for customers and their assistants.";
+  const isMimoDemo = organizationSlug.startsWith("mimo-demo-") || organizationSlug.includes("mimo");
+  const currentTab = notice.tab === "appointments" || Boolean(notice.appointment)
+    ? "appointments"
+    : notice.tab === "website"
+      ? "website"
+      : "schedule";
+  const actionableAppointment = appointmentRequests.find((request) => request.status === "requested");
+  const pendingAppointmentsCount = appointmentRequests.filter((request) => request.status === "requested").length;
+  const appointmentInboxTitle = actionableAppointment
+    ? `${actionableAppointment.pet_name} needs a reply.`
+    : "Customer appointments";
+  const appointmentInboxDescription = actionableAppointment
+    ? "Respond once. Email brings the customer back if the appointment changes."
+    : "Review requested appointments, accept times, or propose alternative openings.";
 
   return (
-    <main className="workspace-shell">
-      <header className="workspace-nav">
-        <KuroBrand
-          href="/app"
-          label={organizationSlug.startsWith("arboleda-demo-") ? "Mimo Veterinary Care" : membership.organizationName}
-          suffix="Guided demo"
-        />
+    <main className={`workspace-shell${isMimoDemo ? " clinic-workspace-shell" : ""}`}>
+      <header className={`workspace-nav${isMimoDemo ? " clinic-workspace-nav" : ""}`}>
+        {isMimoDemo ? (
+          <Link className="clinic-workspace-brand" href={`/app/${organizationSlug}`} aria-label="Mimo staff workspace">
+            <span className="clinic-workspace-mark" aria-hidden="true">
+              <svg viewBox="0 0 40 40" role="presentation">
+                <circle cx="11" cy="13" r="4" />
+                <circle cx="20" cy="9" r="4" />
+                <circle cx="29" cy="13" r="4" />
+                <circle cx="33" cy="22" r="4" />
+                <path d="M20 17c-7 0-12 6-12 12 0 4 3 6 7 5 3-1 4-3 5-3s2 2 5 3c4 1 7-1 7-5 0-6-5-12-12-12Z" />
+              </svg>
+            </span>
+            <span><strong>Mimo</strong><small>Staff workspace</small></span>
+          </Link>
+        ) : (
+          <KuroBrand href="/app" label={membership.organizationName} suffix="Guided demo" />
+        )}
+        {isMimoDemo ? (
+          <nav className="clinic-workspace-tabs" aria-label="Workspace sections">
+            <Link
+              className={currentTab === "schedule" ? "is-active" : ""}
+              href={`/app/${organizationSlug}?tab=schedule`}
+            >
+              Schedule
+            </Link>
+            <Link
+              className={currentTab === "appointments" ? "is-active" : ""}
+              href={`/app/${organizationSlug}?tab=appointments`}
+            >
+              Appointments
+              {pendingAppointmentsCount > 0 ? (
+                <span className="tab-badge">{pendingAppointmentsCount}</span>
+              ) : null}
+            </Link>
+            <Link
+              className={currentTab === "website" ? "is-active" : ""}
+              href={`/app/${organizationSlug}?tab=website`}
+            >
+              Website
+            </Link>
+          </nav>
+        ) : null}
         <div className="workspace-nav-meta">
-          <Link href="/app">Switch workspace</Link>
+          {isMimoDemo && firstSite ? (
+            <Link href={`/sites/${firstSite.slug}`}>
+              View customer site
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+              </svg>
+            </Link>
+          ) : <Link href="/app">Switch workspace</Link>}
           <span className="role-badge">{membership.role}</span>
         </div>
       </header>
 
-      {appointmentRequests.length ? (
-      <section className="appointment-inbox" aria-labelledby="appointment-inbox-title">
-        <div className="appointment-inbox-heading">
-          <div>
-            <p className="kicker">Appointment requests</p>
-            <h1 id="appointment-inbox-title">
-              {`${appointmentRequests[0].pet_name} is asking for Saturday care.`}
-            </h1>
-          </div>
-          <p>
-            Respond once. Email brings the customer back if the appointment changes.
-          </p>
-        </div>
+      {currentTab === "schedule" ? (
+        <>
+          {isMimoDemo ? (
+            <section className="clinic-workspace-intro" aria-labelledby="clinic-workspace-title">
+              <div>
+                <p>Clinic operations</p>
+                <h1 id="clinic-workspace-title">Schedule &amp; Availability</h1>
+                <span>Turn calendar conflicts and working-hour rules into one exact schedule update, then let affected customers decide.</span>
+              </div>
+              <aside>
+                <small>Current task</small>
+                <strong>September dermatology hours</strong>
+                <span>One Owner request can update the schedule and prepare the customer notice</span>
+              </aside>
+            </section>
+          ) : null}
 
-        {notice.appointment ? (
-          <p className={`appointment-notice is-${notice.appointment}`}>
-            {notice.appointment === "sent"
-              ? "Appointment updated · customer email accepted by Resend."
-              : notice.appointment === "preview"
-                ? "Appointment updated · demo email preview is ready."
-                : "Appointment updated · email delivery failed, but the customer link still works."}
-          </p>
-        ) : null}
+          <AvailabilityControlRoom
+            organizationSlug={organizationSlug}
+            role={membership.role}
+            plan={availabilityPlan}
+            appointments={appointmentRequests.map((request) => ({
+              id: request.id,
+              proposed_starts_at: request.proposed_starts_at,
+              starts_at: request.appointment_slots.starts_at,
+              status: request.status,
+            }))}
+            notice={notice.availability}
+          />
 
-        <div className="appointment-request-list">
-            {appointmentRequests.map((request) => {
-              const requestedAt = request.appointment_slots.starts_at;
-              const nextProposal = new Date(new Date(requestedAt).getTime() + 60 * 60_000).toISOString();
-              return (
-                <article key={request.id}>
-                  <div className="appointment-request-main">
-                    <span className={`appointment-status is-${request.status}`}>{request.status.replaceAll("_", " ")}</span>
-                    <h2>{request.pet_name} · {request.clinic_services.name}</h2>
-                    <p>{appointmentTime(request.proposed_starts_at ?? requestedAt)} · {request.clinic_services.duration_minutes} minutes</p>
-                    <small>Updates go to {request.customer_email}</small>
-                  </div>
-                  {membership.role === "owner" && request.status === "requested" ? (
-                    <div className="appointment-owner-actions">
-                      <form action={updateAppointmentFromOwner}>
-                        <input name="organizationSlug" type="hidden" value={organizationSlug} />
-                        <input name="requestId" type="hidden" value={request.id} />
-                        <input name="decision" type="hidden" value="confirm" />
-                        <button className="primary-action" type="submit">Accept requested time</button>
-                      </form>
-                      <form action={updateAppointmentFromOwner}>
-                        <input name="organizationSlug" type="hidden" value={organizationSlug} />
-                        <input name="requestId" type="hidden" value={request.id} />
-                        <input name="decision" type="hidden" value="propose" />
-                        <input name="proposedStartsAt" type="hidden" value={nextProposal} />
-                        <button className="secondary-action" type="submit">Propose {appointmentTime(nextProposal)}</button>
-                      </form>
-                    </div>
-                  ) : null}
-                </article>
-              );
-            })}
-        </div>
-      </section>
+          {pendingAppointmentsCount > 0 ? (
+            <div className="workspace-appointment-callout">
+              <div>
+                <span className="kicker">Needs staff attention</span>
+                <strong>{pendingAppointmentsCount} customer booking request awaiting reply</strong>
+              </div>
+              <Link className="primary-action" href={`/app/${organizationSlug}?tab=appointments`}>
+                Open appointments
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+                </svg>
+              </Link>
+            </div>
+          ) : null}
+        </>
       ) : null}
+
+      {currentTab === "appointments" ? (
+        <>
+          {isMimoDemo ? (
+            <section className="clinic-workspace-intro" aria-labelledby="appointment-inbox-title">
+              <div>
+                <p>Customer booking requests</p>
+                <h1 id="appointment-inbox-title">{appointmentInboxTitle}</h1>
+                <span>{appointmentInboxDescription}</span>
+              </div>
+              <aside>
+                <small>Inbox summary</small>
+                <strong>{pendingAppointmentsCount ? `${pendingAppointmentsCount} awaiting reply` : "All requests handled"}</strong>
+                <span>Accept or propose alternative times directly</span>
+              </aside>
+            </section>
+          ) : null}
+
+          <section className="appointment-inbox is-tab-view" aria-labelledby="appointment-inbox-title">
+            {notice.appointment ? (
+              <p className={`appointment-notice is-${notice.appointment}`}>
+                {notice.appointment === "sent"
+                  ? "Appointment updated · customer email accepted by Resend."
+                  : notice.appointment === "preview"
+                    ? "Appointment updated · demo email preview is ready."
+                    : "Appointment updated · email delivery failed, but the customer link still works."}
+              </p>
+            ) : null}
+
+            {appointmentRequests.length ? (
+              <div className="appointment-request-list">
+                {appointmentRequests.map((request) => {
+                  const requestedAt = request.appointment_slots.starts_at;
+                  const nextProposal = new Date(new Date(requestedAt).getTime() + 60 * 60_000).toISOString();
+                  return (
+                    <article key={request.id}>
+                      <div className="appointment-request-main">
+                        <span className={`appointment-status is-${request.status}`}>{request.status.replaceAll("_", " ")}</span>
+                        <h2>{request.pet_name} · {request.clinic_services.name}</h2>
+                        <p>{appointmentTime(request.proposed_starts_at ?? requestedAt)} · {request.clinic_services.duration_minutes} minutes</p>
+                        <small>Updates go to {request.customer_email}</small>
+                        {isMimoDemo && firstSite && request.status === "time_proposed" ? (
+                          <Link
+                            className="appointment-customer-link"
+                            href={`/sites/${firstSite.slug}?appointment=${request.id}&access=${request.access_token}`}
+                          >
+                            Open customer update
+                            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+                            </svg>
+                          </Link>
+                        ) : null}
+                      </div>
+                      {membership.role === "owner" && request.status === "requested" ? (
+                        <div className="appointment-owner-actions">
+                          <form action={updateAppointmentFromOwner}>
+                            <input name="organizationSlug" type="hidden" value={organizationSlug} />
+                            <input name="requestId" type="hidden" value={request.id} />
+                            <input name="decision" type="hidden" value="confirm" />
+                            <button className="primary-action" type="submit">Accept requested time</button>
+                          </form>
+                          <form action={updateAppointmentFromOwner}>
+                            <input name="organizationSlug" type="hidden" value={organizationSlug} />
+                            <input name="requestId" type="hidden" value={request.id} />
+                            <input name="decision" type="hidden" value="propose" />
+                            <input name="proposedStartsAt" type="hidden" value={nextProposal} />
+                            <button className="secondary-action" type="submit">Propose {appointmentTime(nextProposal)}</button>
+                          </form>
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="appointment-empty-state">
+                <p>No appointment requests yet. When customers book on the website or via an AI agent, their requests will appear here for review.</p>
+                {firstSite ? (
+                  <Link className="secondary-action" href={`/sites/${firstSite.slug}`}>
+                    View customer site
+                  </Link>
+                ) : null}
+              </div>
+            )}
+          </section>
+        </>
+      ) : null}
+
+      {currentTab === "website" ? (
+        <div className="clinic-website-operations-view">
+          {isMimoDemo ? (
+            <section className="clinic-workspace-intro" aria-labelledby="content-operations-title">
+              <div>
+                <p>Content &amp; publication</p>
+                <h1 id="content-operations-title">Website operations</h1>
+                <span>Update public copy and structured assistant facts. Both views update together from one approved revision.</span>
+              </div>
+              <aside>
+                <small>Current publication</small>
+                <strong>Version {firstPublishedVersion?.version_number ?? 1} live</strong>
+                <span>{firstDraft ? `Draft v${firstDraft.revision} prepared` : "No pending draft"}</span>
+              </aside>
+            </section>
+          ) : null}
 
       <section className="workspace-heading guided-heading">
         <div className="guided-heading-main">
@@ -332,11 +515,6 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
           ))}
         </ol>
       </section>
-
-      <WebMcpRegistrar
-        organizationSlug={organizationSlug}
-        contextKey={capabilityContextKey}
-      />
 
       <section className="opportunity-section" aria-labelledby="opportunity-title">
         <div className="workspace-section-heading">
@@ -469,7 +647,11 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                         <span>Current website</span>
                         <strong>{contentString(publishedContent, "headline")}</strong>
                       </div>
-                      <i aria-hidden="true">→</i>
+                      <i className="change-arrow" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 8h10M9 4l4 4-4 4" />
+                        </svg>
+                      </i>
                       <div>
                         <span>Suggested from evidence</span>
                         <strong>{contentString(proposedContent, "headline")}</strong>
@@ -598,7 +780,12 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
 
               {siteVersions.length ? (
                 <div className="version-list">
-                  <Link href={`/sites/${site.slug}`}>View the live website ↗</Link>
+                  <Link href={`/sites/${site.slug}`}>
+                    View the live website
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+                    </svg>
+                  </Link>
                   <details>
                     <summary>Publication history · {siteVersions.length} version{siteVersions.length === 1 ? "" : "s"}</summary>
                     {siteVersions.map((version) => (
@@ -638,10 +825,22 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
             <li>Customer requests return to this workspace</li>
           </ol>
           <Link href={`/sites/${firstSite.slug}`}>
-            Continue on the customer site <span aria-hidden="true">↗</span>
+            Continue on the customer site
+            <span className="inline-arrow" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+              </svg>
+            </span>
           </Link>
-        </section>
+          </section>
+        ) : null}
+        </div>
       ) : null}
+
+      <WebMcpRegistrar
+        organizationSlug={organizationSlug}
+        contextKey={capabilityContextKey}
+      />
     </main>
   );
 }

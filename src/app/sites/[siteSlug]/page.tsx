@@ -4,7 +4,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
+import { AmbientPaws } from "@/components/AmbientPaws";
 import { CopyAgentPrompt } from "@/components/CopyAgentPrompt";
+import { CopyAppointmentPrompt } from "@/components/CopyAppointmentPrompt";
 import { TraditionalBooking } from "@/components/TraditionalBooking";
 import {
   confirmAppointmentFromPage,
@@ -123,13 +125,16 @@ function appointmentReference(value: string | undefined) {
 
 function appointmentJourney(status: unknown) {
   const current = String(status);
+  const labels = current === "declined"
+    ? ["Reviewed", "Sent", "Clinic reply", "Declined"]
+    : ["Reviewed", "Sent", "Clinic reply", "Calendar"];
   const index = current === "prepared" ? 0
     : current === "requested" ? 1
       : current === "time_proposed" ? 2
-        : current === "confirmed" ? 3
+        : current === "confirmed" || current === "declined" ? 3
           : 1;
 
-  return ["Reviewed", "Sent", "Clinic reply", "Calendar"].map((label, step) => ({
+  return labels.map((label, step) => ({
     label,
     state: step < index ? "complete" : step === index ? "current" : "upcoming",
   }));
@@ -190,7 +195,8 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
       });
   const slots = slotsResult.data ?? [];
   const appointmentDate = slots[0] ? slotDate(slots[0].starts_at) : "next Saturday";
-  const agentPrompt = `Find a dermatology appointment for Luna on ${appointmentDate} morning and email me if the clinic changes the time.`;
+  const agentPrompt = "Find the earliest morning dermatology appointment for my dog, Luna, today or tomorrow that does not conflict with my calendar. If none are available, find the closest time this week and tell me why it is the best alternative.";
+  const proposalPrompt = "Check Mimo's proposed appointment time against my calendar. If it works, accept it. If it conflicts, decline it and tell me what I should ask the clinic for next.";
   const editSearch = appointmentRecord && customerContext.appointment
     && customerContext.access && customerContext.confirm
     ? new URLSearchParams({
@@ -210,12 +216,14 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
     return (firstIndex < 0 ? scheduleOrder.length : firstIndex)
       - (secondIndex < 0 ? scheduleOrder.length : secondIndex);
   });
+  const hasHolidays = schedule.some(([label]) => label.toLowerCase().includes("holiday"));
 
   return (
     <main
       className="published-site"
       data-published-version={published.version_id}
     >
+      <AmbientPaws />
       <header className="published-nav">
         <a className="clinic-brand" href="#top" aria-label="Mimo Veterinary Care, home">
           <span className="clinic-mark" aria-hidden="true">
@@ -233,6 +241,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
           </span>
         </a>
         <nav aria-label="Main navigation">
+          <a href="#services">Services</a>
           <a href="#opening-hours">Hours</a>
           <a className="clinic-nav-cta" href="#agent-booking">
             {content.cta_label}
@@ -242,18 +251,24 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
 
       <section className="clinic-hero" id="top">
         <div className="clinic-hero-copy">
-          <p className="clinic-kicker">
-            <span aria-hidden="true" /> Thoughtful care, every day
-          </p>
           <h1>{content.headline}</h1>
           <p className="published-summary">{content.summary}</p>
           <div className="clinic-hero-actions">
             <a className="clinic-primary-cta" href="#agent-booking">
               {content.cta_label}
-              <span aria-hidden="true">→</span>
+              <span className="clinic-cta-arrow" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 8h10M9 4l4 4-4 4" />
+                </svg>
+              </span>
             </a>
             <a className="clinic-text-link" href="#our-approach">
-              Our approach <span aria-hidden="true">↓</span>
+              Our approach
+              <span className="clinic-inline-arrow" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3v10M4 9l4 4 4-4" />
+                </svg>
+              </span>
             </a>
           </div>
           <p className="clinic-assistant-ready"><span aria-hidden="true" /> Assistant-ready appointment planning</p>
@@ -277,28 +292,64 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
         </div>
       </section>
 
-      <section className="clinic-booking" id="agent-booking" aria-labelledby="booking-title">
+      <section className="clinic-services" id="services" aria-labelledby="services-title">
+        <div className="clinic-services-intro">
+          <p className="clinic-section-index">Services</p>
+          <h2 id="services-title">Care tailored to every visit.</h2>
+          <p>
+            Specialized consultations and routine treatments designed for calm, unhurried attention.
+          </p>
+        </div>
+
+        <div className="clinic-service-list" aria-label="Available appointment services">
+          {(servicesResult.data ?? []).map((service) => (
+            <article key={service.service_slug}>
+              <div><h3>{service.service_name}</h3><p>{service.description}</p></div>
+              <strong>{service.duration_minutes} min</strong>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section
+        className="clinic-booking"
+        data-state={appointment ? "appointment" : "planning"}
+        id="agent-booking"
+        aria-labelledby="booking-title"
+      >
         <div className="clinic-booking-intro">
           <p className="clinic-section-index">Appointments</p>
           <h2 id="booking-title">
-            {appointment ? "Your appointment, in one clear place." : "Ask your assistant to find the right time."}
+            {appointment ? "Your appointment, in one clear place." : "Ask your AI agent to find the right time."}
           </h2>
           <p>
             {appointment
               ? "This private link always reflects the clinic's latest response."
-              : "Your assistant can read Mimo's current services and available times directly from this page."}
+              : "Want help choosing? Your AI agent can compare Mimo's available times with your calendar and preferences."}
           </p>
+
           {!appointment ? (
-            <div className="clinic-agent-prompt">
-              <span>Ask your assistant</span>
-              <p className="clinic-agent-explainer">It reads live times from this page. You still review the request before Mimo receives it.</p>
-              <div className="clinic-agent-request">
-                <p>{agentPrompt}</p>
-                <CopyAgentPrompt prompt={agentPrompt} />
-              </div>
-            </div>
+            <TraditionalBooking
+              appointmentDate={appointmentDate}
+              bookingError={customerContext.bookingError}
+              initialCustomerEmail={editingAppointment ? String(appointmentRecord?.customer_email ?? "") : undefined}
+              initialOpen={editingAppointment || Boolean(customerContext.bookingError)}
+              initialPetName={editingAppointment ? String(appointmentRecord?.pet_name ?? "") : undefined}
+              initialStartsAt={editingAppointment ? String(appointmentRecord?.original_starts_at ?? "") : undefined}
+              siteSlug={siteSlug}
+              slots={slots}
+            />
           ) : null}
         </div>
+
+        {!appointment ? (
+          <div className="clinic-agent-prompt">
+            <p className="clinic-agent-explainer">
+              Add your timing and preferences. It can compare Mimo&apos;s available appointments and help you choose the best fit.
+            </p>
+            <CopyAgentPrompt prompt={agentPrompt} />
+          </div>
+        ) : null}
 
         {appointment ? (
           <article className="customer-appointment-card">
@@ -335,12 +386,16 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
                 <strong>
                   {appointment.status === "time_proposed"
                     ? `Mimo proposed a new time for ${String(appointment.pet_name)}`
-                    : `${String(appointment.pet_name)}’s appointment is confirmed`}
+                    : appointment.status === "declined"
+                      ? `You declined Mimo’s proposed time for ${String(appointment.pet_name)}`
+                      : `${String(appointment.pet_name)}’s appointment is confirmed`}
                 </strong>
                 <p>
                   {appointment.status === "time_proposed"
                     ? `A new ${String(appointment.service).toLowerCase()} time is waiting for your review: ${customerTime(String(appointment.starts_at))}.`
-                    : `${String(appointment.service)} · ${customerTime(String(appointment.starts_at))}.`}
+                    : appointment.status === "declined"
+                      ? "No replacement time was booked. You can return to Mimo’s current availability and choose another option."
+                      : `${String(appointment.service)} · ${customerTime(String(appointment.starts_at))}.`}
                 </p>
               </article>
             ) : null}
@@ -365,7 +420,12 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
                     </form>
                   ) : <small>Return to the original review link to send this request.</small>}
                   <Link className="clinic-text-button" href={editHref}>
-                    ← Edit details
+                    <span className="clinic-inline-arrow" aria-hidden="true">
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M13 8H3M7 4L3 8l4 4" />
+                      </svg>
+                    </span>
+                    Edit details
                   </Link>
                 </div>
               </div>
@@ -414,6 +474,13 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
                     <button className="clinic-text-button" type="submit">Decline</button>
                   </form>
                 </div>
+                <aside className="customer-proposal-agent">
+                  <div>
+                    <strong>One prompt is enough.</strong>
+                    <span>Your agent can compare this time with your calendar and answer Mimo here.</span>
+                  </div>
+                  <CopyAppointmentPrompt prompt={proposalPrompt} />
+                </aside>
               </div>
             ) : appointment.status === "confirmed" ? (
               <div className="customer-calendar-actions">
@@ -428,35 +495,32 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
                   <small>Fictional Mimo demo · this private page remains the source of truth.</small>
                 </article>
                 <div>
-                  <a href={googleCalendarUrl(appointment)} target="_blank" rel="noreferrer">Google Calendar ↗</a>
-                  <a href={`/api/appointments/calendar?appointment=${customerContext.appointment}&access=${customerContext.access}`}>Download .ics ↗</a>
+                  <a href={googleCalendarUrl(appointment)} target="_blank" rel="noreferrer">
+                    Google Calendar
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+                    </svg>
+                  </a>
+                  <a href={`/api/appointments/calendar?appointment=${customerContext.appointment}&access=${customerContext.access}`}>
+                    Download .ics
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+                    </svg>
+                  </a>
                 </div>
+              </div>
+            ) : appointment.status === "declined" ? (
+              <div className="customer-declined-state">
+                <span>Proposal declined</span>
+                <h4>No replacement time was booked.</h4>
+                <p>Mimo still has your request. Return to the live schedule when you are ready to choose another time.</p>
+                <Link className="clinic-secondary-cta" href={`/sites/${siteSlug}#agent-booking`}>
+                  Check current availability
+                </Link>
               </div>
             ) : null}
           </article>
-        ) : (
-          <div className="clinic-booking-options">
-            <div className="clinic-service-list" aria-label="Available appointment services">
-              {(servicesResult.data ?? []).map((service) => (
-                <article key={service.service_slug}>
-                  <div><h3>{service.service_name}</h3><p>{service.description}</p></div>
-                  <strong>{service.duration_minutes} min</strong>
-                </article>
-              ))}
-            </div>
-
-            <TraditionalBooking
-              appointmentDate={appointmentDate}
-              bookingError={customerContext.bookingError}
-              initialCustomerEmail={editingAppointment ? String(appointmentRecord?.customer_email ?? "") : undefined}
-              initialOpen={editingAppointment || Boolean(customerContext.bookingError)}
-              initialPetName={editingAppointment ? String(appointmentRecord?.pet_name ?? "") : undefined}
-              initialStartsAt={editingAppointment ? String(appointmentRecord?.original_starts_at ?? "") : undefined}
-              siteSlug={siteSlug}
-              slots={slots}
-            />
-          </div>
-        )}
+        ) : null}
       </section>
 
       <section className="clinic-details" aria-label="Care approach and opening hours">
@@ -467,19 +531,26 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
             Clear information makes every visit feel simpler. Know when to
             come, what to expect, and where your attention belongs: with them.
           </p>
-          <div className="clinic-values" aria-label="Care principles">
-            <span>Clear guidance</span><span>Calm visits</span><span>Current information</span>
-          </div>
+          <dl className="clinic-principles-list" aria-label="Care principles">
+            <div>
+              <dt>Clear guidance</dt>
+              <dd>Know what to expect and how to prepare before you arrive.</dd>
+            </div>
+            <div>
+              <dt>Calm visits</dt>
+              <dd>Unhurried care tailored to your pet&apos;s comfort and pace.</dd>
+            </div>
+            <div>
+              <dt>Current</dt>
+              <dd>Reliable availability kept in sync for you and your assistant.</dd>
+            </div>
+          </dl>
         </article>
 
         <article className="clinic-hours" id="opening-hours" aria-labelledby="hours-title">
-          <div className="clinic-hours-heading">
-            <p className="clinic-section-index">Opening hours</p>
-            <div>
-              <h2 id="hours-title">Find a time that fits.</h2>
-              <p>Current published hours, kept in one reliable place.</p>
-            </div>
-          </div>
+          <p className="clinic-section-index">Opening hours</p>
+          <h2 id="hours-title">Find a time that fits.</h2>
+          <p className="clinic-hours-desc">Current published hours, kept in one reliable place.</p>
           <dl>
             {schedule.map(([label, value]) => (
               <div key={label}>
@@ -487,19 +558,47 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
                 <dd>{value}</dd>
               </div>
             ))}
+            {!hasHolidays ? (
+              <div>
+                <dt>Holidays</dt>
+                <dd>To be confirmed</dd>
+              </div>
+            ) : null}
           </dl>
         </article>
       </section>
 
-      <section className="clinic-closing" aria-labelledby="closing-title">
-        <div>
-          <p className="clinic-kicker">Plan with current information</p>
-          <h2 id="closing-title">See when Saturday care is available.</h2>
+      <section className="clinic-visit-invite" aria-labelledby="invite-title">
+        <div className="clinic-invite-photo-layer" aria-hidden="true">
+          <Image
+            alt="Dog relaxing peacefully in Mimo veterinary lounge"
+            className="clinic-invite-photo"
+            fill
+            sizes="(max-width: 1360px) 100vw, 1360px"
+            src="/mimo-lounge.webp"
+          />
+          <div className="clinic-invite-scrim" />
         </div>
-        <a className="clinic-primary-cta clinic-primary-cta-light" href="#agent-booking">
-          {content.cta_label}
-          <span aria-hidden="true">↑</span>
-        </a>
+
+        <div className="clinic-invite-body">
+          <h2 id="invite-title">A calmer visit for your pet starts here.</h2>
+          <p>
+            Unhurried consultations, gentle handling, and time to listen. We take
+            the pace they need to feel completely relaxed and safe.
+          </p>
+
+          <div className="clinic-invite-actions">
+            <a className="clinic-primary-cta clinic-primary-cta-light" href="#agent-booking">
+              {content.cta_label}
+              <span className="clinic-cta-arrow" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 8h10M9 4l4 4-4 4" />
+                </svg>
+              </span>
+            </a>
+            <span className="clinic-invite-subnote">Book directly or ask your AI assistant to check openings</span>
+          </div>
+        </div>
       </section>
 
       <footer className="clinic-footer">
@@ -516,7 +615,12 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
           presentation="public-site"
         />
         <div className="clinic-footer-meta">
-          <Link href="/demo">Staff workspace →</Link>
+          <Link href="/demo">
+            Staff workspace
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 8h10M9 4l4 4-4 4" />
+            </svg>
+          </Link>
           <span>Live version {published.version_number}</span>
         </div>
       </footer>
