@@ -10,6 +10,12 @@ const journey = [
   ["Resolve", "Let the clinic accept or suggest another time, then return by email and add it to Calendar."],
 ] as const;
 
+const clinicFlow = [
+  ["Brief", "Describe September rules once. The assistant brings calendar busy time as normalized ranges — never event titles or notes."],
+  ["Exact plan", "Mimo derives slots, conflicts, and alternatives against real bookings. Nothing applies by itself."],
+  ["One approval", "Approve and apply one exact plan. Affected customers then accept or decline their held alternative."],
+] as const;
+
 export default function Home() {
   return (
     <main className="landing">
@@ -56,6 +62,7 @@ export default function Home() {
             <li>Live availability</li>
             <li>Human confirmation</li>
             <li>Clinic response</li>
+            <li>Owner-approved plans</li>
           </ul>
         </div>
 
@@ -108,8 +115,23 @@ export default function Home() {
         </div>
 
         <div className="landing-operating-grid">
-          <div className="landing-journey" aria-label="Kuro Agent workflow">
+          <div className="landing-journey" aria-label="Kuro Agent customer workflow">
             {journey.map(([title, description]) => (
+              <article key={title}>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="landing-clinic-flow" aria-labelledby="clinic-flow-title">
+          <div className="landing-clinic-flow-heading">
+            <p className="landing-kicker"><span aria-hidden="true" /> The clinic answers with one exact plan</p>
+            <h3 id="clinic-flow-title">Availability is an Owner decision the agent prepares.</h3>
+          </div>
+          <div className="landing-journey" aria-label="Kuro Agent clinic workflow">
+            {clinicFlow.map(([title, description]) => (
               <article key={title}>
                 <h3>{title}</h3>
                 <p>{description}</p>
