@@ -288,7 +288,6 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .auth-form label small { color: var(--muted); font-size: 10px; font-weight: 500; }
 .auth-form button, .text-button { border: 0; cursor: pointer; font: inherit; }
 .auth-form button { height: 50px; margin-top: 4px; border-radius: 10px; background: var(--ink); color: var(--acid); font-weight: 700; }
-.auth-form:has(input[name="journey"][value="customer"]) .demo-role-field { display: none; }
 .form-error { margin: -3px 0 0; color: #a52b28; font-size: 13px; }
 .auth-back-link { display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-top: 28px; color: var(--muted); font-size: 11px; text-align: center; text-decoration: none; transition: color .18s ease; }
 .auth-back-link:hover { color: var(--deep); }

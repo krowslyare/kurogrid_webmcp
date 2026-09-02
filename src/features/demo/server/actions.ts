@@ -30,8 +30,11 @@ function accessCodeMatches(candidate: string) {
 
 export async function claimDemoSandbox(formData: FormData) {
   const accessCode = formData.get("accessCode");
-  const journey = formData.get("journey") === "workspace" ? "workspace" : "customer";
-  const requestedRole = journey === "workspace" && formData.get("role") === "member"
+  // The guided demo only starts here, in the Owner-side workspace. The
+  // matching customer site is reached from the workspace so both views share
+  // one sandbox; claiming always resets it, which is why this is the single
+  // entry point.
+  const requestedRole = formData.get("role") === "member"
     ? "member"
     : "owner";
   const demoPassword = process.env.DEMO_USER_PASSWORD;
@@ -110,11 +113,6 @@ export async function claimDemoSandbox(formData: FormData) {
     expires: new Date(lease.expires_at),
     path: "/",
   });
-
-  if (journey === "customer") {
-    const siteSlug = lease.organization_slug.replace("mimo-demo-", "mimo-");
-    redirect(`/sites/${siteSlug}`);
-  }
 
   redirect(`/app/${lease.organization_slug}`);
 }

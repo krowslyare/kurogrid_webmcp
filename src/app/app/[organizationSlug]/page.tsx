@@ -480,7 +480,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                             </form>
                           ) : (
                             <small className="appointment-no-alternative">
-                              No later opening left to propose — accept the requested time or decline.
+                              No later opening left to propose — accept the requested time here, or the customer can decline from their link.
                             </small>
                           )}
                         </div>

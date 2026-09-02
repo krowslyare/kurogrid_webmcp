@@ -45,8 +45,9 @@ export default async function DemoPage({ searchParams }: PageProps) {
             <h1>Open a resettable demo.</h1>
             <p>
               Start here to create one clean clinic workspace. Claiming resets
-              its sandbox, so begin the guided journey before booking as a
-              customer — both views then share the same temporary data.
+              its sandbox — the customer site of this same workspace opens from
+              its <strong>View customer site</strong> link, so both views share
+              one set of temporary data.
             </p>
           </div>
           <Link className="demo-public-link" href="/sites/mimo-01">
@@ -56,8 +57,8 @@ export default async function DemoPage({ searchParams }: PageProps) {
             </svg>
           </Link>
           <p className="demo-public-note">
-            This preview is a separate fixed site. Bookings made there do not
-            appear inside a workspace you claim afterwards.
+            This preview is a separate fixed site and always stays independent
+            of the workspace you open here.
           </p>
           <form className="auth-form" action={claimDemoSandbox}>
           <label>
@@ -71,17 +72,6 @@ export default async function DemoPage({ searchParams }: PageProps) {
             />
             <small id="demo-access-help">Use the code supplied with the submission.</small>
           </label>
-          <div className="kuro-field">
-            <span className="kuro-field-label">Open first</span>
-            <KuroSelect
-              name="journey"
-              defaultValue="workspace"
-              options={[
-                { value: "workspace", label: "Clinic workspace", hint: "availability operations · start here" },
-                { value: "customer", label: "Mimo website", hint: "customer appointment" },
-              ]}
-            />
-          </div>
           <div className="kuro-field demo-role-field">
             <span className="kuro-field-label">Workspace role</span>
             <KuroSelect
