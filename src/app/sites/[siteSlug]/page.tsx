@@ -469,6 +469,25 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
                     <button className="clinic-text-button" type="submit">Accept as requested</button>
                   </form>
                 </div>
+                <Link
+                  className="clinic-text-button"
+                  href={`/sites/${siteSlug}#talk-to-mimo`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    marginTop: "12px",
+                    color: "#ced7d1",
+                    fontSize: "12px",
+                  }}
+                >
+                  <span className="clinic-inline-arrow" aria-hidden="true">
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M13 8H3M7 4L3 8l4 4" />
+                    </svg>
+                  </span>
+                  Start a new request
+                </Link>
               </div>
             ) : appointment.status === "time_proposed" ? (
               <div className="customer-proposal">
