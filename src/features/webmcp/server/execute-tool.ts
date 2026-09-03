@@ -315,7 +315,7 @@ function shapedAvailabilityPlanResult(data: unknown, changesApplied: boolean) {
   };
 }
 
-async function deliverAvailabilityNotifications(
+export async function deliverAvailabilityNotifications(
   supabase: Awaited<ReturnType<typeof createClient>>,
   capabilities: ResolvedCapabilities,
   applied: Record<string, unknown>,

@@ -10,6 +10,12 @@ const journey = [
   ["Resolve", "Let the clinic accept or suggest another time, then return by email and add it to Calendar."],
 ] as const;
 
+const clinicFlow = [
+  ["Brief", "Describe the upcoming schedule once. The assistant brings calendar busy time as normalized ranges — never event titles or notes."],
+  ["Exact plan", "Mimo derives slots, conflicts, and alternatives against real bookings. Nothing applies by itself."],
+  ["One approval", "Approve and apply one exact plan. Affected customers then accept or decline their held alternative."],
+] as const;
+
 export default function Home() {
   return (
     <main className="landing">
@@ -56,6 +62,7 @@ export default function Home() {
             <li>Live availability</li>
             <li>Human confirmation</li>
             <li>Clinic response</li>
+            <li>Owner-approved plans</li>
           </ul>
         </div>
 
@@ -72,16 +79,16 @@ export default function Home() {
             </div>
             <div className="landing-signal-label">
               <span>Appointment / Luna</span>
-              <strong>3 times available</strong>
+              <strong>Live times available</strong>
             </div>
-            <h2>Find Luna a dermatology visit this Saturday.</h2>
+            <h2>Find Luna&apos;s next dermatology visit.</h2>
             <p>
-              Mimo offers dermatology care on Saturday morning. The agent
+              Mimo publishes its current dermatology availability. The agent
               can prepare a request, but only the customer can send it.
             </p>
             <div className="landing-prepared-request">
               <span>Prepared for customer review</span>
-              <strong>Dermatology · Saturday 09:30</strong>
+              <strong>Dermatology · Selected opening</strong>
               <i>Nothing sent yet</i>
             </div>
           </div>
@@ -108,8 +115,23 @@ export default function Home() {
         </div>
 
         <div className="landing-operating-grid">
-          <div className="landing-journey" aria-label="Kuro Agent workflow">
+          <div className="landing-journey" aria-label="Kuro Agent customer workflow">
             {journey.map(([title, description]) => (
+              <article key={title}>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="landing-clinic-flow" aria-labelledby="clinic-flow-title">
+          <div className="landing-clinic-flow-heading">
+            <p className="landing-kicker"><span aria-hidden="true" /> The clinic answers with one exact plan</p>
+            <h3 id="clinic-flow-title">Availability is an Owner decision the agent prepares.</h3>
+          </div>
+          <div className="landing-journey" aria-label="Kuro Agent clinic workflow">
+            {clinicFlow.map(([title, description]) => (
               <article key={title}>
                 <h3>{title}</h3>
                 <p>{description}</p>
@@ -130,7 +152,7 @@ export default function Home() {
             </div>
             <div className="landing-outcome-visit">
               <span>Luna · Dermatology</span>
-              <strong>Saturday, 09:30</strong>
+              <strong>Confirmed time</strong>
             </div>
             <ul>
               <li><span aria-hidden="true">✓</span> Email update sent</li>
@@ -143,7 +165,7 @@ export default function Home() {
       <section className="landing-close" aria-labelledby="close-title">
         <div>
           <p>One fictional clinic. One real agent interaction.</p>
-          <h2 id="close-title">Ask Mimo for a Saturday visit.</h2>
+          <h2 id="close-title">Ask Mimo for Luna&apos;s next visit.</h2>
           <p className="landing-close-note">
             Independent preview of the customer site. The full guided journey —
             clinic plan, approval, and the customer&apos;s answer — starts in the

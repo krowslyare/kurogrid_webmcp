@@ -6,7 +6,7 @@ type CopyAgentPromptProps = {
   prompt: string;
 };
 
-const agentOptions = [
+export const agentOptions = [
   {
     brand: "OpenAI",
     href: "https://chatgpt.com/",
@@ -27,7 +27,7 @@ const agentOptions = [
   },
 ] as const;
 
-function AgentMark({ icon }: { icon: (typeof agentOptions)[number]["icon"] | "other" }) {
+export function AgentMark({ icon }: { icon: (typeof agentOptions)[number]["icon"] | "other" }) {
   if (icon === "openai") {
     return (
       <svg aria-hidden="true" viewBox="0 0 24 24">

@@ -2,23 +2,29 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 
-import { prepareAppointmentFromPage } from "@/features/appointments/server/actions";
+import {
+  findSlotsForBooking,
+  prepareAppointmentFromPage,
+  type BookingSlotOption,
+} from "@/features/appointments/server/actions";
 
-type AppointmentSlot = {
+type BookingService = {
+  slug: string;
+  name: string;
   duration_minutes: number;
-  slot_id: string;
-  starts_at: string;
 };
 
 type TraditionalBookingProps = {
-  appointmentDate: string;
   bookingError?: string;
+  defaultDate: string;
+  defaultServiceSlug: string;
   initialCustomerEmail?: string;
   initialOpen?: boolean;
   initialPetName?: string;
   initialStartsAt?: string;
+  services: BookingService[];
   siteSlug: string;
-  slots: AppointmentSlot[];
+  slots: BookingSlotOption[];
 };
 
 function slotTime(value: string) {
@@ -29,26 +35,46 @@ function slotTime(value: string) {
   }).format(new Date(value));
 }
 
+function longDate(iso: string) {
+  const parsed = new Date(`${iso}T12:00:00Z`);
+
+  if (Number.isNaN(parsed.getTime())) return iso;
+
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "long",
+    timeZone: "America/Lima",
+  }).format(parsed);
+}
+
 export function TraditionalBooking({
-  appointmentDate,
   bookingError,
+  defaultDate,
+  defaultServiceSlug,
   initialCustomerEmail = "",
   initialOpen = false,
   initialPetName = "",
   initialStartsAt,
+  services,
   siteSlug,
-  slots,
+  slots: initialSlots,
 }: TraditionalBookingProps) {
-  const restoredSlot = slots.find((slot) => slot.starts_at === initialStartsAt)?.slot_id;
+  const restoredSlot = initialSlots.find((slot) => slot.starts_at === initialStartsAt)?.slot_id;
   const [open, setOpen] = useState(initialOpen);
-  const [selectedSlot, setSelectedSlot] = useState(restoredSlot ?? slots[0]?.slot_id ?? "");
+  const [service, setService] = useState(defaultServiceSlug);
+  const [date, setDate] = useState(defaultDate);
+  const [slots, setSlots] = useState(initialSlots);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotsError, setSlotsError] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState(restoredSlot ?? initialSlots[0]?.slot_id ?? "");
   const [petName, setPetName] = useState(initialPetName);
   const [customerEmail, setCustomerEmail] = useState(initialCustomerEmail);
   const [errors, setErrors] = useState<{ customerEmail?: string; petName?: string }>({});
   const dialogRef = useRef<HTMLDialogElement>(null);
   const petNameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
+  const requestId = useRef(0);
   const panelId = `traditional-booking-${siteSlug}`;
+  const serviceName = services.find((option) => option.slug === service)?.name ?? service;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -57,6 +83,29 @@ export function TraditionalBooking({
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
   }, [open]);
+
+  async function reloadSlots(nextService: string, nextDate: string) {
+    const current = requestId.current + 1;
+    requestId.current = current;
+    setLoadingSlots(true);
+    setSlotsError(false);
+
+    const result = await findSlotsForBooking(siteSlug, nextService, nextDate);
+
+    if (requestId.current !== current) return;
+
+    setLoadingSlots(false);
+
+    if ("error" in result) {
+      setSlotsError(true);
+      setSlots([]);
+      setSelectedSlot("");
+      return;
+    }
+
+    setSlots(result.slots);
+    setSelectedSlot(result.slots[0]?.slot_id ?? "");
+  }
 
   function reviewRequest(event: FormEvent<HTMLFormElement>) {
     const nextErrors: { customerEmail?: string; petName?: string } = {};
@@ -121,7 +170,7 @@ export function TraditionalBooking({
             <div>
               <span>Book manually</span>
               <h2 id={`${panelId}-title`}>Choose your appointment time.</h2>
-              <p>Dermatology · {appointmentDate}</p>
+              <p>{serviceName} · {longDate(date)}</p>
             </div>
             <button
               aria-label="Close booking form"
@@ -134,7 +183,6 @@ export function TraditionalBooking({
           </header>
 
           <div className="clinic-human-booking-body">
-            <p>If one of these times already works, book it here. Otherwise, let your AI agent compare them with your calendar and preferences.</p>
             {bookingError ? (
               <p className="clinic-booking-error">
                 {bookingError === "confirm"
@@ -142,13 +190,53 @@ export function TraditionalBooking({
                   : "The request could not be prepared. Check the details and try again."}
               </p>
             ) : null}
-            {slots.length ? (
+            <fieldset>
+              <legend>Service</legend>
+              <div className="clinic-slot-options">
+                {services.map((option) => (
+                  <label key={option.slug}>
+                    <input
+                      checked={service === option.slug}
+                      name="serviceSlug"
+                      onChange={(event) => {
+                        const nextService = event.target.value;
+                        setService(nextService);
+                        void reloadSlots(nextService, date);
+                      }}
+                      type="radio"
+                      value={option.slug}
+                    />
+                    <span>{option.name}</span>
+                    <small>{option.duration_minutes} min</small>
+                    <i aria-hidden="true">✓</i>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <div className="clinic-booking-fields">
+              <label>
+                Date
+                <input
+                  min={todayInput()}
+                  onChange={(event) => {
+                    const nextDate = event.target.value;
+                    setDate(nextDate);
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(nextDate)) void reloadSlots(service, nextDate);
+                  }}
+                  type="date"
+                  value={date}
+                />
+              </label>
+            </div>
+            {slotsError ? (
+              <p className="clinic-booking-error">Times could not be loaded. Try another service or date.</p>
+            ) : slots.length || loadingSlots ? (
               <form action={prepareAppointmentFromPage} noValidate onSubmit={reviewRequest}>
                 <input name="siteSlug" type="hidden" value={siteSlug} />
-                <input name="serviceSlug" type="hidden" value="dermatology" />
-                <fieldset>
-                  <legend>Available times</legend>
-                  <div className="clinic-slot-options">
+                <input name="serviceSlug" type="hidden" value={service} />
+                <fieldset aria-busy={loadingSlots}>
+                  <legend>Available times{loadingSlots ? " · updating…" : ""}</legend>
+                  <div className="clinic-slot-options" style={{ opacity: loadingSlots ? 0.55 : 1 }}>
                     {slots.map((slot) => (
                       <label key={slot.slot_id}>
                         <input
@@ -214,10 +302,22 @@ export function TraditionalBooking({
                   </span>
                 </button>
               </form>
-            ) : <p>No dermatology times are currently available.</p>}
+            ) : <p>No {serviceName} times are currently available.</p>}
           </div>
         </div>
       </dialog>
     </section>
   );
+}
+
+function todayInput() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Lima",
+    year: "numeric",
+  }).formatToParts(new Date());
+
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
