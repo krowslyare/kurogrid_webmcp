@@ -545,14 +545,14 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                           </div>
                         </details>
 
-                        {isMimoDemo && firstSite && request.status === "time_proposed" ? (
+                        {isMimoDemo && firstSite && (request.status === "time_proposed" || request.status === "confirmed") ? (
                           <Link
                             className="appointment-customer-link"
                             href={`/sites/${firstSite.slug}?appointment=${request.id}&access=${request.access_token}#agent-booking`}
                             rel="noreferrer"
                             target="_blank"
                           >
-                            Open customer update
+                            {request.status === "time_proposed" ? "Open customer update" : "View customer receipt"}
                             <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                               <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
                             </svg>

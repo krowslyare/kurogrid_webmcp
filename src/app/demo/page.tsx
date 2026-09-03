@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { claimDemoSandbox } from "@/features/demo/server/actions";
+import { claimDemoSandbox, forceResetAllDemoSandboxes } from "@/features/demo/server/actions";
 import { KuroSelect } from "@/components/ui/KuroSelect";
 
 type PageProps = {
@@ -70,6 +70,16 @@ export default async function DemoPage({ searchParams }: PageProps) {
             />
           </div>
           {error ? <p className="form-error">{errorMessages[error] ?? "Demo access failed."}</p> : null}
+          {error === "capacity" ? (
+            <button
+              formAction={forceResetAllDemoSandboxes}
+              type="submit"
+              className="clinic-secondary-cta"
+              style={{ width: "100%", margin: "8px 0 12px", justifyContent: "center", minHeight: "42px", fontSize: "12px" }}
+            >
+              Release occupied slots & reset demo
+            </button>
+          ) : null}
           {restart === "1" ? <p className="form-success">Previous session closed. Claim a clean workspace whenever you are ready.</p> : null}
             <button type="submit">Open isolated demo</button>
           </form>
