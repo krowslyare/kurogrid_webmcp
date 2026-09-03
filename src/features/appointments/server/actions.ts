@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { getViewer } from "@/features/auth/server/get-viewer";
 import { createClient } from "@/lib/supabase/server";
 
 import { nextSaturdayInLima } from "@/features/appointments/lib/booking-days";
@@ -222,6 +223,13 @@ export async function respondToAppointmentProposal(formData: FormData) {
 
 export async function simulateCustomerBookingFromOwner(formData: FormData) {
   const organizationSlug = required(formData, "organizationSlug");
+  const viewer = await getViewer();
+  const membership = viewer?.memberships.find((m) => m.organizationSlug === organizationSlug);
+
+  if (!membership || membership.role !== "owner") {
+    throw new Error("unauthorized");
+  }
+
   const petName = (formData.get("petName") as string)?.trim() || "Bella";
   const customerEmail = (formData.get("customerEmail") as string)?.trim() || "bella@example.test";
   const supabase = await createClient();
