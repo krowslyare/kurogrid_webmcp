@@ -1365,6 +1365,7 @@ body:has(.clinic-workspace-shell) {
 }
 .clinic-workspace-shell .appointment-status.is-confirmed { background: var(--back-lime) !important; color: var(--back-ink) !important; }
 .clinic-workspace-shell .appointment-status.is-time_proposed { background: #f1e4bc !important; color: #6b5518 !important; }
+.clinic-workspace-shell .appointment-status.is-rescheduled { background: rgba(168, 66, 53, .1) !important; color: #8d362a !important; border: 1px solid rgba(168, 66, 53, .25); }
 .clinic-workspace-shell .appointment-notice {
   border-left-color: var(--back-forest) !important;
   background: rgba(216, 241, 122, .3) !important;

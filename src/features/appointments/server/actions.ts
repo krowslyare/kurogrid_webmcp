@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
+import { nextSaturdayInLima } from "@/features/appointments/lib/booking-days";
 import { sendAppointmentUpdate } from "./notifications";
 
 function required(formData: FormData, name: string) {
@@ -217,4 +218,63 @@ export async function respondToAppointmentProposal(formData: FormData) {
 
   revalidatePath(`/sites/${siteSlug}`);
   redirect(`/sites/${siteSlug}?appointment=${requestId}&access=${accessToken}#agent-booking`);
+}
+
+export async function simulateCustomerBookingFromOwner(formData: FormData) {
+  const organizationSlug = required(formData, "organizationSlug");
+  const petName = (formData.get("petName") as string)?.trim() || "Bella";
+  const customerEmail = (formData.get("customerEmail") as string)?.trim() || "bella@example.test";
+  const supabase = await createClient();
+
+  const { data: org, error: orgError } = await supabase
+    .from("organizations")
+    .select("id, sites(id, slug)")
+    .eq("slug", organizationSlug)
+    .single();
+
+  if (orgError || !org?.sites?.[0]) {
+    throw new Error("Unable to resolve site for organization.", { cause: orgError });
+  }
+
+  const site = org.sites[0];
+  const date = nextSaturdayInLima();
+
+  const slotsResult = await supabase.rpc("find_appointment_slots", {
+    p_site_slug: site.slug,
+    p_service_slug: "dermatology",
+    p_date: date,
+  });
+
+  const slots = (slotsResult.data ?? []) as Array<{ slot_id: string; starts_at: string }>;
+  if (!slots.length) {
+    redirect(`/app/${organizationSlug}?tab=appointments&bookingNotice=no_slots_available`);
+  }
+
+  const chosenSlot = slots[slots.length - 1];
+
+  const { data: prepResult, error: prepError } = await supabase.rpc("prepare_appointment_request", {
+    p_site_slug: site.slug,
+    p_service_slug: "dermatology",
+    p_slot_id: chosenSlot.slot_id,
+    p_pet_name: petName,
+    p_customer_email: customerEmail,
+    p_idempotency_key: randomUUID(),
+  });
+
+  if (prepError || !prepResult || typeof prepResult !== "object") {
+    throw new Error("Unable to prepare simulated booking.", { cause: prepError });
+  }
+
+  const prep = prepResult as Record<string, unknown>;
+  const { error: confirmError } = await supabase.rpc("confirm_appointment_request", {
+    p_request_id: String(prep.request_id),
+    p_confirmation_token: String(prep.confirmation_token),
+  });
+
+  if (confirmError) {
+    throw new Error("Unable to confirm simulated booking.", { cause: confirmError });
+  }
+
+  revalidatePath(`/app/${organizationSlug}`);
+  redirect(`/app/${organizationSlug}?tab=appointments&bookingNotice=created`);
 }
