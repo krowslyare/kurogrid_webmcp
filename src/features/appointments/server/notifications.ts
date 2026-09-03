@@ -40,7 +40,7 @@ export async function sendAppointmentUpdate(
     appointment: update.requestId,
     access: update.accessToken,
   });
-  const manageUrl = `${appBaseUrl()}/sites/${update.siteSlug}?${search}`;
+  const manageUrl = `${appBaseUrl()}/sites/${update.siteSlug}?${search}#agent-booking`;
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
   const demoRecipient = process.env.DEMO_NOTIFICATION_EMAIL?.trim();
