@@ -764,12 +764,14 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
 
       <div className={styles.roomTop}>
         <div className={styles.roomIntro}>
-          <h2 id="availability-room-title">Availability, resolved.</h2>
-          <p className={styles.roomLead}>
-            Set the working-hour rules once. Your AI agent brings the calendar
-            busy time, Mimo calculates the exact impact — and nothing applies
-            until your request says so.
-          </p>
+          <div className={styles.roomIntroHeader}>
+            <h2 id="availability-room-title">Availability, resolved.</h2>
+            <p className={styles.roomLead}>
+              Set the working-hour rules once. Your AI agent brings the calendar
+              busy time, Mimo calculates the exact impact — and nothing applies
+              until your request says so.
+            </p>
+          </div>
           <div className={styles.ruleStrip} aria-label="Requested availability rules">
             <span>{ruleStripLabel}</span>
             <div>
