@@ -226,9 +226,7 @@ export function TalkToMimoConsole({
           <span className="talk-to-mimo-badge">WebMCP In-Browser Agent</span>
           <h3>Talk to Mimo</h3>
         </div>
-        <p>
-          Speak or type what you need. An on-page agent discovers Mimo&apos;s WebMCP tools in the DOM and coordinates your appointment live.
-        </p>
+        <p>Speak or type what you need to coordinate your appointment live via WebMCP.</p>
       </div>
 
       <div className="talk-to-mimo-input-shell">
@@ -277,26 +275,6 @@ export function TalkToMimoConsole({
               <path d="M3 8h10M9 4l4 4-4 4" />
             </svg>
           )}
-        </button>
-      </div>
-
-      <div className="talk-to-mimo-pills">
-        <span className="pills-label">Quick prompts:</span>
-        <button
-          type="button"
-          className="talk-pill"
-          onClick={() => void handlePromptSubmit("Book dermatology for Luna this Saturday morning")}
-          disabled={isExecuting}
-        >
-          Book dermatology for Luna this Saturday
-        </button>
-        <button
-          type="button"
-          className="talk-pill"
-          onClick={() => void handlePromptSubmit("Find earliest dermatology opening this Saturday")}
-          disabled={isExecuting}
-        >
-          Find earliest Saturday opening
         </button>
       </div>
 
