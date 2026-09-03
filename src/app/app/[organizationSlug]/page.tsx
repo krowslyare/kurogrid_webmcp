@@ -497,7 +497,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                         {isMimoDemo && firstSite && request.status === "time_proposed" ? (
                           <Link
                             className="appointment-customer-link"
-                            href={`/sites/${firstSite.slug}?appointment=${request.id}&access=${request.access_token}`}
+                            href={`/sites/${firstSite.slug}?appointment=${request.id}&access=${request.access_token}#agent-booking`}
                             rel="noreferrer"
                             target="_blank"
                           >

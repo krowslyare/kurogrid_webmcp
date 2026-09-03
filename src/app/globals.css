@@ -783,6 +783,15 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .clinic-agent-prompt .clinic-copy-prompt:focus-visible,
 .clinic-agent-prompt .clinic-agent-launchers > a:focus-visible,
 .clinic-agent-prompt .clinic-agent-launchers > button:focus-visible { outline-color: var(--clinic-lime); }
+.customer-appointment-banner { position: sticky; top: 0; z-index: 100; background: #16281e; border-bottom: 1px solid rgba(255,255,255,.16); box-shadow: 0 4px 20px rgba(0,0,0,.15); color: #fff; padding: 10px 24px; }
+.customer-appointment-banner-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-family: var(--font-manrope), Manrope, sans-serif; font-size: 13px; }
+.customer-appointment-banner-text { display: flex; align-items: center; gap: 12px; }
+.customer-appointment-banner-text .appointment-status { margin: 0; }
+.customer-appointment-banner-action { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; background: var(--clinic-lime); color: var(--clinic-ink); font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; text-decoration: none; transition: transform .15s ease, background .15s ease; }
+.customer-appointment-banner-action:hover { background: #d8f17a; transform: translateY(-1px); }
+@media (max-width: 640px) {
+  .customer-appointment-banner-inner { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
 .customer-appointment-card { align-self: start; padding: 34px; border-radius: 4px 34px 34px 34px; color: #fff; background: var(--clinic-forest); box-shadow: 0 28px 70px rgba(23,37,30,.15); }
 .customer-appointment-status { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,.16); }
 .customer-appointment-status span { color: #b8c7bd; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }

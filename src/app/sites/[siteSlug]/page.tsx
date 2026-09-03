@@ -214,6 +214,24 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
       data-published-version={published.version_id}
     >
       <AmbientPaws />
+      {appointment ? (
+        <aside className="customer-appointment-banner" aria-live="polite">
+          <div className="customer-appointment-banner-inner">
+            <div className="customer-appointment-banner-text">
+              <span className={`appointment-status is-${String(appointment.status)}`}>
+                {String(appointment.status).replaceAll("_", " ")}
+              </span>
+              <span>
+                Appointment for <strong>{String(appointment.pet_name)}</strong>
+                {appointment.status === "time_proposed" ? " · Alternative time proposed" : ""}
+              </span>
+            </div>
+            <a className="customer-appointment-banner-action" href="#agent-booking">
+              View update & respond ↓
+            </a>
+          </div>
+        </aside>
+      ) : null}
       <header className="published-nav">
         <a className="clinic-brand" href="#top" aria-label="Mimo Veterinary Care, home">
           <span className="clinic-mark" aria-hidden="true">
@@ -234,7 +252,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
           <a href="#services">Services</a>
           <a href="#opening-hours">Hours</a>
           <a className="clinic-nav-cta" href="#agent-booking">
-            {content.cta_label}
+            {appointment ? "View appointment" : content.cta_label}
           </a>
         </nav>
       </header>
@@ -245,7 +263,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
           <p className="published-summary">{content.summary}</p>
           <div className="clinic-hero-actions">
             <a className="clinic-primary-cta" href="#agent-booking">
-              {content.cta_label}
+              {appointment ? "Review appointment update" : content.cta_label}
               <span className="clinic-cta-arrow" aria-hidden="true">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 8h10M9 4l4 4-4 4" />
