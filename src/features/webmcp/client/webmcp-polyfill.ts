@@ -86,23 +86,39 @@ export function ensureWebMcpModelContext(): WebMcpModelContext {
   const polyfill = new InMemoryModelContext();
 
   try {
-    Object.defineProperty(document, "modelContext", {
-      value: polyfill,
-      writable: true,
+    Object.defineProperty(Document.prototype, "modelContext", {
+      get() {
+        return polyfill;
+      },
       configurable: true,
+      enumerable: true,
+    });
+  } catch {
+    // Ignore Document.prototype error
+  }
+
+  try {
+    Object.defineProperty(document, "modelContext", {
+      get() {
+        return polyfill;
+      },
+      configurable: true,
+      enumerable: true,
     });
   } catch {
     (document as unknown as { modelContext: WebMcpModelContext }).modelContext = polyfill;
   }
 
   try {
-    Object.defineProperty(navigator, "modelContext", {
-      value: polyfill,
-      writable: true,
+    Object.defineProperty(Navigator.prototype, "modelContext", {
+      get() {
+        return polyfill;
+      },
       configurable: true,
+      enumerable: true,
     });
   } catch {
-    // Ignore navigator assignment error in strict environments
+    // Ignore Navigator.prototype error
   }
 
   try {
@@ -112,4 +128,8 @@ export function ensureWebMcpModelContext(): WebMcpModelContext {
   }
 
   return polyfill;
+}
+
+if (typeof window !== "undefined") {
+  ensureWebMcpModelContext();
 }
