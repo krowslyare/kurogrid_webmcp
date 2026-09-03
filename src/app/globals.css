@@ -822,18 +822,37 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .customer-demo-response-heading span { color: #b8c7bd; font-size: 9px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
 .customer-demo-response-heading p { max-width: 520px; margin: 0; color: #ced7d1; font-size: 12px; line-height: 1.55; }
 .customer-demo-response-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
-.customer-demo-response-actions .clinic-primary-cta { min-width: 0; border: 0; cursor: pointer; background: var(--clinic-lime); color: var(--clinic-ink); }
+.customer-demo-response-actions .clinic-primary-cta,
+.customer-review-request .clinic-primary-cta,
+.customer-proposal .clinic-primary-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 44px;
+  padding: 11px 24px;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  background: var(--clinic-lime);
+  color: var(--clinic-ink);
+  font-family: var(--font-manrope), Manrope, sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  text-align: center;
+  line-height: 1;
+}
 .customer-review-request { display: grid; gap: 18px; margin-top: 34px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.16); }
 .customer-review-request > p { margin: 0; color: #ced7d1; font-size: 13px; line-height: 1.55; }
 .customer-review-request small { color: #aebdb3; }
-.customer-review-request .clinic-primary-cta { min-width: 0; border: 0; cursor: pointer; background: var(--clinic-lime); color: var(--clinic-ink); }
 .customer-review-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+.customer-review-actions form { display: inline-flex; margin: 0; }
 .customer-review-actions .clinic-text-button { padding: 10px 2px; text-decoration: underline; text-decoration-color: rgba(255,255,255,.28); text-underline-offset: 4px; }
 .customer-proposal,
 .customer-calendar-actions { margin-top: 34px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.16); }
 .customer-proposal > p { color: #ced7d1; font-size: 13px; line-height: 1.55; }
 .customer-proposal > div { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 18px; }
-.customer-proposal .clinic-primary-cta { min-width: 0; border: 0; background: var(--clinic-lime); color: var(--clinic-ink); cursor: pointer; }
 .customer-proposal .clinic-text-button { min-height: 42px; padding: 0 18px; border: 1px solid rgba(255,255,255,.3); border-radius: 999px; color: #f0f4f1; font-weight: 700; }
 .customer-proposal .clinic-text-button:hover { border-color: rgba(255,255,255,.6); background: rgba(255,255,255,.07); }
 .customer-proposal-agent { display: flex; align-items: center; justify-content: space-between; gap: 22px; width: 100%; margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.16); }
