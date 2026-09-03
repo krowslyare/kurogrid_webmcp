@@ -352,7 +352,7 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .clinic-workspace-intro aside strong { color: #223b2f; font-size: 13px; }
 .clinic-workspace-intro aside span { color: #6f7c73; font-size: 9px; }
 .workspace-appointment-callout { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 18px; padding: 16px 22px; border: 1px solid #d4dfce; border-radius: 14px; background: #f2f7ec; }
-.workspace-appointment-callout .kicker { margin: 0 0 2px; color: #4f7358; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.workspace-appointment-callout .kicker { margin: 0 0 2px; color: #4f7358; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .workspace-appointment-callout strong { color: #17251e; font-size: 14px; }
 .workspace-appointment-callout a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; background: #214c3a; color: #fff; font-size: 12px; font-weight: 700; text-decoration: none; transition: background .18s ease; }
 .workspace-appointment-callout a:hover { background: #173729; }

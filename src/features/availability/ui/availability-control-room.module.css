@@ -99,6 +99,11 @@
   text-transform: uppercase;
 }
 
+.panelLabel {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
 .roomIntro h2 {
   display: grid;
   gap: 2px;
