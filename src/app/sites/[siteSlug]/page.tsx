@@ -13,6 +13,7 @@ import {
   respondToAppointmentProposal,
   simulateClinicResponseFromPage,
 } from "@/features/appointments/server/actions";
+import { nextSaturdayInLima } from "@/features/appointments/lib/booking-days";
 import { WebMcpRegistrar } from "@/features/webmcp/client/webmcp-registrar";
 import { createClient } from "@/lib/supabase/server";
 
@@ -71,8 +72,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `Mimo | ${content.headline}`,
     description: content.summary,
     icons: {
-      icon: [{ url: "/mimo-icon.svg", type: "image/svg+xml" }],
-      shortcut: "/mimo-icon.svg",
+      icon: [
+        { url: "/mimo-icon-32.png", type: "image/png", sizes: "32x32" },
+        { url: "/mimo-icon.svg", type: "image/svg+xml" },
+      ],
+      apple: "/apple-touch-icon.png",
+      shortcut: "/mimo-icon-32.png",
     },
   };
 }
@@ -83,21 +88,6 @@ function customerTime(value: string) {
     timeStyle: "short",
     timeZone: "America/Lima",
   }).format(new Date(value));
-}
-
-function nextSaturdayInLima(now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: "America/Lima",
-    year: "numeric",
-  }).formatToParts(now);
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  const date = new Date(Date.UTC(Number(value.year), Number(value.month) - 1, Number(value.day)));
-  const isoWeekday = date.getUTCDay() === 0 ? 7 : date.getUTCDay();
-  const rawOffset = 6 - isoWeekday;
-  date.setUTCDate(date.getUTCDate() + (rawOffset <= 0 ? rawOffset + 7 : rawOffset));
-  return date.toISOString().slice(0, 10);
 }
 
 function slotTime(value: string) {
@@ -195,8 +185,8 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
   const defaultBookingService = bookingServices.some((service) => service.slug === "dermatology")
     ? "dermatology"
     : bookingServices[0]?.slug ?? "dermatology";
-  const agentPrompt = "Find the earliest morning dermatology appointment for my dog, Luna, today or tomorrow that does not conflict with my calendar. If none are available, find the closest time this week and tell me why it is the best alternative.";
-  const proposalPrompt = "Check Mimo's proposed appointment time against my calendar. If it works, accept it. If it conflicts, decline it and tell me what I should ask the clinic for next.";
+  const agentPrompt = "Find the earliest available dermatology appointment this Saturday morning, make sure it doesn't clash with my calendar, show me the alternatives, and do not book anything yet.";
+  const proposalPrompt = "11:30 works for me. Accept Mimo's proposal and give me the calendar link.";
   const editSearch = appointmentRecord && customerContext.appointment
     && customerContext.access && customerContext.confirm
     ? new URLSearchParams({
