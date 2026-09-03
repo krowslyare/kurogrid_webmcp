@@ -146,24 +146,26 @@ export function WebMcpRegistrar({
     return () => window.clearTimeout(timeout);
   }, [activity, activityStorageKey]);
 
+function resolveModelContext(): WebMcpModelContext | undefined {
+  if (typeof document !== "undefined" && document.modelContext) {
+    return document.modelContext;
+  }
+  if (typeof navigator !== "undefined" && navigator.modelContext) {
+    return navigator.modelContext;
+  }
+  if (typeof window !== "undefined" && window.modelContext) {
+    return window.modelContext;
+  }
+  return undefined;
+}
+
   useEffect(() => {
-    const modelContext = document.modelContext;
     let disposed = false;
-
-    if (!modelContext) {
-      queueMicrotask(() => {
-        if (!disposed) setState({ status: "unsupported", names: [] });
-      });
-      return () => {
-        disposed = true;
-      };
-    }
-    const activeModelContext = modelContext;
-
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
     let generation = 0;
     let registrationController = new AbortController();
 
-    async function refresh() {
+    async function refresh(activeModelContext: WebMcpModelContext) {
       const currentGeneration = ++generation;
       try {
         const search = new URLSearchParams();
@@ -240,7 +242,7 @@ export function WebMcpRegistrar({
                       if (typeof result.navigate_to === "string") {
                         router.push(result.navigate_to);
                       }
-                      void refresh();
+                      void refresh(activeModelContext);
                     }
 
                     return result;
@@ -269,15 +271,32 @@ export function WebMcpRegistrar({
       }
     }
 
-    queueMicrotask(() => {
-      if (!disposed) setState({ status: "checking", names: [] });
-    });
-    void refresh();
+    function attemptRegistration(attemptsLeft: number) {
+      if (disposed) return;
+      const modelContext = resolveModelContext();
+
+      if (modelContext) {
+        queueMicrotask(() => {
+          if (!disposed) setState({ status: "checking", names: [] });
+        });
+        void refresh(modelContext);
+        return;
+      }
+
+      if (attemptsLeft > 0) {
+        pollTimer = setTimeout(() => attemptRegistration(attemptsLeft - 1), 150);
+      } else {
+        setState({ status: "unsupported", names: [] });
+      }
+    }
+
+    attemptRegistration(20);
 
     return () => {
       disposed = true;
       generation += 1;
       registrationController.abort();
+      if (pollTimer) clearTimeout(pollTimer);
     };
   }, [accessToken, activityStorageKey, appointmentId, confirmationToken, contextKey, organizationSlug, presentation, router, siteSlug]);
 

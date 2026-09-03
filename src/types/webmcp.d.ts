@@ -25,3 +25,11 @@ interface WebMcpModelContext extends EventTarget {
 interface Document {
   readonly modelContext?: WebMcpModelContext;
 }
+
+interface Navigator {
+  readonly modelContext?: WebMcpModelContext;
+}
+
+interface Window {
+  readonly modelContext?: WebMcpModelContext;
+}
