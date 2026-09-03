@@ -38,7 +38,7 @@ interface SpeechRecognitionLike extends EventTarget {
   stop: () => void;
   onstart: (() => void) | null;
   onend: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event?: unknown) => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
 }
 
@@ -53,6 +53,7 @@ export function TalkToMimoConsole({
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const shouldListenRef = useRef(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -63,13 +64,36 @@ export function TalkToMimoConsole({
       const RecognitionConstructor = win.SpeechRecognition || win.webkitSpeechRecognition;
       if (RecognitionConstructor) {
         const recognition = new RecognitionConstructor();
-        recognition.continuous = false;
+        recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = "en-US";
+        const userLang = (typeof navigator !== "undefined" && navigator.language) || "en-US";
+        recognition.lang = userLang;
 
-        recognition.onstart = () => setIsListening(true);
-        recognition.onend = () => setIsListening(false);
-        recognition.onerror = () => setIsListening(false);
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
+
+        recognition.onend = () => {
+          if (shouldListenRef.current) {
+            try {
+              recognition.start();
+            } catch {
+              setIsListening(false);
+              shouldListenRef.current = false;
+            }
+          } else {
+            setIsListening(false);
+          }
+        };
+
+        recognition.onerror = (event: unknown) => {
+          const err = (event as { error?: string })?.error;
+          if (err === "no-speech" || err === "aborted") {
+            return;
+          }
+          setIsListening(false);
+          shouldListenRef.current = false;
+        };
 
         recognition.onresult = (event: SpeechRecognitionEventLike) => {
           let transcript = "";
@@ -92,13 +116,21 @@ export function TalkToMimoConsole({
       inputRef.current?.focus();
       return;
     }
-    if (isListening) {
-      recognitionRef.current.stop();
+    if (shouldListenRef.current || isListening) {
+      shouldListenRef.current = false;
+      setIsListening(false);
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
     } else {
+      shouldListenRef.current = true;
+      setIsListening(true);
       try {
         recognitionRef.current.start();
       } catch {
-        recognitionRef.current.stop();
+        // ignore
       }
     }
   };
@@ -106,6 +138,16 @@ export function TalkToMimoConsole({
   const handlePromptSubmit = async (overridePrompt?: string) => {
     const textToRun = (overridePrompt ?? prompt).trim();
     if (!textToRun || isExecuting) return;
+
+    if (shouldListenRef.current) {
+      shouldListenRef.current = false;
+      setIsListening(false);
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        // ignore
+      }
+    }
 
     if (overridePrompt) {
       setPrompt(overridePrompt);
