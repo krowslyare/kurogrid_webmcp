@@ -1,7 +1,5 @@
 "use client";
 
-import type { WebMcpModelContext, WebMcpTool } from "@/types/webmcp";
-
 class InMemoryModelContext extends EventTarget implements WebMcpModelContext {
   private tools = new Map<string, WebMcpTool>();
 
