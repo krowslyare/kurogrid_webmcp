@@ -764,7 +764,7 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
 
       <div className={styles.roomTop}>
         <div className={styles.roomIntro}>
-          <h2 id="availability-room-title"><span>Availability,</span><span>resolved.</span></h2>
+          <h2 id="availability-room-title">Availability, resolved.</h2>
           <p className={styles.roomLead}>
             Set the working-hour rules once. Your AI agent brings the calendar
             busy time, Mimo calculates the exact impact — and nothing applies
