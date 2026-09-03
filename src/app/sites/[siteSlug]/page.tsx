@@ -50,6 +50,9 @@ const scheduleOrder = [
   "weekend",
 ] as const;
 
+const UUID_REGEX = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+const isUuid = (val?: string): val is string => Boolean(val && UUID_REGEX.test(val));
+
 const getPublishedSite = cache(async (siteSlug: string) => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_published_site", {
@@ -157,7 +160,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
   const servicesResult = await supabase.rpc("get_clinic_services", {
     p_site_slug: siteSlug,
   });
-  const appointmentResult = customerContext.appointment && customerContext.access
+  const appointmentResult = isUuid(customerContext.appointment) && isUuid(customerContext.access)
     ? await supabase.rpc("get_appointment_status", {
         p_request_id: customerContext.appointment,
         p_access_token: customerContext.access,

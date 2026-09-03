@@ -130,6 +130,9 @@ export type ResolvedCapabilities = {
   signature: string;
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+const isUuid = (val?: string): val is string => Boolean(val && UUID_REGEX.test(val));
+
 export async function resolvePublicCapabilities(
   siteSlug: string,
   appointmentId?: string,
@@ -148,20 +151,15 @@ export async function resolvePublicCapabilities(
     });
   }
 
-  const appointmentResult = appointmentId && accessToken
+  const appointmentResult = isUuid(appointmentId) && isUuid(accessToken)
     ? await supabase.rpc("get_appointment_status", {
         p_request_id: appointmentId,
         p_access_token: accessToken,
       })
     : { data: null, error: null };
 
-  if (appointmentResult.error) {
-    throw new Error("Unable to resolve appointment context.", {
-      cause: appointmentResult.error,
-    });
-  }
-
   const appointment = appointmentResult.data && typeof appointmentResult.data === "object"
+    && !Array.isArray(appointmentResult.data)
     ? appointmentResult.data as Record<string, unknown>
     : null;
   const appointmentStatus = typeof appointment?.status === "string"
