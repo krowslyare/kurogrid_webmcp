@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import type { WebMcpToolDefinition } from "../contracts";
+import { ensureWebMcpModelContext } from "./webmcp-polyfill";
 
 type Props = {
   organizationSlug?: string;
@@ -146,22 +147,8 @@ export function WebMcpRegistrar({
     return () => window.clearTimeout(timeout);
   }, [activity, activityStorageKey]);
 
-function resolveModelContext(): WebMcpModelContext | undefined {
-  if (typeof document !== "undefined" && document.modelContext) {
-    return document.modelContext;
-  }
-  if (typeof navigator !== "undefined" && navigator.modelContext) {
-    return navigator.modelContext;
-  }
-  if (typeof window !== "undefined" && window.modelContext) {
-    return window.modelContext;
-  }
-  return undefined;
-}
-
   useEffect(() => {
     let disposed = false;
-    let pollTimer: ReturnType<typeof setTimeout> | null = null;
     let generation = 0;
     let registrationController = new AbortController();
 
@@ -271,32 +258,16 @@ function resolveModelContext(): WebMcpModelContext | undefined {
       }
     }
 
-    function attemptRegistration(attemptsLeft: number) {
-      if (disposed) return;
-      const modelContext = resolveModelContext();
-
-      if (modelContext) {
-        queueMicrotask(() => {
-          if (!disposed) setState({ status: "checking", names: [] });
-        });
-        void refresh(modelContext);
-        return;
-      }
-
-      if (attemptsLeft > 0) {
-        pollTimer = setTimeout(() => attemptRegistration(attemptsLeft - 1), 150);
-      } else {
-        setState({ status: "unsupported", names: [] });
-      }
-    }
-
-    attemptRegistration(20);
+    const modelContext = ensureWebMcpModelContext();
+    queueMicrotask(() => {
+      if (!disposed) setState({ status: "checking", names: [] });
+    });
+    void refresh(modelContext);
 
     return () => {
       disposed = true;
       generation += 1;
       registrationController.abort();
-      if (pollTimer) clearTimeout(pollTimer);
     };
   }, [accessToken, activityStorageKey, appointmentId, confirmationToken, contextKey, organizationSlug, presentation, router, siteSlug]);
 
