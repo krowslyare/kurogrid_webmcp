@@ -1394,3 +1394,294 @@ body:has(.clinic-workspace-shell) {
   border-radius: 14px !important;
 }
 .clinic-workspace-shell .workspace-customer-handoff > a .inline-arrow { background: var(--back-ink) !important; color: var(--back-lime) !important; }
+
+/* Talk to Mimo Console & Floating Button */
+.talk-to-mimo-container {
+  margin: 28px 0 0;
+  padding: 24px;
+  border-radius: 20px;
+  background: rgba(22, 40, 30, 0.95);
+  border: 1px solid rgba(216, 241, 122, 0.22);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+  color: #ffffff;
+}
+
+.talk-to-mimo-header {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.talk-to-mimo-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.talk-to-mimo-badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--clinic-lime);
+  color: var(--clinic-ink);
+  font-family: var(--font-manrope), Manrope, sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.talk-to-mimo-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-family: "Iowan Old Style", Georgia, serif;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.talk-to-mimo-header p {
+  margin: 0;
+  color: #b3c2b7;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.talk-to-mimo-input-shell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  transition: border-color 0.15s ease;
+}
+
+.talk-to-mimo-input-shell:focus-within {
+  border-color: var(--clinic-lime);
+}
+
+.talk-to-mimo-mic-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2ede5;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.talk-to-mimo-mic-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--clinic-lime);
+}
+
+.talk-to-mimo-mic-btn.is-listening {
+  background: #a84235;
+  color: #ffffff;
+}
+
+.mic-pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid #a84235;
+  animation: mic-pulse 1.4s infinite ease-out;
+}
+
+@keyframes mic-pulse {
+  0% { transform: scale(0.9); opacity: 0.9; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.talk-to-mimo-input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.talk-to-mimo-input::placeholder {
+  color: #7b8d81;
+}
+
+.talk-to-mimo-submit-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 0;
+  background: var(--clinic-lime);
+  color: var(--clinic-ink);
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.talk-to-mimo-submit-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.talk-to-mimo-submit-btn:not(:disabled):hover {
+  transform: translateX(1px);
+}
+
+.talk-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.talk-to-mimo-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.pills-label {
+  color: #7d8f83;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.talk-pill {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: #d1ded5;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.talk-pill:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--clinic-lime);
+  color: #ffffff;
+}
+
+.talk-to-mimo-steps {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  gap: 8px;
+}
+
+.steps-heading {
+  color: var(--clinic-lime);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.talk-step {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  display: grid;
+  gap: 4px;
+}
+
+.step-badge-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.step-tool-name {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #e4f2b8;
+}
+
+.step-status-tag {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.step-status-tag.is-running {
+  background: rgba(216, 241, 122, 0.2);
+  color: var(--clinic-lime);
+}
+
+.step-status-tag.is-success {
+  background: rgba(33, 76, 58, 0.4);
+  color: #aee6b1;
+}
+
+.step-status-tag.is-error {
+  background: rgba(168, 66, 53, 0.4);
+  color: #ffb8b0;
+}
+
+.step-detail {
+  margin: 0;
+  color: #b5c4b9;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Floating WebMCP Voice & Assistant Launcher */
+.floating-talk-agent-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 99;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(216, 241, 122, 0.35);
+  background: #16281e;
+  color: #ffffff;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-manrope), Manrope, sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(.34,1.56,.64,1);
+}
+
+.floating-talk-agent-btn svg {
+  color: var(--clinic-lime);
+}
+
+.floating-talk-agent-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--clinic-lime);
+  background: #1e382a;
+}
