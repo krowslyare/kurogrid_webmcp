@@ -29,6 +29,7 @@ export function LiveAppointmentSync({
   const router = useRouter();
   const lastStateKey = useRef(initialStateKey);
   const knownStatuses = useRef<Record<string, { status: string; petName: string }>>({});
+  const notifiedEvents = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     lastStateKey.current = initialStateKey;
@@ -53,9 +54,13 @@ export function LiveAppointmentSync({
           if (!isSubscribed) return;
           const newRow = payload?.new;
           if (newRow?.status === "confirmed" && newRow?.pet_name) {
-            toast.success(`${newRow.pet_name} confirmed appointment!`, {
-              description: "Customer accepted the proposed alternative. Operational schedule updated.",
-            });
+            const eventKey = `${newRow.pet_name}:confirmed`;
+            if (!notifiedEvents.current.has(eventKey)) {
+              notifiedEvents.current.add(eventKey);
+              toast.success(`${newRow.pet_name} confirmed appointment!`, {
+                description: "Customer accepted the proposed alternative. Operational schedule updated.",
+              });
+            }
           }
           router.refresh();
         },
@@ -90,9 +95,13 @@ export function LiveAppointmentSync({
           for (const appt of appointments) {
             const prev = knownStatuses.current[appt.id];
             if (prev && prev.status !== "confirmed" && appt.status === "confirmed") {
-              toast.success(`${appt.pet_name} confirmed appointment!`, {
-                description: "Customer accepted the proposed alternative. Operational schedule updated.",
-              });
+              const eventKey = `${appt.pet_name}:confirmed`;
+              if (!notifiedEvents.current.has(eventKey)) {
+                notifiedEvents.current.add(eventKey);
+                toast.success(`${appt.pet_name} confirmed appointment!`, {
+                  description: "Customer accepted the proposed alternative. Operational schedule updated.",
+                });
+              }
             }
             knownStatuses.current[appt.id] = { status: appt.status, petName: appt.pet_name };
           }

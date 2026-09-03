@@ -176,10 +176,14 @@ export function TalkToMimoConsole({
         `Preparing draft request for ${petName} at 10:00 AM...`,
       );
 
-      const cryptoObj = window.crypto;
-      const idempotencyKey = cryptoObj?.randomUUID
-        ? cryptoObj.randomUUID()
-        : `${Date.now()}-${Math.random()}`;
+      const idempotencyKey =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+              const random = (Math.random() * 16) | 0;
+              const value = char === "x" ? random : (random & 0x3) | 0x8;
+              return value.toString(16);
+            });
 
       const prepareResult = (await modelContext.executeTool("prepare_appointment_request", {
         service_slug: "dermatology",
