@@ -11,7 +11,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "missing_organization_slug" }, { status: 400 });
   }
 
-  const { membership } = await getViewer(organizationSlug);
+  const viewer = await getViewer();
+  const membership = viewer?.memberships.find((m) => m.organizationSlug === organizationSlug);
+
   if (!membership) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
