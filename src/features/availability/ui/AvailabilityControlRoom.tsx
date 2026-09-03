@@ -947,12 +947,24 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
                   <dd>{metricValue(removedSlots)}</dd>
                   <small>{countDetail(removedSlots, "slot", "Count not included in this plan")}</small>
                 </div>
-                <div className={styles.impactWide}>
-                  <dt>Affected appointment</dt>
+                <div className={`${styles.impactWide} ${affectedRows.length > 0 ? styles.conflictAlertBox : ""}`}>
+                  <div className={styles.impactHeaderLine}>
+                    <dt>Affected appointment</dt>
+                    {affectedRows.length > 0 ? (
+                      <span className={styles.conflictBadge}>Direct conflict</span>
+                    ) : null}
+                  </div>
                   {affectedRows.length > 0 ? (
                     <>
-                      <dd>{affectedName} <span>· {affectedTime}</span></dd>
-                      <small>{affectedCount === null ? "Fixture name · awaiting plan impact" : `${affectedCount} affected appointment${affectedCount === 1 ? "" : "s"} · conflict-derived`}</small>
+                      <dd className={styles.conflictVisualRow}>
+                        <span className={styles.petHighlight}>{affectedName}</span>
+                        <del className={styles.conflictOldTime}>{affectedTime}</del>
+                        <span className={styles.conflictArrow} aria-hidden="true">→</span>
+                        <ins className={styles.conflictNewTime}>Proposed {holdTime ?? proposedTime ?? "11:30"}</ins>
+                      </dd>
+                      <small className={styles.conflictDetailCopy}>
+                        Overlaps requested surgery block ({busyStart}–{busyEnd}) · {affectedCount ? `${affectedCount} conflict resolved to nearest opening` : "Automatically resolved to nearest opening"}
+                      </small>
                     </>
                   ) : (
                     <>
@@ -961,12 +973,22 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
                     </>
                   )}
                 </div>
-                <div className={styles.impactWide}>
-                  <dt>Unaffected control</dt>
+                <div className={`${styles.impactWide} ${unaffectedRows.length > 0 ? styles.preservedAlertBox : ""}`}>
+                  <div className={styles.impactHeaderLine}>
+                    <dt>Unaffected control</dt>
+                    {unaffectedRows.length > 0 ? (
+                      <span className={styles.preservedBadge}>Preserved</span>
+                    ) : null}
+                  </div>
                   {unaffectedRows.length > 0 ? (
                     <>
-                      <dd>{unaffectedName} <span>· {unaffectedTime}</span></dd>
-                      <small>{unaffectedCount === null ? "Fixture name · awaiting plan impact" : `${unaffectedCount} unaffected · existing booking preserved`}</small>
+                      <dd className={styles.preservedVisualRow}>
+                        <span className={styles.petHighlight}>{unaffectedName}</span>
+                        <span className={styles.preservedTime}>· {unaffectedTime}</span>
+                      </dd>
+                      <small className={styles.preservedDetailCopy}>
+                        Outside surgery block · {unaffectedCount ? `${unaffectedCount} booking preserved with zero disruption` : "Retained with zero disruption"}
+                      </small>
                     </>
                   ) : (
                     <>

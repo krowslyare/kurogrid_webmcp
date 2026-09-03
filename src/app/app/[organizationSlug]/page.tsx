@@ -8,7 +8,10 @@ import {
   acknowledgeLeadAttention,
   createActionPlan,
 } from "@/features/attention/server/actions";
-import { updateAppointmentFromOwner } from "@/features/appointments/server/actions";
+import {
+  simulateCustomerBookingFromOwner,
+  updateAppointmentFromOwner,
+} from "@/features/appointments/server/actions";
 import { KuroBrand } from "@/components/KuroBrand";
 import { getViewer } from "@/features/auth/server/get-viewer";
 import { AvailabilityControlRoom } from "@/features/availability/ui/AvailabilityControlRoom";
@@ -463,6 +466,16 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                 <small>Inbox summary</small>
                 <strong>{pendingAppointmentsCount ? `${pendingAppointmentsCount} awaiting reply` : "All requests handled"}</strong>
                 <span>Accept or propose alternative times directly</span>
+                {membership.role === "owner" ? (
+                  <form action={simulateCustomerBookingFromOwner} style={{ marginTop: "12px" }}>
+                    <input name="organizationSlug" type="hidden" value={organizationSlug} />
+                    <input name="petName" type="hidden" value="Bella" />
+                    <input name="customerEmail" type="hidden" value="bella@example.test" />
+                    <button className="secondary-action" type="submit" style={{ fontSize: "11px", padding: "6px 12px" }}>
+                      + Simulate customer request (Bella)
+                    </button>
+                  </form>
+                ) : null}
               </aside>
             </section>
           ) : null}
@@ -482,18 +495,50 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
               <div className="appointment-request-list">
                 {appointmentRequests.map((request) => {
                   const requestedAt = request.appointment_slots.starts_at;
+                  const hasAlternative = request.proposed_starts_at && request.proposed_starts_at !== requestedAt;
                   const nextProposal = (availableSlots ?? []).find(
                     (slot) =>
                       slot.service_id === request.service_id
                       && new Date(slot.starts_at).getTime() > new Date(requestedAt).getTime(),
                   )?.starts_at;
                   return (
-                    <article key={request.id}>
+                    <article key={request.id} className="appointment-request-item">
                       <div className="appointment-request-main">
-                        <span className={`appointment-status is-${request.status}`}>{request.status.replaceAll("_", " ")}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                          <span className={`appointment-status is-${request.status}`}>{request.status.replaceAll("_", " ")}</span>
+                          {hasAlternative ? (
+                            <span className="appointment-status is-rescheduled">Re-slotted via WebMCP</span>
+                          ) : null}
+                        </div>
                         <h2>{request.pet_name} · {request.clinic_services.name}</h2>
-                        <p>{appointmentTime(request.proposed_starts_at ?? requestedAt)} · {request.clinic_services.duration_minutes} minutes</p>
+                        {hasAlternative ? (
+                          <p style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+                            <del style={{ color: "#8a7e7b", textDecorationColor: "#a84235" }}>{appointmentTime(requestedAt)}</del>
+                            <span style={{ color: "#204b39", fontWeight: 700 }}>→</span>
+                            <ins style={{ color: "#1a5035", fontWeight: 700, textDecoration: "none" }}>{appointmentTime(request.proposed_starts_at!)}</ins>
+                            <span style={{ color: "var(--room-muted)", fontSize: "12px" }}>· {request.clinic_services.duration_minutes} minutes</span>
+                          </p>
+                        ) : (
+                          <p>{appointmentTime(request.proposed_starts_at ?? requestedAt)} · {request.clinic_services.duration_minutes} minutes</p>
+                        )}
                         <small>Updates go to {request.customer_email}</small>
+
+                        <details className="appointment-audit-accordion" style={{ margin: "14px 0 6px" }}>
+                          <summary style={{ cursor: "pointer", color: "var(--room-muted)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em" }}>
+                            Audit lineage & details
+                          </summary>
+                          <div style={{ margin: "10px 0 6px", padding: "12px 14px", border: "1px solid var(--room-line)", borderRadius: "8px", background: "rgba(0,0,0,.02)", fontSize: "12px", display: "grid", gap: "6px" }}>
+                            <div><strong>Original requested slot:</strong> {appointmentTime(requestedAt)} ({request.clinic_services.duration_minutes}m)</div>
+                            {hasAlternative ? (
+                              <div style={{ color: "#7a3f36" }}><strong>Scheduling conflict:</strong> Overlapped requested external busy interval (Surgery block 10:00–11:30). Reconciled to {appointmentTime(request.proposed_starts_at!)}.</div>
+                            ) : (
+                              <div style={{ color: "#365c48" }}><strong>Scheduling control:</strong> Unaffected by external busy intervals.</div>
+                            )}
+                            <div><strong>Customer dispatch:</strong> Sent to {request.customer_email}</div>
+                            <div><strong>Current operational state:</strong> {request.status.replaceAll("_", " ")}</div>
+                          </div>
+                        </details>
+
                         {isMimoDemo && firstSite && request.status === "time_proposed" ? (
                           <Link
                             className="appointment-customer-link"
