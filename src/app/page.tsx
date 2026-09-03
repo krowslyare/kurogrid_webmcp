@@ -11,7 +11,7 @@ const journey = [
 ] as const;
 
 const clinicFlow = [
-  ["Brief", "Describe September rules once. The assistant brings calendar busy time as normalized ranges — never event titles or notes."],
+  ["Brief", "Describe the upcoming schedule once. The assistant brings calendar busy time as normalized ranges — never event titles or notes."],
   ["Exact plan", "Mimo derives slots, conflicts, and alternatives against real bookings. Nothing applies by itself."],
   ["One approval", "Approve and apply one exact plan. Affected customers then accept or decline their held alternative."],
 ] as const;
@@ -79,16 +79,16 @@ export default function Home() {
             </div>
             <div className="landing-signal-label">
               <span>Appointment / Luna</span>
-              <strong>3 times available</strong>
+              <strong>Live times available</strong>
             </div>
-            <h2>Find Luna a dermatology visit this Saturday.</h2>
+            <h2>Find Luna&apos;s next dermatology visit.</h2>
             <p>
-              Mimo offers dermatology care on Saturday morning. The agent
+              Mimo publishes its current dermatology availability. The agent
               can prepare a request, but only the customer can send it.
             </p>
             <div className="landing-prepared-request">
               <span>Prepared for customer review</span>
-              <strong>Dermatology · Saturday 09:30</strong>
+              <strong>Dermatology · Selected opening</strong>
               <i>Nothing sent yet</i>
             </div>
           </div>
@@ -152,7 +152,7 @@ export default function Home() {
             </div>
             <div className="landing-outcome-visit">
               <span>Luna · Dermatology</span>
-              <strong>Saturday, 09:30</strong>
+              <strong>Confirmed time</strong>
             </div>
             <ul>
               <li><span aria-hidden="true">✓</span> Email update sent</li>
@@ -165,7 +165,7 @@ export default function Home() {
       <section className="landing-close" aria-labelledby="close-title">
         <div>
           <p>One fictional clinic. One real agent interaction.</p>
-          <h2 id="close-title">Ask Mimo for a Saturday visit.</h2>
+          <h2 id="close-title">Ask Mimo for Luna&apos;s next visit.</h2>
           <p className="landing-close-note">
             Independent preview of the customer site. The full guided journey —
             clinic plan, approval, and the customer&apos;s answer — starts in the

@@ -108,13 +108,6 @@ function slotTime(value: string) {
   }).format(new Date(value));
 }
 
-function slotDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "long",
-    timeZone: "America/Lima",
-  }).format(new Date(value));
-}
-
 function oneHourLater(value: string) {
   return new Date(new Date(value).getTime() + 60 * 60_000).toISOString();
 }
@@ -194,7 +187,14 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
         p_date: nextSaturdayInLima(),
       });
   const slots = slotsResult.data ?? [];
-  const appointmentDate = slots[0] ? slotDate(slots[0].starts_at) : "next Saturday";
+  const bookingServices = (servicesResult.data ?? []).map((service) => ({
+    slug: service.service_slug,
+    name: service.service_name,
+    duration_minutes: service.duration_minutes,
+  }));
+  const defaultBookingService = bookingServices.some((service) => service.slug === "dermatology")
+    ? "dermatology"
+    : bookingServices[0]?.slug ?? "dermatology";
   const agentPrompt = "Find the earliest morning dermatology appointment for my dog, Luna, today or tomorrow that does not conflict with my calendar. If none are available, find the closest time this week and tell me why it is the best alternative.";
   const proposalPrompt = "Check Mimo's proposed appointment time against my calendar. If it works, accept it. If it conflicts, decline it and tell me what I should ask the clinic for next.";
   const editSearch = appointmentRecord && customerContext.appointment
@@ -330,12 +330,14 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
 
           {!appointment ? (
             <TraditionalBooking
-              appointmentDate={appointmentDate}
               bookingError={customerContext.bookingError}
+              defaultDate={nextSaturdayInLima()}
+              defaultServiceSlug={defaultBookingService}
               initialCustomerEmail={editingAppointment ? String(appointmentRecord?.customer_email ?? "") : undefined}
               initialOpen={editingAppointment || Boolean(customerContext.bookingError)}
               initialPetName={editingAppointment ? String(appointmentRecord?.pet_name ?? "") : undefined}
               initialStartsAt={editingAppointment ? String(appointmentRecord?.original_starts_at ?? "") : undefined}
+              services={bookingServices}
               siteSlug={siteSlug}
               slots={slots}
             />

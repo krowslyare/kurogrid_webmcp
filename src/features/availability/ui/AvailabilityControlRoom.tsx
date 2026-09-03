@@ -1,12 +1,10 @@
 import type { CSSProperties } from "react";
 
-import { approveAvailabilityPlan } from "../server/actions";
+import { approveAvailabilityPlan, applyApprovedAvailabilityPlan, prepareAvailabilityPlanManually } from "../server/actions";
+import { availabilityPromptFor, demoPlanDefaults, groupedDayRanges } from "../lib/manual-plan";
 
 import styles from "./availability-control-room.module.css";
 import { CopyAvailabilityPrompt } from "./CopyAvailabilityPrompt";
-
-export const AVAILABILITY_PROMPT =
-  "Set dermatology availability for September. Tuesdays and Thursdays from 9 to 1, Saturdays from 9 to 2, thirty-minute appointments, keep lunch blocked from 12 to 1, incorporate the busy ranges from my calendar, and preserve existing bookings. Prepare the exact plan, and if it matches these constraints, approve and apply it from my authenticated Owner session. Send the customer update.";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -14,6 +12,8 @@ type Props = {
   organizationSlug: string;
   role: "owner" | "member";
   plan: JsonRecord | null;
+  defaultConfiguration?: unknown;
+  services: Array<{ slug: string; name: string }>;
   appointments?: unknown[];
   notice?: string;
 };
@@ -35,16 +35,7 @@ type Activity = {
   title: string;
 };
 
-const timelineTimes = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00"];
-const halfHourTicks = Array.from({ length: 11 }, (_, index) => index);
-const ruleChips = [
-  "Tue · 09:00–13:00",
-  "Thu · 09:00–13:00",
-  "Sat · 09:00–14:00",
-  "30 min",
-  "Lunch · 12:00–13:00",
-  "Preserve bookings",
-];
+const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function asRecord(value: unknown): JsonRecord | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -163,30 +154,76 @@ function minutes(value: string) {
   return hour * 60 + minute;
 }
 
-function timelinePosition(value: string) {
-  const start = 9 * 60;
-  const end = 14 * 60;
-  return Math.min(100, Math.max(0, ((minutes(value) - start) / (end - start)) * 100));
+function timelinePosition(value: string, startMinutes: number, endMinutes: number) {
+  return Math.min(100, Math.max(0, ((minutes(value) - startMinutes) / (endMinutes - startMinutes)) * 100));
 }
 
-function timelineRange(start: string, end: string): CSSProperties {
+function timelineRange(start: string, end: string, startMinutes: number, endMinutes: number): CSSProperties {
   return {
-    left: `${timelinePosition(start)}%`,
-    width: `${Math.max(2, timelinePosition(end) - timelinePosition(start))}%`,
+    left: `${timelinePosition(start, startMinutes, endMinutes)}%`,
+    width: `${Math.max(2, timelinePosition(end, startMinutes, endMinutes) - timelinePosition(start, startMinutes, endMinutes))}%`,
   };
 }
 
-function labelForDate(value: string | null) {
-  if (!value) return "September · Saturday";
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+function validDayRange(row: JsonRecord): { day: number; start: string; end: string } | null {
+  const day = row.day_of_week ?? row.day ?? row.weekday;
+  const start = timeLabel(row.starts_at ?? row.start_at ?? row.start ?? row.from);
+  const end = timeLabel(row.ends_at ?? row.end_at ?? row.end ?? row.to);
 
-  return new Intl.DateTimeFormat("en", {
-    day: "numeric",
-    month: "short",
-    timeZone: "America/Lima",
-  }).format(date);
+  if (typeof day !== "number" || !Number.isInteger(day) || day < 0 || day > 6) return null;
+  if (!start || !end || minutes(start) >= minutes(end)) return null;
+
+  return { day, start, end };
+}
+
+// Operating window comes from the plan's own ranges — Saturday first
+// because the scenario fixtures live there, otherwise the widest day.
+function operatingWindow(rows: JsonRecord[]): [string, string] | null {
+  const valid = rows.map(validDayRange).filter((row): row is NonNullable<typeof row> => Boolean(row));
+
+  if (!valid.length) return null;
+
+  const saturday = valid.filter((row) => row.day === 6);
+  const source = saturday.length ? saturday : valid;
+  const starts = source.map((row) => row.start).sort();
+  const ends = source.map((row) => row.end).sort();
+
+  return [starts[0], ends[ends.length - 1]];
+}
+
+function hourlyTicks(start: string, end: string) {
+  const ticks: string[] = [];
+
+  for (let cursor = minutes(start); cursor <= minutes(end); cursor += 60) {
+    ticks.push(`${String(Math.floor(cursor / 60)).padStart(2, "0")}:00`);
+  }
+
+  return ticks;
+}
+
+function halfHourPositions(start: string, end: string) {
+  const segments = Math.max(1, Math.round((minutes(end) - minutes(start)) / 30));
+  return Array.from({ length: segments + 1 }, (_, index) => (index / segments) * 100);
+}
+
+function planPeriodLabel(periodStart: string | null, rows: JsonRecord[]) {
+  const days = Array.from(
+    new Set(
+      rows.map(validDayRange).filter((row): row is NonNullable<typeof row> => Boolean(row)).map((row) => row.day),
+    ),
+  ).sort((first, second) => first - second).map((day) => WEEKDAY_SHORT[day]);
+
+  const month = periodStart
+    ? new Intl.DateTimeFormat("en", { month: "long", timeZone: "America/Lima" }).format(new Date(`${periodStart}T12:00:00`))
+    : null;
+
+  if (month && days.length) return `${month} · ${days.join(", ")}`;
+  if (month) return month;
+  if (days.length) return days.join(", ");
+
+  return "Custom period";
 }
 
 function formatCreatedAt(value: string | null) {
@@ -204,6 +241,17 @@ function formatCreatedAt(value: string | null) {
   }).format(date);
 }
 
+function weekdayFor(value: unknown) {
+  if (typeof value !== "string") return "Appointment day";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Appointment day";
+
+  return new Intl.DateTimeFormat("en", {
+    timeZone: "America/Lima",
+    weekday: "long",
+  }).format(date);
+}
+
 function firstName(rows: JsonRecord[], fallback: string) {
   return rows
     .map((row) => stringAt([row], ["display_name", "name", "pet_name", "subject"]))
@@ -217,56 +265,56 @@ function firstAppointmentTime(rows: JsonRecord[], keys: string[], fallback: stri
 function phaseActivity(phase: PlanPhase, statusLabel: string, hasPlan: boolean): Activity {
   if (!hasPlan) {
     return {
-      title: "Waiting for the assistant",
-      detail: "Paste the request above. The assistant can prepare the exact plan and apply it when the Owner instruction says to do so.",
+      title: "Waiting for your AI agent",
+      detail: "Copy the request below into your AI agent. It prepares the exact plan; nothing changes until you ask it to apply.",
     };
   }
 
   switch (phase) {
     case "pending":
       return {
-        title: "Availability plan ready for review",
-        detail: "The assistant prepared the exact impact. Nothing changes unless the Owner request also asks it to apply.",
+        title: "Plan ready for your review",
+        detail: "Your AI agent calculated the exact impact. Nothing changes until your request asks it to apply.",
       };
     case "approved":
       return {
-        title: "Owner approval recorded",
-        detail: "The exact interval and consequence are approved. The assistant may now apply the plan.",
+        title: "Approved — ready to apply",
+        detail: "The exact dates and consequences are approved. Your AI agent may now apply the plan once.",
       };
     case "applied":
       return {
-        title: "Availability plan applied",
-        detail: "The busy range is blocked and Luna has a held alternative. The appointment still needs the customer decision.",
+        title: "Schedule updated",
+        detail: "The busy range is blocked and Luna has a held alternative. The decision is now with the customer.",
       };
     case "customer":
       return {
         title: "Waiting for Luna's decision",
-        detail: "The alternative is proposed and held. Max remains unchanged while the customer decides.",
+        detail: "The alternative is proposed and held. Max stays unchanged while the customer decides.",
       };
     case "completed":
       return {
-        title: "Customer resolution recorded",
-        detail: "The held alternative is confirmed and the public availability state can stay consistent.",
+        title: "Resolved with the customer",
+        detail: "The held alternative is confirmed. The schedule and public availability now agree.",
       };
     case "manual":
       return {
-        title: "Manual resolution required",
-        detail: "The plan could not complete automatically. Review the appointment and choose the next safe step.",
+        title: "Needs a personal follow-up",
+        detail: "The plan could not complete automatically. Contact the customer to agree on the next safe step.",
       };
     case "stale":
       return {
-        title: "Plan needs to be refreshed",
-        detail: "The schedule revision changed before this plan was applied. The assistant must prepare a new exact plan.",
+        title: "Plan is out of date",
+        detail: "The schedule changed after preparation. Ask your AI agent to prepare a fresh exact plan.",
       };
     case "failed":
       return {
-        title: "Availability plan needs attention",
-        detail: "The latest operation failed. Check the plan status before asking the assistant to retry.",
+        title: "Plan needs attention",
+        detail: "The latest operation failed. Review the plan status before asking your AI agent to retry.",
       };
     default:
       return {
         title: "Availability plan is present",
-        detail: `${statusLabel} is the latest state returned by the availability plan record.`,
+        detail: `${statusLabel} is the latest state of the availability plan.`,
       };
   }
 }
@@ -296,36 +344,36 @@ function deliveryCopy(value: string | null) {
 
 function planStateCopy(phase: PlanPhase, hasPlan: boolean) {
   if (!hasPlan) {
-    return "The control room is ready. The assistant will create the plan from the request above.";
+    return "The schedule is unchanged. Your AI agent will create the exact plan from the request below.";
   }
 
   switch (phase) {
     case "pending": return "Review the calculated impact below before approving this exact plan.";
-    case "approved": return "The exact plan is approved. Your assistant can now apply it once.";
+    case "approved": return "The exact plan is approved. Your AI agent can now apply it once.";
     case "applied":
-    case "customer": return "Live availability is updated. Luna’s alternative remains held while she decides.";
+    case "customer": return "Live availability is updated. Luna's alternative stays held while she decides.";
     case "completed": return "Luna accepted the alternative. The appointment and public availability now agree.";
-    case "manual": return "The customer declined the alternative. The clinic can arrange the next step manually.";
-    case "stale": return "The schedule changed after preparation. Ask the assistant to calculate a fresh plan.";
+    case "manual": return "The customer declined the alternative. Follow up with them directly.";
+    case "stale": return "The schedule changed after preparation. Ask your AI agent for a fresh plan.";
     case "failed": return "The latest operation needs attention before this plan can continue.";
-    default: return "This is the latest persisted availability plan state.";
+    default: return "This is the latest saved availability plan.";
   }
 }
 
 function nextMoveCopy(phase: PlanPhase, hasPlan: boolean) {
   if (!hasPlan) {
-    return "The next move is your agent’s: paste the request below and let it prepare the exact plan.";
+    return "Copy the request below into your AI agent. It prepares the exact availability plan.";
   }
 
   switch (phase) {
-    case "pending": return "Your agent finished its part. The next move is yours: review the impact, then approve here.";
-    case "approved": return "Approval is recorded. Apply this exact plan once, through your agent or the manual fallback.";
+    case "pending": return "Your agent did its part. Review the impact below, then approve.";
+    case "approved": return "Approval is recorded. Your agent — or the button below — applies this exact plan once.";
     case "applied":
-    case "customer": return "The schedule is applied. The next move belongs to the customer: they accept or decline the new time.";
-    case "completed": return "The journey is complete. The public site and assistant tools now show the same availability.";
-    case "manual": return "The next move is yours: arrange the next step with the customer manually.";
-    case "stale": return "The next move is your agent’s: prepare a fresh exact plan against the new schedule revision.";
-    case "failed": return "The next move is yours: check the plan state before asking the agent to retry.";
+    case "customer": return "The schedule is applied. Luna decides: she accepts or declines the new time.";
+    case "completed": return "Done. The public site and AI agent tools now show the same availability.";
+    case "manual": return "Follow up with the customer directly to agree on the next step.";
+    case "stale": return "Ask your AI agent to prepare a fresh exact plan for the new schedule.";
+    case "failed": return "Review the plan state before asking your agent to retry.";
     default: return "Waiting on the latest availability plan state.";
   }
 }
@@ -344,8 +392,33 @@ function stateClass(phase: PlanPhase) {
   }
 }
 
-export function AvailabilityControlRoom({ organizationSlug, role, plan, appointments = [], notice }: Props) {
+export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultConfiguration = null, services, appointments = [], notice }: Props) {
+  const hasPlan = Boolean(plan);
+  const formDefaults = demoPlanDefaults(defaultConfiguration);
+  const usingExampleRules = !hasPlan;
+  const weeklyGroups = groupedDayRanges(formDefaults.weekly);
+  const blockGroups = groupedDayRanges(formDefaults.blocks);
+  const ruleChips = [
+    ...weeklyGroups.flatMap((group) => group.days.map((day) => `${WEEKDAY_SHORT[day]} · ${group.start}–${group.end}`)),
+    `${formDefaults.slotDuration} min`,
+    ...(blockGroups.length === 1
+      ? [`Blocked · ${blockGroups[0].start}–${blockGroups[0].end}`]
+      : blockGroups.flatMap((group) => group.days.map((day) => `Blocked ${WEEKDAY_SHORT[day]} · ${group.start}–${group.end}`))),
+    "Preserve bookings",
+  ];
+  const defaultServiceSlug = services.some((service) => service.slug === "dermatology")
+    ? "dermatology"
+    : services[0]?.slug ?? "dermatology";
+  const availabilityPrompt = availabilityPromptFor(formDefaults, defaultServiceSlug);
   const planRecords = recordsFrom(plan);
+  const appointmentRows = appointments
+    .map(asRecord)
+    .filter((row): row is JsonRecord => Boolean(row))
+    .sort((first, second) => {
+      const firstDate = String(first.starts_at ?? first.proposed_starts_at ?? "");
+      const secondDate = String(second.starts_at ?? second.proposed_starts_at ?? "");
+      return firstDate.localeCompare(secondDate);
+    });
   const configurationRecords = recordsFrom(
     valueAt(planRecords, ["configuration", "config"]),
   );
@@ -384,36 +457,74 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
   const recommendationRecords = recordsFrom(
     valueAt(allRecords, ["recommendation", "recommended_alternative", "recommended_slot", "alternative"]),
   );
-  const hasPlan = Boolean(plan);
   const planId = stringAt(planRecords, ["id", "plan_id", "availability_plan_id"]);
   const planHash = stringAt(planRecords, ["plan_hash", "planHash"]);
   const revision = numberAt(planRecords, ["base_configuration_revision", "baseConfigurationRevision"]);
   const rawStatus = stringAt(planRecords, ["status", "plan_status", "state"]);
   const storedPhase = hasPlan ? normalizeStatus(rawStatus) : "empty";
   const createdAt = formatCreatedAt(stringAt(planRecords, ["created_at", "createdAt"]));
-  const periodLabel = labelForDate(stringAt(allRecords, [
-    "period_label",
-    "period",
-    "date_label",
+  const exampleMode = !hasPlan;
+  const persistedWeeklyRangeRows = objectArrayAt(allRecords, [
+    "weekly_ranges",
+    "weeklyRanges",
+    "weekly_rules",
+  ]);
+  const requestedWeeklyRangeRows = Object.entries(formDefaults.weekly).flatMap(([day, range]) => range
+    ? [{ day_of_week: Number(day), starts_at: range[0], ends_at: range[1] }]
+    : []);
+  const weeklyRangeRows = persistedWeeklyRangeRows.length
+    ? persistedWeeklyRangeRows
+    : requestedWeeklyRangeRows;
+  const [windowStart, windowEnd] = operatingWindow(weeklyRangeRows) ?? ["09:00", "14:00"];
+  const windowStartMinutes = minutes(windowStart);
+  const windowEndMinutes = minutes(windowEnd);
+  const tickLabels = hourlyTicks(windowStart, windowEnd);
+  const tickPositions = halfHourPositions(windowStart, windowEnd);
+  const periodStart = stringAt(allRecords, [
+    "period_start",
+    "periodStart",
     "target_date",
     "effective_date",
     "date",
-  ]));
+  ]);
+  const periodLabel = exampleMode
+    ? planPeriodLabel(formDefaults.periodStart, Object.entries(formDefaults.weekly).map(([day, range]) => ({
+        day_of_week: Number(day),
+        starts_at: range?.[0],
+        ends_at: range?.[1],
+      })))
+    : planPeriodLabel(periodStart, weeklyRangeRows);
   const timezone = stringAt(allRecords, ["timezone", "time_zone"]) ?? "America/Lima";
   const serviceName = stringAt(allRecords, ["service_name", "service", "service_label"]) ?? "Dermatology";
+  const slotDuration = numberAt(allRecords, [
+    "slot_duration_minutes",
+    "slotDuration",
+    "duration_minutes",
+    "duration",
+  ]) ?? 30;
 
-  const affectedRows = objectArrayAt(allRecords, [
+  const persistedAffectedRows = objectArrayAt(allRecords, [
     "affected_appointments",
     "affectedAppointments",
     "overlapping_appointments",
     "affected_bookings",
   ]);
-  const unaffectedRows = objectArrayAt(allRecords, [
+  const persistedUnaffectedRows = objectArrayAt(allRecords, [
     "unaffected_appointments",
     "unaffectedAppointments",
     "preserved_appointments",
     "unaffected_bookings",
   ]);
+  const affectedRows = persistedAffectedRows.length
+    ? persistedAffectedRows
+    : !hasPlan && appointmentRows[0]
+      ? [appointmentRows[0]]
+      : [];
+  const unaffectedRows = persistedUnaffectedRows.length
+    ? persistedUnaffectedRows
+    : !hasPlan && appointmentRows[1]
+      ? [appointmentRows[1]]
+      : [];
   const affectedName = firstName(affectedRows, "Luna");
   const unaffectedName = firstName(unaffectedRows, "Max");
   const affectedTime = firstAppointmentTime(affectedRows, [
@@ -427,15 +538,28 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
     "start_at",
   ], "12:00");
 
-  const busyRows = objectArrayAt(allRecords, [
+  const persistedBusyRows = objectArrayAt(allRecords, [
     "busy_intervals",
     "busyIntervals",
     "normalized_intervals",
     "external_busy_ranges",
     "intervals",
   ]);
+  const requestedBusyRows = formDefaults.busyText.split("\n").flatMap((line) => {
+    const match = line.trim().match(/^(.+?)\s*,\s*(.+)$/);
+    return match ? [{ starts_at: match[1], ends_at: match[2] }] : [];
+  });
+  const busyRows = persistedBusyRows.length ? persistedBusyRows : requestedBusyRows;
+  const focusDay = weekdayFor(
+    appointmentRows[0]?.starts_at
+      ?? appointmentRows[0]?.proposed_starts_at
+      ?? busyRows[0]?.starts_at,
+  );
   const busyStart = firstAppointmentTime(busyRows, ["starts_at", "start_at", "start", "from"], "10:00");
   const busyEnd = firstAppointmentTime(busyRows, ["ends_at", "end_at", "end", "to"], "11:30");
+  const showAffectedPin = affectedRows.length > 0 || exampleMode;
+  const showUnaffectedPin = unaffectedRows.length > 0 || exampleMode;
+  const showBusyPill = busyRows.length > 0 || exampleMode;
   const alternativeRows = objectArrayAt(allRecords, [
     "alternatives",
     "valid_alternatives",
@@ -456,9 +580,7 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
       .find(Boolean)
     ?? null;
   const affectedAppointmentId = stringAt(affectedRows, ["appointment_id", "request_id", "id"]);
-  const currentAffectedAppointment = appointments
-    .map(asRecord)
-    .filter((row): row is JsonRecord => Boolean(row))
+  const currentAffectedAppointment = appointmentRows
     .find((row) => stringAt([row], ["id", "appointment_id", "request_id"]) === affectedAppointmentId);
   const currentAffectedStatus = currentAffectedAppointment
     ? stringAt([currentAffectedAppointment], ["status"])
@@ -548,11 +670,25 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
       && revision !== null
       && phase === "pending",
   );
+  const canApplyNow = Boolean(
+    role === "owner"
+      && hasPlan
+      && phase === "approved",
+  );
   const approvalNotice = notice === "approved" && phase === "approved"
-    ? "Approval recorded. The exact plan is approved; the assistant may now apply it."
-    : notice === "approval_error"
-      ? "Approval could not be recorded. The plan remains unchanged and should be refreshed before retrying."
-      : null;
+    ? "Approval recorded. The exact plan is approved; your AI agent may now apply it — or apply it yourself below."
+    : notice === "applied"
+      ? "Plan applied by hand. The busy range is blocked and the customer update was prepared."
+      : notice === "approval_error"
+        ? "Approval could not be recorded. The plan remains unchanged and should be refreshed before retrying."
+        : notice === "apply_error"
+          ? "Manual apply could not be completed. The plan is unchanged; refresh it before retrying."
+          : notice === "prepared"
+            ? "Plan prepared by hand. Review the impact above, then approve it below."
+            : notice === "prepare_error"
+              ? "Manual plan could not be prepared. Check dates, times, and busy ranges, then retry."
+              : null;
+  const approvalNoticeState = notice === "approved" || notice === "applied" || notice === "prepared" ? "success" : "error";
   const holdTime = proposedTime;
   const lunaDisplayState = !hasPlan
     ? "Synthetic fixture · confirmed"
@@ -579,25 +715,27 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
       ? "Notification count not available"
       : notificationLabel;
   const approvalMessage = !hasPlan
-    ? "The assistant has not prepared an availability plan yet."
+    ? role === "owner"
+      ? "No plan yet. Prepare it by hand below — no agent needed."
+      : "No availability plan yet. An Owner can prepare one by hand or with an AI agent."
     : role !== "owner"
       ? "Member access can review this plan. An Owner must approve the exact revision."
       : phase === "approved"
-        ? "Exact Owner approval is recorded. Apply is now available to the assistant."
+        ? "Exact Owner approval is recorded. Your AI agent can apply it — or apply it yourself in the manual section below."
         : isApplied
-        ? "This exact plan has already been applied."
+          ? "This exact plan has already been applied."
           : phase !== "pending"
             ? "This plan is not currently awaiting Owner approval."
-            : null;
+            : "Review the impact above. Approve it yourself in the manual section below — or ask your AI agent to finish it.";
 
   return (
     <section className={styles.room} aria-labelledby="availability-room-title">
       <ol className={styles.workflowSteps} aria-label="Availability workflow">
         {[
-          [1, "Brief", "You set the rules once"],
-          [2, "Verify", "Your agent derives slots and conflicts"],
-          [3, "Apply", "Your agent only if you asked — otherwise you approve"],
-          [4, "Customer", "The affected customer decides"],
+          [1, "Brief", "Set the rules once"],
+          [2, "Review", "Your agent shows slots and conflicts"],
+          [3, "Apply", "Agent when asked — or manual below"],
+          [4, "Customer", "Luna accepts or declines"],
         ].map(([step, label, detail]) => (
           <li
             className={Number(step) < workflowStep ? styles.workflowComplete : Number(step) === workflowStep ? styles.workflowCurrent : ""}
@@ -611,40 +749,36 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
 
       <div className={styles.roomTop}>
         <div className={styles.roomIntro}>
-          <div className={styles.roomEyebrow}>
-            <span className={styles.liveDot} aria-hidden="true" />
-            Availability plan <span>·</span> Owner workspace
-          </div>
-          <h2 id="availability-room-title"><span>Plan</span><span>September availability.</span></h2>
+          <h2 id="availability-room-title"><span>Availability,</span><span>resolved.</span></h2>
           <p className={styles.roomLead}>
-            Your assistant brings in calendar busy time. Mimo checks the schedule and existing
-            bookings. If your request explicitly says to apply the matching plan, the assistant
-            can finish from this Owner session; otherwise it stops here for manual review.
+            Set the working-hour rules once. Your AI agent brings the calendar
+            busy time, Mimo calculates the exact impact — and nothing applies
+            until your request says so.
           </p>
           <div className={styles.ruleStrip} aria-label="Requested availability rules">
-            <span>Requested rules</span>
+            <span>{usingExampleRules ? "Requested rules" : "Plan rules"}</span>
             <div>
               {ruleChips.map((rule) => <b key={rule}>{rule}</b>)}
             </div>
           </div>
-
+        </div>
+        <div className={styles.roomGrid}>
           <div className={styles.promptCard}>
             <div className={styles.promptCardHead}>
               <div>
-                <span className={styles.panelLabel}>Continue with your assistant</span>
+                <span className={styles.panelLabel}>Ask your AI agent</span>
                 <strong>{nextMoveCopy(phase, hasPlan)}</strong>
               </div>
-              <span className={styles.promptBadge}>One prompt</span>
             </div>
-            <blockquote>{AVAILABILITY_PROMPT}</blockquote>
             <div className={styles.promptCardFooter}>
-              <span>Only normalized busy ranges enter Mimo. Event titles and notes stay outside.</span>
-              <CopyAvailabilityPrompt prompt={AVAILABILITY_PROMPT} />
+              <CopyAvailabilityPrompt prompt={availabilityPrompt} />
             </div>
+            <a className={styles.manualLink} href="#availability-manual">
+              Prefer to handle it yourself? See the manual options ↓
+            </a>
           </div>
-        </div>
 
-        <aside className={styles.planCard} aria-label="Latest availability plan">
+          <aside className={styles.planCard} aria-label="Latest availability plan">
           <div className={styles.planCardHead}>
             <span className={styles.panelLabel}>Latest availability plan</span>
             <span className={`${styles.statusPill} ${stateClass(phase)}`}>{statusLabel}</span>
@@ -665,75 +799,91 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
           <p className={styles.planSource}>
             {hasPlan ? "Status and impact are database-backed." : "No plan row returned; no impact is asserted."}
           </p>
-        </aside>
+          </aside>
+        </div>
       </div>
 
       <div className={styles.roomMain}>
         <section className={styles.timelinePanel} aria-labelledby="availability-timeline-title">
           <header className={styles.panelHeader}>
             <div>
-              <span className={styles.panelLabel}>Saturday operating window</span>
-              <h2 id="availability-timeline-title">09:00–14:00</h2>
+              <span className={styles.panelLabel}>{focusDay} operating window{exampleMode ? <em className={styles.exampleBadge}>Requested</em> : null}</span>
+              <h2 id="availability-timeline-title">{windowStart}–{windowEnd}</h2>
             </div>
             <div className={styles.panelHeaderMeta}>
-              <strong>{serviceName} · 30-minute appointments</strong>
-              <span>{hasPlan ? `${periodLabel} · ${timezone}` : "Example Saturday · nothing calculated yet"}</span>
+              <strong>{serviceName} · {slotDuration}-minute appointments</strong>
+              <span>{exampleMode ? `${periodLabel} · ready to calculate` : `${periodLabel} · ${timezone}`}</span>
             </div>
           </header>
 
           <div className={styles.timeline}>
             <div className={styles.timelineAxis} aria-hidden="true">
               <span />
-              <div>
-                {timelineTimes.map((time) => <span key={time}>{time}</span>)}
+              <div style={{ gridTemplateColumns: `repeat(${tickLabels.length}, minmax(0, 1fr))` }}>
+                {tickLabels.map((time) => <span key={time}>{time}</span>)}
               </div>
             </div>
 
             <div className={styles.timelineRow}>
               <div className={styles.rowLabel}>External context</div>
               <div className={styles.rowTrack}>
-                {halfHourTicks.map((tick) => (
-                  <i key={tick} className={styles.trackTick} style={{ left: `${tick * 10}%` }} aria-hidden="true" />
+                {tickPositions.map((position) => (
+                  <i key={position} className={styles.trackTick} style={{ left: `${position}%` }} aria-hidden="true" />
                 ))}
-                <div className={styles.busyInterval} style={timelineRange(busyStart, busyEnd)}>
-                  <strong>{isApplied ? "Blocked" : hasPlan ? "Busy interval" : "Example busy time"}</strong>
-                  <span>{busyStart}–{busyEnd}</span>
-                </div>
+                {showBusyPill ? (
+                  <div className={styles.busyInterval} style={timelineRange(busyStart, busyEnd, windowStartMinutes, windowEndMinutes)}>
+                    <strong>{isApplied ? "Blocked" : hasPlan ? "Busy interval" : "Requested busy time"}</strong>
+                    <span>{busyStart}–{busyEnd}</span>
+                  </div>
+                ) : null}
               </div>
+              {!showBusyPill ? (
+                <div className={styles.rowNote}>No busy intervals in this plan</div>
+              ) : null}
             </div>
 
             <div className={styles.timelineRow}>
               <div className={styles.rowLabel}>Existing bookings</div>
               <div className={`${styles.rowTrack} ${styles.bookingTrack}`}>
-                {halfHourTicks.map((tick) => (
-                  <i key={tick} className={styles.trackTick} style={{ left: `${tick * 10}%` }} aria-hidden="true" />
+                {tickPositions.map((position) => (
+                  <i key={position} className={styles.trackTick} style={{ left: `${position}%` }} aria-hidden="true" />
                 ))}
-                <div className={`${styles.booking} ${isApplied ? styles.bookingAffectedApplied : styles.bookingAffected} ${phase === "completed" ? styles.bookingCompleted : ""}`} style={{ left: `${timelinePosition(affectedDisplayTime)}%` }}>
-                  <span className={styles.bookingPin} aria-hidden="true" />
-                  <div>
-                    <strong>{affectedName} · {affectedDisplayTime}</strong>
-                    <small>{lunaDisplayState}</small>
+                {showAffectedPin ? (
+                  <div className={`${styles.booking} ${isApplied ? styles.bookingAffectedApplied : styles.bookingAffected} ${phase === "completed" ? styles.bookingCompleted : ""}`} style={{ left: `${timelinePosition(affectedDisplayTime, windowStartMinutes, windowEndMinutes)}%` }}>
+                    <span className={styles.bookingPin} aria-hidden="true" />
+                    <div>
+                      <strong>{affectedName} · {affectedDisplayTime}</strong>
+                      <small>{lunaDisplayState}</small>
+                    </div>
                   </div>
-                </div>
-                <div className={`${styles.booking} ${styles.bookingUnchanged}`} style={{ left: `${timelinePosition(unaffectedTime)}%` }}>
-                  <span className={styles.bookingPin} aria-hidden="true" />
-                  <div>
-                    <strong>{unaffectedName} · {unaffectedTime}</strong>
-                    <small>{maxDisplayState}</small>
+                ) : null}
+                {showUnaffectedPin ? (
+                  <div className={`${styles.booking} ${styles.bookingUnchanged}`} style={{ left: `${timelinePosition(unaffectedTime, windowStartMinutes, windowEndMinutes)}%` }}>
+                    <span className={styles.bookingPin} aria-hidden="true" />
+                    <div>
+                      <strong>{unaffectedName} · {unaffectedTime}</strong>
+                      <small>{maxDisplayState}</small>
+                    </div>
                   </div>
-                </div>
+                ) : null}
               </div>
+              {!showAffectedPin || !showUnaffectedPin ? (
+                <div className={styles.rowNote}>
+                  {!showAffectedPin ? "No bookings affected by this plan. " : ""}
+                  {!showUnaffectedPin ? "No preserved bookings listed." : ""}
+                </div>
+              ) : null}
             </div>
 
             <div className={styles.timelineRow}>
               <div className={styles.rowLabel}>Availability result</div>
               <div className={`${styles.rowTrack} ${styles.resultTrack}`}>
-                {halfHourTicks.map((tick) => (
-                  <i key={tick} className={styles.trackTick} style={{ left: `${tick * 10}%` }} aria-hidden="true" />
+                {tickPositions.map((position) => (
+                  <i key={position} className={styles.trackTick} style={{ left: `${position}%` }} aria-hidden="true" />
                 ))}
                 <div className={styles.openWindow} />
                 {proposedTime ? (
-                  <div className={styles.recommendation} style={{ left: `${timelinePosition(proposedTime)}%` }}>
+                  <div className={styles.recommendation} style={{ left: `${timelinePosition(proposedTime, windowStartMinutes, windowEndMinutes)}%` }}>
                     <span aria-hidden="true" />
                     <strong>{phase === "completed" ? "Confirmed" : isApplied ? "Held" : "Recommended"} · {proposedTime}</strong>
                   </div>
@@ -744,11 +894,11 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
 
           <div className={styles.timelineFooter}>
             <div className={styles.legend}>
-              <span><i className={styles.legendBusy} /> {isApplied ? "Operational block" : hasPlan ? "Normalized calendar context" : "Example calendar input"}</span>
-              <span><i className={styles.legendAffected} /> {hasPlan ? "Luna in impact set" : "Luna · example booking"}</span>
-              <span><i className={styles.legendPreserved} /> {hasPlan ? "Max preserved" : "Max · control booking"}</span>
+              <span><i className={styles.legendBusy} /> {showBusyPill ? (isApplied ? "Operational block" : hasPlan ? "Normalized calendar context" : "Requested calendar input") : "No busy intervals"}</span>
+              <span><i className={styles.legendAffected} /> {showAffectedPin ? (hasPlan ? "Luna in impact set" : "Luna · example booking") : "No conflicts"}</span>
+              <span><i className={styles.legendPreserved} /> {showUnaffectedPin ? (hasPlan ? "Max preserved" : "Max · control booking") : "No preserved bookings"}</span>
             </div>
-            <small>{hasPlan ? "Plan-derived state · fixture names remain readable" : "Example data shown before the plan is prepared"}</small>
+            <small>{hasPlan ? "Plan-derived state · fixture names remain readable" : "Seeded appointments · requested rules not applied yet"}</small>
           </div>
         </section>
 
@@ -780,13 +930,31 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
             </div>
             <div className={styles.impactWide}>
               <dt>Affected appointment</dt>
-              <dd>{affectedName} <span>· {affectedTime}</span></dd>
-              <small>{affectedCount === null ? "Fixture name · awaiting plan impact" : `${affectedCount} affected appointment${affectedCount === 1 ? "" : "s"} · conflict-derived`}</small>
+              {affectedRows.length > 0 || exampleMode ? (
+                <>
+                  <dd>{affectedName} <span>· {affectedTime}</span></dd>
+                  <small>{affectedCount === null ? "Fixture name · awaiting plan impact" : `${affectedCount} affected appointment${affectedCount === 1 ? "" : "s"} · conflict-derived`}</small>
+                </>
+              ) : (
+                <>
+                  <dd>No conflicts</dd>
+                  <small>Every existing booking stays as scheduled</small>
+                </>
+              )}
             </div>
             <div className={styles.impactWide}>
               <dt>Unaffected control</dt>
-              <dd>{unaffectedName} <span>· {unaffectedTime}</span></dd>
-              <small>{unaffectedCount === null ? "Fixture name · awaiting plan impact" : `${unaffectedCount} unaffected · existing booking preserved`}</small>
+              {unaffectedRows.length > 0 || exampleMode ? (
+                <>
+                  <dd>{unaffectedName} <span>· {unaffectedTime}</span></dd>
+                  <small>{unaffectedCount === null ? "Fixture name · awaiting plan impact" : `${unaffectedCount} unaffected · existing booking preserved`}</small>
+                </>
+              ) : (
+                <>
+                  <dd>None listed</dd>
+                  <small>No preserved bookings in this plan</small>
+                </>
+              )}
             </div>
             <div>
               <dt>Recommended alternative</dt>
@@ -821,37 +989,26 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
           <span className={styles.panelLabel}>Review and control</span>
           <h2 id="availability-approval-title">
             {phase === "approved"
-              ? "Approved for the assistant to apply."
+              ? "Approved — ready for either route."
               : isApplied
                 ? "Applied from the Owner request."
-                : "Your assistant can finish this exact plan, or you can approve it here."}
+                : "Two routes to the same exact result."}
           </h2>
           <p>
             {hasPlan
-              ? "An explicit apply instruction in your prompt lets the assistant approve and apply this exact result. The button remains as the manual fallback."
-              : "The exact plan and its consequence will appear here after the assistant prepares a database-backed availability plan."}
+              ? "An explicit apply instruction in your prompt lets your AI agent approve and apply this exact result. Doing it by hand works too — same revision, same checks."
+              : "The exact plan and its consequence will appear here after your AI agent prepares a database-backed availability plan."}
           </p>
         </div>
         <div className={styles.approvalReceipt}>
           <dl>
-            <div><dt>Appointment</dt><dd>{hasPlan ? `${affectedName} · ${serviceName}` : "Waiting for plan"}</dd></div>
-            <div><dt>Change</dt><dd>{hasPlan && holdTime ? `${periodLabel} ${affectedTime} → proposed ${holdTime}` : hasPlan ? "Exact alternative not recorded" : "No exact change yet"}</dd></div>
-            <div><dt>Control</dt><dd>{hasPlan ? `${unaffectedName} remains at ${unaffectedTime}` : "Fixture context · not evaluated"}</dd></div>
+            <div><dt>Appointment</dt><dd>{!hasPlan ? "Waiting for plan" : affectedRows.length > 0 ? `${affectedName} · ${serviceName}` : "No conflicts in this plan"}</dd></div>
+            <div><dt>Change</dt><dd>{hasPlan && holdTime ? `${periodLabel} ${affectedTime} → proposed ${holdTime}` : !hasPlan ? "No exact change yet" : affectedRows.length > 0 ? "Exact alternative not recorded" : "Nothing to change"}</dd></div>
+            <div><dt>Control</dt><dd>{!hasPlan ? "Fixture context · not evaluated" : unaffectedRows.length > 0 ? `${unaffectedName} remains at ${unaffectedTime}` : "No preserved bookings"}</dd></div>
             <div><dt>Side effect</dt><dd>{approvalSideEffect}</dd></div>
           </dl>
-          {approvalNotice ? <p className={`${styles.notice} ${notice === "approved" ? styles.noticeSuccess : styles.noticeError}`}>{approvalNotice}</p> : null}
-          {canApprove ? (
-            <form className={styles.approvalForm} action={approveAvailabilityPlan}>
-              <input name="organizationSlug" type="hidden" value={organizationSlug} />
-              <input name="planId" type="hidden" value={planId ?? ""} />
-              <input name="expectedRevision" type="hidden" value={revision ?? ""} />
-              <input name="planHash" type="hidden" value={planHash ?? ""} />
-              <button className={styles.approveButton} type="submit">Approve manually</button>
-              <small>RPC approval · base revision {revision} · plan hash verified</small>
-            </form>
-          ) : (
-            <p className={styles.approvalMessage}>{approvalMessage}</p>
-          )}
+          {approvalNotice ? <p className={`${styles.notice} ${styles[approvalNoticeState === "success" ? "noticeSuccess" : "noticeError"]}`}>{approvalNotice}</p> : null}
+          <p className={styles.approvalMessage}>{approvalMessage}</p>
         </div>
       </section>
 
@@ -859,8 +1016,8 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
         <div className={styles.agentReady} role="status">
           <span className={styles.agentReadyIcon} aria-hidden="true">✓</span>
           <div>
-            <strong>Approval receipt: the assistant may now apply.</strong>
-            <p>The manual approval is bound to this plan revision. The assistant can now apply it without another review step.</p>
+            <strong>Approval receipt: ready to apply, either way.</strong>
+            <p>The manual approval is bound to this plan revision. Your AI agent can apply it — or apply it yourself in the manual section below.</p>
           </div>
           <span className={styles.agentReadyState}>Ready to apply</span>
         </div>
@@ -889,14 +1046,98 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, appointm
       ) : null}
 
       <aside className={`${styles.activity} ${phase === "approved" ? styles.activityApproved : ""} ${isApplied ? styles.activityApplied : ""}`} aria-live="polite">
-        <span className={styles.activityIcon} aria-hidden="true">AI</span>
+        <span className={styles.activityIcon} aria-hidden="true">M</span>
         <div>
-          <span className={styles.panelLabel}>Assistant activity</span>
+          <span className={styles.panelLabel}>What is happening</span>
           <strong>{activity.title}</strong>
           <p>{activity.detail}</p>
         </div>
         <span className={styles.activityStatus}>{statusLabel}</span>
       </aside>
+
+      <details className={styles.manualFallback} id="availability-manual">
+        <summary>
+          <span>Want to do it manually?</span>
+          <small>No agent needed, approve and apply it yourself.</small>
+        </summary>
+        <div className={styles.manualBody}>
+          {approvalNotice ? <p className={`${styles.notice} ${styles[approvalNoticeState === "success" ? "noticeSuccess" : "noticeError"]}`}>{approvalNotice}</p> : null}
+          {!hasPlan && role === "owner" ? (
+            <div className={styles.manualStep}>
+              <span className={styles.panelLabel}>Step 0 · Prepare it by hand</span>
+              <form className="publication-form" action={prepareAvailabilityPlanManually}>
+                <input name="organizationSlug" type="hidden" value={organizationSlug} />
+                <div className={styles.manualFieldGrid}>
+                  <label>Service
+                    <select name="serviceSlug" defaultValue="dermatology" required>
+                      {services.map((service) => (
+                        <option key={service.slug} value={service.slug}>{service.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>Period start<input name="periodStart" type="date" defaultValue={formDefaults.periodStart} required /></label>
+                  <label>Period end<input name="periodEnd" type="date" defaultValue={formDefaults.periodEnd} required /></label>
+                  <label>Timezone<input name="timezone" defaultValue={formDefaults.timezone} required /></label>
+                  <label>Slot minutes<input name="slotDuration" type="number" min={5} max={480} defaultValue={formDefaults.slotDuration} required /></label>
+                </div>
+                <p className={styles.manualStatic}>Existing bookings are always preserved.</p>
+                <div className={styles.manualRows} aria-label="Weekly working hours">
+                  <span className={styles.panelLabel}>Which days are open?</span>
+                  <small className={styles.manualHint}>Leave a day blank to keep it closed.</small>
+                  {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+                    <div className={styles.manualRow} key={`weekly-${day}`}>
+                      <span>{dayNames[day]}</span>
+                      <label>Opens<input name={`weekly_start_${day}`} type="time" defaultValue={formDefaults.weekly[day]?.[0] ?? ""} /></label>
+                      <label>Closes<input name={`weekly_end_${day}`} type="time" defaultValue={formDefaults.weekly[day]?.[1] ?? ""} /></label>
+                    </div>
+                  ))}
+                </div>
+                <div className={styles.manualRows} aria-label="Recurring blocked hours">
+                  <span className={styles.panelLabel}>Blocked hours each day</span>
+                  <small className={styles.manualHint}>For lunch or recurring breaks — blank means no block.</small>
+                  {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+                    <div className={styles.manualRow} key={`block-${day}`}>
+                      <span>{dayNames[day]}</span>
+                      <label>From<input name={`block_start_${day}`} type="time" defaultValue={formDefaults.blocks[day]?.[0] ?? ""} /></label>
+                      <label>Until<input name={`block_end_${day}`} type="time" defaultValue={formDefaults.blocks[day]?.[1] ?? ""} /></label>
+                    </div>
+                  ))}
+                </div>
+                <label>Busy intervals · one per line · start, end with timezone offset
+                  <textarea name="busyIntervals" rows={3} defaultValue={formDefaults.busyText} placeholder="Start ISO datetime, end ISO datetime" />
+                </label>
+                <button className={styles.approveButton} type="submit">Prepare manually</button>
+              </form>
+            </div>
+          ) : null}
+          {canApprove ? (
+            <div className={styles.manualStep}>
+              <span className={styles.panelLabel}>Step 1 · Approve this exact plan</span>
+              <form className={styles.approvalForm} action={approveAvailabilityPlan}>
+                <input name="organizationSlug" type="hidden" value={organizationSlug} />
+                <input name="planId" type="hidden" value={planId ?? ""} />
+                <input name="expectedRevision" type="hidden" value={revision ?? ""} />
+                <input name="planHash" type="hidden" value={planHash ?? ""} />
+                <button className={styles.approveButton} type="submit">Approve manually</button>
+                <small>RPC approval · base revision {revision} · plan hash verified</small>
+              </form>
+            </div>
+          ) : null}
+          {canApplyNow ? (
+            <div className={styles.manualStep}>
+              <span className={styles.panelLabel}>Step 2 · Apply it yourself</span>
+              <form className={styles.approvalForm} action={applyApprovedAvailabilityPlan}>
+                <input name="organizationSlug" type="hidden" value={organizationSlug} />
+                <button className={styles.approveButton} type="submit">Apply now</button>
+                <small>Same exact revision · same checks · customer update included</small>
+              </form>
+            </div>
+          ) : null}
+          {!hasPlan && role === "owner" ? null : !canApprove && !canApplyNow ? (
+            <p className={styles.approvalMessage}>{approvalMessage}</p>
+          ) : null}
+        </div>
+      </details>
     </section>
   );
 }

@@ -21,6 +21,56 @@ function siteSlugFromForm(formData: FormData) {
   return value;
 }
 
+export type BookingSlotOption = {
+  slot_id: string;
+  starts_at: string;
+  duration_minutes: number;
+};
+
+// Live slot lookup for the manual booking form. Same tenant-safe RPC the
+// agent tool uses; inputs are validated here and the RPC fails closed.
+export async function findSlotsForBooking(
+  siteSlug: string,
+  serviceSlug: string,
+  date: string,
+): Promise<{ slots: BookingSlotOption[] } | { error: string }> {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(siteSlug)) return { error: "invalid_site" };
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(serviceSlug) || serviceSlug.length > 80) {
+    return { error: "invalid_service" };
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) {
+    return { error: "invalid_date" };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("find_appointment_slots", {
+    p_site_slug: siteSlug,
+    p_service_slug: serviceSlug,
+    p_date: date,
+  });
+
+  if (error || !Array.isArray(data)) return { error: "unavailable" };
+
+  const slots: BookingSlotOption[] = [];
+
+  for (const row of data) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+
+    const slot = row as Record<string, unknown>;
+    const slotId = slot.slot_id ?? slot.id;
+    const startsAt = slot.starts_at;
+    const duration = slot.duration_minutes;
+
+    if (typeof slotId !== "string" || !slotId) continue;
+    if (typeof startsAt !== "string" || Number.isNaN(Date.parse(startsAt))) continue;
+    if (typeof duration !== "number" || !Number.isFinite(duration) || duration <= 0) continue;
+
+    slots.push({ slot_id: slotId, starts_at: startsAt, duration_minutes: duration });
+  }
+
+  return { slots };
+}
+
 export async function prepareAppointmentFromPage(formData: FormData) {
   const siteSlug = siteSlugFromForm(formData);
   const serviceSlug = required(formData, "serviceSlug");

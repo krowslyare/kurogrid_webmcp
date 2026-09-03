@@ -9,7 +9,6 @@ import {
 } from "@/features/attention/server/actions";
 import { updateAppointmentFromOwner } from "@/features/appointments/server/actions";
 import { KuroBrand } from "@/components/KuroBrand";
-import { WorkspacePulseIllustration } from "@/components/ProductIllustrations";
 import { getViewer } from "@/features/auth/server/get-viewer";
 import { AvailabilityControlRoom } from "@/features/availability/ui/AvailabilityControlRoom";
 import {
@@ -260,6 +259,37 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
     ? steps.filter((step) => step.action_plan_id === guidedPlan.id)
     : [];
   const firstSite = sites[0];
+
+  // Active services for the manual availability form. The agent resolves the
+  // same catalog from the published site; the server revalidates the chosen
+  // slug before preparing anything.
+  const { data: clinicServices, error: clinicServicesError } = firstSite
+    ? await supabase
+        .from("clinic_services")
+        .select("id, slug, name")
+        .eq("site_id", firstSite.id)
+        .eq("active", true)
+        .order("name")
+    : { data: [], error: null };
+
+  if (clinicServicesError) {
+    throw new Error("Unable to load clinic services.", {
+      cause: clinicServicesError,
+    });
+  }
+
+  // Current availability configuration for the manual fallback defaults.
+  // The agent reads the same state; an unavailable configuration only falls
+  // back to fixture defaults instead of breaking the workspace.
+  const defaultServiceId = (clinicServices ?? []).find((service) => service.slug === "dermatology")?.id
+    ?? (clinicServices ?? [])[0]?.id;
+  const configurationDb = supabase as unknown as SupabaseClient;
+  const { data: availabilityConfiguration } = firstSite && defaultServiceId
+    ? await configurationDb.rpc("get_availability_configuration", {
+        p_site_id: firstSite.id,
+        p_service_id: defaultServiceId,
+      })
+    : { data: null };
   const firstDraft = firstSite
     ? drafts.find((draft) => draft.site_id === firstSite.id)
     : undefined;
@@ -286,7 +316,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
         ? "Review the exact change before it goes live."
         : guidedPlan
           ? "The evidence is clear. Shape the Saturday message."
-          : "Keep Mimo accurate for customers and their assistants.";
+          : "Keep Mimo accurate for customers and their AI agents.";
   const isMimoDemo = organizationSlug.startsWith("mimo-demo-") || organizationSlug.includes("mimo");
   const currentTab = notice.tab === "appointments" || Boolean(notice.appointment)
     ? "appointments"
@@ -370,7 +400,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
               </div>
               <aside>
                 <small>Current task</small>
-                <strong>September dermatology hours</strong>
+                <strong>Dermatology hours</strong>
                 <span>One Owner request can update the schedule and prepare the customer notice</span>
               </aside>
             </section>
@@ -380,8 +410,14 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
             organizationSlug={organizationSlug}
             role={membership.role}
             plan={availabilityPlan}
+            defaultConfiguration={availabilityConfiguration ?? null}
+            services={(clinicServices ?? []).map((service) => ({
+              slug: service.slug,
+              name: service.name,
+            }))}
             appointments={appointmentRequests.map((request) => ({
               id: request.id,
+              pet_name: request.pet_name,
               proposed_starts_at: request.proposed_starts_at,
               starts_at: request.appointment_slots.starts_at,
               status: request.status,
@@ -511,7 +547,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                 <p>Content &amp; publication</p>
                 <h1 id="content-operations-title">Website operations</h1>
                 <span>
-                  Update public copy and structured assistant facts. Both views
+                  Update public copy and structured AI agent facts. Both views
                   update together from one approved revision. This content flow
                   is separate from the September availability plan in Schedule.
                 </span>
@@ -530,22 +566,18 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
             <p className="kicker">Website settings</p>
             <h2>{workspaceTitle}</h2>
             <p>
-              Update the public page once. Customers and assistants will see the
-              same services and hours.
+              Update the public page once. Customers and their AI agents will
+              see the same services and hours.
             </p>
           </div>
-          <div className="workspace-illustration-wrap">
-            <WorkspacePulseIllustration />
-            <p><span>One approved change</span><strong>Customer page + assistant tools</strong></p>
-          </div>
         </div>
-        <ol className="workspace-progress" aria-label="Website update progress">
-          {[
-            [1, "Review", "Check what changed"],
-            [2, "Draft", "Prepare the website change"],
-            [3, "Approve", "Review the exact draft"],
-            [4, "Publish", "Make it live or undo it"],
-          ].map(([step, label, description]) => (
+          <ol className="workspace-progress" aria-label="Website update progress">
+            {[
+              [1, "Review", "Check what changed"],
+              [2, "Draft", "Prepare the exact wording"],
+              [3, "Approve", "Owner approves this revision"],
+              [4, "Publish", "Go live or restore"],
+            ].map(([step, label, description]) => (
             <li
               className={Number(step) < currentStep ? "is-complete" : Number(step) === currentStep ? "is-current" : ""}
               key={String(step)}
@@ -597,7 +629,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
               </h3>
               <p>
                 {currentDraftIsPublished
-                  ? "Customers and assistants now read the same published version."
+                  ? "Customers and AI agents now read the same published version."
                   : firstSiteApproved
                     ? "Publish below when you are ready to update both views together."
                     : firstDraft
@@ -638,7 +670,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
             <p className="kicker">Website draft and release</p>
             <h2 id="publication-title">Make Saturday care unmistakable.</h2>
           </div>
-          <p>Turn the approved evidence into one clear message, then publish it for customers and assistants together.</p>
+          <p>Turn the approved evidence into one clear message, then publish it for customers and AI agents together.</p>
         </div>
 
         {sites.map((site) => {
@@ -753,7 +785,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                     </div>
                     <span>
                       {isCurrentDraftPublished
-                        ? `Version ${publishedVersion?.version_number ?? "Not available"} · Live for customers and assistants`
+                         ? `Version ${publishedVersion?.version_number ?? "Not available"} · Live for customers and AI agents`
                         : hasExactApproval
                           ? `Draft v${draft?.revision ?? "Not available"} · Approved, not live yet`
                         : `${draft ? `Draft v${draft.revision}` : "Suggested from evidence"} · Nothing is live yet`}
@@ -770,7 +802,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                       </dl>
                     </article>
                     <article className="agent-consequence-preview">
-                      <span>Assistant preview</span>
+                      <span>AI agent preview</span>
                       <h4>Structured facts from this same version</h4>
                       <ul>
                         <li><strong>Opening hours</strong><small>{contentString(hours, "saturday")}</small></li>
@@ -857,12 +889,12 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
             <h2 id="customer-handoff-title">See the update from the other side.</h2>
             <p>
               Version {firstPublishedVersion?.version_number ?? "Not available"} now powers both
-              Mimo&apos;s public page and the actions available to assistants.
+              Mimo&apos;s public page and the actions available to AI agents.
             </p>
           </div>
           <ol aria-label="What is now live">
             <li>Saturday hours are public</li>
-            <li>Assistants can read current availability</li>
+            <li>AI agents read the same current availability</li>
             <li>Customer requests return to this workspace</li>
           </ol>
           <Link href={`/sites/${firstSite.slug}`}>
