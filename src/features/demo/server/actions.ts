@@ -22,7 +22,17 @@ function accessCodeMatches(candidate: string) {
     return true;
   }
 
-  if (!expected || Buffer.byteLength(expected) < 24) return false;
+  if (!expected || Buffer.byteLength(expected) < 8) return false;
+
+  const candidateNorm = candidate.trim().toLowerCase();
+  const expectedNorm = expected.trim().toLowerCase();
+
+  if (
+    (expectedNorm === "webmcphackaton" || expectedNorm === "webmcphackathon")
+    && (candidateNorm === "webmcphackaton" || candidateNorm === "webmcphackathon")
+  ) {
+    return true;
+  }
 
   const candidateBuffer = Buffer.from(candidate);
   const expectedBuffer = Buffer.from(expected);
