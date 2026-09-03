@@ -529,6 +529,26 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
                       Download .ics (Apple / Outlook)
                     </a>
                   </div>
+                  <Link
+                    className="clinic-text-button"
+                    href={`/sites/${siteSlug}#talk-to-mimo`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      marginTop: "16px",
+                      padding: "8px 0",
+                      color: "#ced7d1",
+                      fontSize: "12px",
+                    }}
+                  >
+                    <span className="clinic-inline-arrow" aria-hidden="true">
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M13 8H3M7 4L3 8l4 4" />
+                      </svg>
+                    </span>
+                    Book another visit for another pet
+                  </Link>
                 </div>
               </div>
             ) : appointment.status === "declined" ? (

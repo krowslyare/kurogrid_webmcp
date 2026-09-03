@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <WebMcpInitializer />
         <LenisProvider>{children}</LenisProvider>
-        <Toaster position="bottom-right" />
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );

@@ -140,3 +140,18 @@ export async function restartGuidedDemo() {
 
   redirect("/demo?restart=1");
 }
+
+export async function forceResetAllDemoSandboxes(formData: FormData) {
+  const accessCode = formData.get("accessCode");
+  if (typeof accessCode !== "string" || !accessCodeMatches(accessCode)) {
+    redirect("/demo?error=access");
+  }
+
+  const admin = createAdminClient();
+  await admin.from("demo_leases").update({ released_at: new Date().toISOString() }).is("released_at", null);
+
+  const supabase = await createClient();
+  await supabase.auth.signOut({ scope: "local" });
+
+  redirect("/demo?restart=1");
+}

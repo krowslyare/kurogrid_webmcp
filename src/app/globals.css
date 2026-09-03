@@ -890,17 +890,24 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .customer-appointment-receipt dt { color: #91a198; font-size: 8px; letter-spacing: .09em; text-transform: uppercase; }
 .customer-appointment-receipt dd { margin: 0; color: #f3f5f1; font-size: 11px; line-height: 1.4; }
 .customer-appointment-receipt > small { display: block; margin-top: 18px; color: #9dada3; font-size: 9px; line-height: 1.5; }
-.agent-activity-receipt { position: fixed; right: 22px; bottom: 22px; z-index: 50; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 11px; width: min(350px, calc(100vw - 28px)); padding: 12px 13px; border: 1px solid rgba(190,224,101,.45); border-radius: 14px; background: rgba(20,39,31,.96); color: #fff; box-shadow: 0 18px 48px rgba(11,24,18,.24); backdrop-filter: blur(18px); animation: agent-activity-enter .24s ease-out both; }
+.agent-activity-receipt { position: fixed; left: 24px; bottom: 24px; right: auto; z-index: 50; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 11px; width: min(350px, calc(100vw - 48px)); padding: 12px 14px; border: 1px solid rgba(190,224,101,.45); border-radius: 14px; background: rgba(20,39,31,.96); color: #fff; box-shadow: 0 18px 48px rgba(11,24,18,.24); backdrop-filter: blur(18px); animation: agent-activity-enter .24s ease-out both; }
 .agent-activity-receipt > div { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--clinic-lime); color: var(--clinic-ink); font-size: 8px; font-weight: 900; }
 .agent-activity-receipt > span { display: grid; gap: 3px; }
 .agent-activity-receipt small { color: #aebdb3; font-size: 7px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .agent-activity-receipt strong { color: #fff; font-size: 12px; }
 .agent-activity-receipt p { margin: 1px 0 0; overflow: hidden; color: #bfcac3; font-size: 9px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .agent-activity-receipt button { border: 0; background: transparent; color: #9dafa4; cursor: pointer; font-size: 19px; line-height: 1; }
-.agent-activity-receipt.is-appointment { right: auto; left: 22px; }
 .agent-activity-receipt.is-workspace { border-color: rgba(210,244,93,.48); background: rgba(8,24,18,.96); }
 @keyframes agent-activity-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .agent-activity-receipt { animation: none; } }
+
+body:has(dialog[open]) .floating-talk-agent-btn,
+body:has(dialog[open]) .agent-activity-receipt {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: scale(0.92) !important;
+  transition: opacity .2s ease, transform .2s ease;
+}
 .publication-consequence-preview { margin: 24px 0; padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: #f4f3ec; }
 .publication-consequence-preview > header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 18px; }
 .publication-consequence-preview h3 { margin: 7px 0 0; font-family: var(--font-syne), Syne, sans-serif; font-size: 24px; line-height: 1.05; letter-spacing: -.04em; }
