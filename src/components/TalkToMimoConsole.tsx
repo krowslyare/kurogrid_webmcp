@@ -50,17 +50,12 @@ export function TalkToMimoConsole({
   const [isListening, setIsListening] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [steps, setSteps] = useState<ExecutionStep[]>([]);
-  const [speechSupported] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    const win = window as unknown as Record<string, unknown>;
-    return Boolean(win.SpeechRecognition || win.webkitSpeechRecognition);
-  });
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && speechSupported) {
+    if (typeof window !== "undefined") {
       const win = window as unknown as {
         SpeechRecognition?: new () => SpeechRecognitionLike;
         webkitSpeechRecognition?: new () => SpeechRecognitionLike;
@@ -90,10 +85,10 @@ export function TalkToMimoConsole({
         recognitionRef.current = recognition;
       }
     }
-  }, [speechSupported]);
+  }, []);
 
   const toggleListening = () => {
-    if (!speechSupported || !recognitionRef.current) {
+    if (!recognitionRef.current) {
       inputRef.current?.focus();
       return;
     }
@@ -234,7 +229,7 @@ export function TalkToMimoConsole({
           type="button"
           className={`talk-to-mimo-mic-btn ${isListening ? "is-listening" : ""}`}
           onClick={toggleListening}
-          title={speechSupported ? (isListening ? "Listening... click to stop" : "Click to speak with voice") : "Voice not supported in this browser"}
+          title={isListening ? "Listening... click to stop" : "Click to speak with voice"}
           aria-label="Voice input"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
