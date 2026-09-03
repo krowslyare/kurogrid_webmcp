@@ -13,6 +13,7 @@ import {
   updateAppointmentFromOwner,
 } from "@/features/appointments/server/actions";
 import { KuroBrand } from "@/components/KuroBrand";
+import { LiveAppointmentSync } from "@/components/LiveAppointmentSync";
 import { getViewer } from "@/features/auth/server/get-viewer";
 import { AvailabilityControlRoom } from "@/features/availability/ui/AvailabilityControlRoom";
 import { AvailabilityNoticeToast } from "@/features/availability/ui/AvailabilityNoticeToast";
@@ -417,6 +418,11 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
           <Suspense fallback={null}>
             <AvailabilityNoticeToast />
           </Suspense>
+          <LiveAppointmentSync
+            organizationId={membership.organizationId}
+            organizationSlug={organizationSlug}
+            initialStateKey={appointmentRequests.map((r) => `${r.id}:${r.status}:${r.proposed_starts_at ?? ""}`).join("|")}
+          />
           <AvailabilityControlRoom
             organizationSlug={organizationSlug}
             role={membership.role}
