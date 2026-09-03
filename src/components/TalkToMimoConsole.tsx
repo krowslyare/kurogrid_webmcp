@@ -246,9 +246,7 @@ export function TalkToMimoConsole({
       );
 
       // Step 3: Direct to confirmation card via Next.js router
-      setTimeout(() => {
-        router.push(`${prepareResult.navigate_to}#agent-booking`);
-      }, 750);
+      router.push(`${prepareResult.navigate_to}#agent-booking`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Execution encountered an error.";
       addStep("error", message);
