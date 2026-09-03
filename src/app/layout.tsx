@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Syne, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "sonner";
 import { LenisProvider } from "@/components/LenisProvider";
 
 const syne = Syne({ subsets: ["latin"], variable: "--font-syne", display: "swap" });
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" data-scroll-behavior="smooth" className={`${syne.variable} ${manrope.variable} ${jetbrains.variable}`}>
       <body>
         <LenisProvider>{children}</LenisProvider>
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );

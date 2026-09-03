@@ -4,7 +4,7 @@ import { claimDemoSandbox } from "@/features/demo/server/actions";
 import { KuroSelect } from "@/components/ui/KuroSelect";
 
 type PageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; restart?: string }>;
 };
 
 const errorMessages: Record<string, string> = {
@@ -16,7 +16,7 @@ const errorMessages: Record<string, string> = {
 };
 
 export default async function DemoPage({ searchParams }: PageProps) {
-  const { error } = await searchParams;
+  const { error, restart } = await searchParams;
 
   return (
     <main className="auth-shell">
@@ -70,6 +70,7 @@ export default async function DemoPage({ searchParams }: PageProps) {
             />
           </div>
           {error ? <p className="form-error">{errorMessages[error] ?? "Demo access failed."}</p> : null}
+          {restart === "1" ? <p className="form-success">Previous session closed. Claim a clean workspace whenever you are ready.</p> : null}
             <button type="submit">Open isolated demo</button>
           </form>
           <div className="demo-secondary">

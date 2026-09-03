@@ -1,10 +1,12 @@
 import type { CSSProperties } from "react";
 
 import { approveAvailabilityPlan, applyApprovedAvailabilityPlan, prepareAvailabilityPlanManually } from "../server/actions";
-import { availabilityPromptFor, demoPlanDefaults, groupedDayRanges } from "../lib/manual-plan";
+import { availabilityPromptFor, demoPlanDefaults, groupedDayRanges, hasConfiguredRanges } from "../lib/manual-plan";
+import { restartGuidedDemo } from "@/features/demo/server/actions";
 
 import styles from "./availability-control-room.module.css";
 import { CopyAvailabilityPrompt } from "./CopyAvailabilityPrompt";
+import { ManualSubmitButton } from "./ManualSubmitButton";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -319,6 +321,30 @@ function phaseActivity(phase: PlanPhase, statusLabel: string, hasPlan: boolean):
   }
 }
 
+type StepState = "done" | "current" | "error" | "todo";
+
+function stepStatesFor(phase: PlanPhase, hasPlan: boolean, notice?: string): StepState[] {
+  if (!hasPlan) return ["current", "todo", "todo", "todo"];
+
+  // A failed or stale run marks the step that was in flight instead of
+  // silently highlighting the next one.
+  if (phase === "failed" || phase === "stale") {
+    const attentionStep = notice === "apply_error" ? 3 : 2;
+    return [1, 2, 3, 4].map((step) =>
+      step < attentionStep ? "done" : step === attentionStep ? "error" : "todo");
+  }
+
+  switch (phase) {
+    case "pending": return ["done", "current", "todo", "todo"];
+    case "approved": return ["done", "done", "current", "todo"];
+    case "applied":
+    case "customer": return ["done", "done", "done", "current"];
+    case "completed": return ["done", "done", "done", "done"];
+    case "manual": return ["done", "done", "done", "current"];
+    default: return ["done", "current", "todo", "todo"];
+  }
+}
+
 function metricValue(value: number | string | null) {
   return value === null ? "Pending" : typeof value === "number" ? String(value) : value;
 }
@@ -395,7 +421,8 @@ function stateClass(phase: PlanPhase) {
 export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultConfiguration = null, services, appointments = [], notice }: Props) {
   const hasPlan = Boolean(plan);
   const formDefaults = demoPlanDefaults(defaultConfiguration);
-  const usingExampleRules = !hasPlan;
+  const usingExampleRules = !hasPlan && !hasConfiguredRanges(defaultConfiguration);
+  const ruleStripLabel = hasPlan ? "Plan rules" : usingExampleRules ? "Example request" : "Current rules";
   const weeklyGroups = groupedDayRanges(formDefaults.weekly);
   const blockGroups = groupedDayRanges(formDefaults.blocks);
   const ruleChips = [
@@ -463,7 +490,6 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
   const rawStatus = stringAt(planRecords, ["status", "plan_status", "state"]);
   const storedPhase = hasPlan ? normalizeStatus(rawStatus) : "empty";
   const createdAt = formatCreatedAt(stringAt(planRecords, ["created_at", "createdAt"]));
-  const exampleMode = !hasPlan;
   const persistedWeeklyRangeRows = objectArrayAt(allRecords, [
     "weekly_ranges",
     "weeklyRanges",
@@ -487,13 +513,7 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
     "effective_date",
     "date",
   ]);
-  const periodLabel = exampleMode
-    ? planPeriodLabel(formDefaults.periodStart, Object.entries(formDefaults.weekly).map(([day, range]) => ({
-        day_of_week: Number(day),
-        starts_at: range?.[0],
-        ends_at: range?.[1],
-      })))
-    : planPeriodLabel(periodStart, weeklyRangeRows);
+  const periodLabel = planPeriodLabel(periodStart ?? formDefaults.periodStart, weeklyRangeRows);
   const timezone = stringAt(allRecords, ["timezone", "time_zone"]) ?? "America/Lima";
   const serviceName = stringAt(allRecords, ["service_name", "service", "service_label"]) ?? "Dermatology";
   const slotDuration = numberAt(allRecords, [
@@ -515,16 +535,8 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
     "preserved_appointments",
     "unaffected_bookings",
   ]);
-  const affectedRows = persistedAffectedRows.length
-    ? persistedAffectedRows
-    : !hasPlan && appointmentRows[0]
-      ? [appointmentRows[0]]
-      : [];
-  const unaffectedRows = persistedUnaffectedRows.length
-    ? persistedUnaffectedRows
-    : !hasPlan && appointmentRows[1]
-      ? [appointmentRows[1]]
-      : [];
+  const affectedRows = hasPlan ? persistedAffectedRows : [];
+  const unaffectedRows = hasPlan ? persistedUnaffectedRows : [];
   const affectedName = firstName(affectedRows, "Luna");
   const unaffectedName = firstName(unaffectedRows, "Max");
   const affectedTime = firstAppointmentTime(affectedRows, [
@@ -549,17 +561,17 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
     const match = line.trim().match(/^(.+?)\s*,\s*(.+)$/);
     return match ? [{ starts_at: match[1], ends_at: match[2] }] : [];
   });
-  const busyRows = persistedBusyRows.length ? persistedBusyRows : requestedBusyRows;
+  const busyRows = persistedBusyRows.length ? persistedBusyRows : (hasPlan ? requestedBusyRows : []);
   const focusDay = weekdayFor(
     appointmentRows[0]?.starts_at
       ?? appointmentRows[0]?.proposed_starts_at
-      ?? busyRows[0]?.starts_at,
+      ?? (hasPlan ? busyRows[0]?.starts_at : null),
   );
   const busyStart = firstAppointmentTime(busyRows, ["starts_at", "start_at", "start", "from"], "10:00");
   const busyEnd = firstAppointmentTime(busyRows, ["ends_at", "end_at", "end", "to"], "11:30");
-  const showAffectedPin = affectedRows.length > 0 || exampleMode;
-  const showUnaffectedPin = unaffectedRows.length > 0 || exampleMode;
-  const showBusyPill = busyRows.length > 0 || exampleMode;
+  const showAffectedPin = hasPlan && affectedRows.length > 0;
+  const showUnaffectedPin = hasPlan && unaffectedRows.length > 0;
+  const showBusyPill = hasPlan && busyRows.length > 0;
   const alternativeRows = objectArrayAt(allRecords, [
     "alternatives",
     "valid_alternatives",
@@ -654,15 +666,7 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
       && (changesApplied === true || ["applied", "customer", "completed", "manual"].includes(phase)),
   );
   const activity = phaseActivity(phase, statusLabel, hasPlan);
-  const workflowStep = !hasPlan
-    ? 1
-    : phase === "pending"
-      ? 2
-      : phase === "approved"
-        ? 3
-        : phase === "completed"
-          ? 5
-          : 4;
+  const stepStates = stepStatesFor(phase, hasPlan, notice);
   const canApprove = Boolean(
     role === "owner"
       && planId
@@ -680,14 +684,14 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
     : notice === "applied"
       ? "Plan applied by hand. The busy range is blocked and the customer update was prepared."
       : notice === "approval_error"
-        ? "Approval could not be recorded. The plan remains unchanged and should be refreshed before retrying."
-        : notice === "apply_error"
-          ? "Manual apply could not be completed. The plan is unchanged; refresh it before retrying."
-          : notice === "prepared"
-            ? "Plan prepared by hand. Review the impact above, then approve it below."
-            : notice === "prepare_error"
-              ? "Manual plan could not be prepared. Check dates, times, and busy ranges, then retry."
-              : null;
+          ? "Approval could not be recorded. The plan remains unchanged and should be refreshed before retrying."
+          : notice === "apply_error"
+            ? "Manual apply could not be completed. The plan is unchanged; refresh it before retrying."
+            : notice === "prepared"
+              ? "Plan prepared by hand. Review the impact above, then approve it below."
+              : notice === "prepare_error"
+                ? "Manual plan could not be prepared. Check dates, times, and busy ranges, then retry."
+                : null;
   const approvalNoticeState = notice === "approved" || notice === "applied" || notice === "prepared" ? "success" : "error";
   const holdTime = proposedTime;
   const lunaDisplayState = !hasPlan
@@ -736,15 +740,26 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
           [2, "Review", "Your agent shows slots and conflicts"],
           [3, "Apply", "Agent when asked — or manual below"],
           [4, "Customer", "Luna accepts or declines"],
-        ].map(([step, label, detail]) => (
-          <li
-            className={Number(step) < workflowStep ? styles.workflowComplete : Number(step) === workflowStep ? styles.workflowCurrent : ""}
-            key={String(step)}
-          >
-            <span>{Number(step) < workflowStep ? "✓" : step}</span>
-            <div><strong>{label}</strong><small>{detail}</small></div>
-          </li>
-        ))}
+        ].map(([step, label, detail]) => {
+          const state = stepStates[Number(step) - 1] ?? "todo";
+          return (
+            <li
+              className={
+                state === "done"
+                  ? styles.workflowComplete
+                  : state === "current"
+                    ? styles.workflowCurrent
+                    : state === "error"
+                      ? styles.workflowError
+                      : ""
+              }
+              key={String(step)}
+            >
+              <span>{state === "done" ? "✓" : state === "error" ? "!" : step}</span>
+              <div><strong>{label}</strong><small>{detail}</small></div>
+            </li>
+          );
+        })}
       </ol>
 
       <div className={styles.roomTop}>
@@ -756,14 +771,14 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
             until your request says so.
           </p>
           <div className={styles.ruleStrip} aria-label="Requested availability rules">
-            <span>{usingExampleRules ? "Requested rules" : "Plan rules"}</span>
+            <span>{ruleStripLabel}</span>
             <div>
               {ruleChips.map((rule) => <b key={rule}>{rule}</b>)}
             </div>
           </div>
         </div>
         <div className={styles.roomGrid}>
-          <div className={styles.promptCard}>
+          <div className={styles.promptCard} id="availability-prompt">
             <div className={styles.promptCardHead}>
               <div>
                 <span className={styles.panelLabel}>Ask your AI agent</span>
@@ -803,214 +818,231 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
         </div>
       </div>
 
-      <div className={styles.roomMain}>
-        <section className={styles.timelinePanel} aria-labelledby="availability-timeline-title">
-          <header className={styles.panelHeader}>
-            <div>
-              <span className={styles.panelLabel}>{focusDay} operating window{exampleMode ? <em className={styles.exampleBadge}>Requested</em> : null}</span>
-              <h2 id="availability-timeline-title">{windowStart}–{windowEnd}</h2>
-            </div>
-            <div className={styles.panelHeaderMeta}>
-              <strong>{serviceName} · {slotDuration}-minute appointments</strong>
-              <span>{exampleMode ? `${periodLabel} · ready to calculate` : `${periodLabel} · ${timezone}`}</span>
-            </div>
-          </header>
-
-          <div className={styles.timeline}>
-            <div className={styles.timelineAxis} aria-hidden="true">
-              <span />
-              <div style={{ gridTemplateColumns: `repeat(${tickLabels.length}, minmax(0, 1fr))` }}>
-                {tickLabels.map((time) => <span key={time}>{time}</span>)}
-              </div>
-            </div>
-
-            <div className={styles.timelineRow}>
-              <div className={styles.rowLabel}>External context</div>
-              <div className={styles.rowTrack}>
-                {tickPositions.map((position) => (
-                  <i key={position} className={styles.trackTick} style={{ left: `${position}%` }} aria-hidden="true" />
-                ))}
-                {showBusyPill ? (
-                  <div className={styles.busyInterval} style={timelineRange(busyStart, busyEnd, windowStartMinutes, windowEndMinutes)}>
-                    <strong>{isApplied ? "Blocked" : hasPlan ? "Busy interval" : "Requested busy time"}</strong>
-                    <span>{busyStart}–{busyEnd}</span>
-                  </div>
-                ) : null}
-              </div>
-              {!showBusyPill ? (
-                <div className={styles.rowNote}>No busy intervals in this plan</div>
-              ) : null}
-            </div>
-
-            <div className={styles.timelineRow}>
-              <div className={styles.rowLabel}>Existing bookings</div>
-              <div className={`${styles.rowTrack} ${styles.bookingTrack}`}>
-                {tickPositions.map((position) => (
-                  <i key={position} className={styles.trackTick} style={{ left: `${position}%` }} aria-hidden="true" />
-                ))}
-                {showAffectedPin ? (
-                  <div className={`${styles.booking} ${isApplied ? styles.bookingAffectedApplied : styles.bookingAffected} ${phase === "completed" ? styles.bookingCompleted : ""}`} style={{ left: `${timelinePosition(affectedDisplayTime, windowStartMinutes, windowEndMinutes)}%` }}>
-                    <span className={styles.bookingPin} aria-hidden="true" />
-                    <div>
-                      <strong>{affectedName} · {affectedDisplayTime}</strong>
-                      <small>{lunaDisplayState}</small>
-                    </div>
-                  </div>
-                ) : null}
-                {showUnaffectedPin ? (
-                  <div className={`${styles.booking} ${styles.bookingUnchanged}`} style={{ left: `${timelinePosition(unaffectedTime, windowStartMinutes, windowEndMinutes)}%` }}>
-                    <span className={styles.bookingPin} aria-hidden="true" />
-                    <div>
-                      <strong>{unaffectedName} · {unaffectedTime}</strong>
-                      <small>{maxDisplayState}</small>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-              {!showAffectedPin || !showUnaffectedPin ? (
-                <div className={styles.rowNote}>
-                  {!showAffectedPin ? "No bookings affected by this plan. " : ""}
-                  {!showUnaffectedPin ? "No preserved bookings listed." : ""}
+      {hasPlan ? (
+        <>
+          <div className={styles.roomMain}>
+            <section className={styles.timelinePanel} aria-labelledby="availability-timeline-title">
+              <header className={styles.panelHeader}>
+                <div>
+                  <span className={styles.panelLabel}>{focusDay} operating window</span>
+                  <h2 id="availability-timeline-title">{windowStart}–{windowEnd}</h2>
                 </div>
+                <div className={styles.panelHeaderMeta}>
+                  <strong>{serviceName} · {slotDuration}-minute appointments</strong>
+                  <span>{`${periodLabel} · ${timezone}`}</span>
+                </div>
+              </header>
+
+              <div className={styles.timeline}>
+                <div className={styles.timelineAxis} aria-hidden="true">
+                  <span />
+                  <div style={{ gridTemplateColumns: `repeat(${tickLabels.length}, minmax(0, 1fr))` }}>
+                    {tickLabels.map((time) => <span key={time}>{time}</span>)}
+                  </div>
+                </div>
+
+                <div className={styles.timelineRow}>
+                  <div className={styles.rowLabel}>External context</div>
+                  <div className={styles.rowTrack}>
+                    {tickPositions.map((position) => (
+                      <i key={position} className={styles.trackTick} style={{ left: `${position}%` }} aria-hidden="true" />
+                    ))}
+                    {showBusyPill ? (
+                      <div className={styles.busyInterval} style={timelineRange(busyStart, busyEnd, windowStartMinutes, windowEndMinutes)}>
+                        <strong>{isApplied ? "Blocked" : hasPlan ? "Busy interval" : "Requested busy time"}</strong>
+                        <span>{busyStart}–{busyEnd}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                  {!showBusyPill ? (
+                    <div className={styles.rowNote}>No busy intervals in this plan</div>
+                  ) : null}
+                </div>
+
+                <div className={styles.timelineRow}>
+                  <div className={styles.rowLabel}>Existing bookings</div>
+                  <div className={`${styles.rowTrack} ${styles.bookingTrack}`}>
+                    {tickPositions.map((position) => (
+                      <i key={position} className={styles.trackTick} style={{ left: `${position}%` }} aria-hidden="true" />
+                    ))}
+                    {showAffectedPin ? (
+                      <div className={`${styles.booking} ${isApplied ? styles.bookingAffectedApplied : styles.bookingAffected} ${phase === "completed" ? styles.bookingCompleted : ""}`} style={{ left: `${timelinePosition(affectedDisplayTime, windowStartMinutes, windowEndMinutes)}%` }}>
+                        <span className={styles.bookingPin} aria-hidden="true" />
+                        <div>
+                          <strong>{affectedName} · {affectedDisplayTime}</strong>
+                          <small>{lunaDisplayState}</small>
+                        </div>
+                      </div>
+                    ) : null}
+                    {showUnaffectedPin ? (
+                      <div className={`${styles.booking} ${styles.bookingUnchanged}`} style={{ left: `${timelinePosition(unaffectedTime, windowStartMinutes, windowEndMinutes)}%` }}>
+                        <span className={styles.bookingPin} aria-hidden="true" />
+                        <div>
+                          <strong>{unaffectedName} · {unaffectedTime}</strong>
+                          <small>{maxDisplayState}</small>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                  {!showAffectedPin || !showUnaffectedPin ? (
+                    <div className={styles.rowNote}>
+                      {!showAffectedPin ? "No bookings affected by this plan. " : ""}
+                      {!showUnaffectedPin ? "No preserved bookings listed." : ""}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className={styles.timelineRow}>
+                  <div className={styles.rowLabel}>Availability result</div>
+                  <div className={`${styles.rowTrack} ${styles.resultTrack}`}>
+                    {tickPositions.map((position) => (
+                      <i key={position} className={styles.trackTick} style={{ left: `${position}%` }} aria-hidden="true" />
+                    ))}
+                    <div className={styles.openWindow} />
+                    {proposedTime ? (
+                      <div className={styles.recommendation} style={{ left: `${timelinePosition(proposedTime, windowStartMinutes, windowEndMinutes)}%` }}>
+                        <span aria-hidden="true" />
+                        <strong>{phase === "completed" ? "Confirmed" : isApplied ? "Held" : "Recommended"} · {proposedTime}</strong>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.timelineFooter}>
+                <div className={styles.legend}>
+                  <span><i className={styles.legendBusy} /> {showBusyPill ? (isApplied ? "Operational block" : hasPlan ? "Normalized calendar context" : "Requested calendar input") : "No busy intervals"}</span>
+                  <span><i className={styles.legendAffected} /> {showAffectedPin ? (hasPlan ? "Luna in impact set" : "Luna · example booking") : "No conflicts"}</span>
+                  <span><i className={styles.legendPreserved} /> {showUnaffectedPin ? (hasPlan ? "Max preserved" : "Max · control booking") : "No preserved bookings"}</span>
+                </div>
+                <small>{hasPlan ? "Plan-derived state · fixture names remain readable" : "Baseline clinic schedule · no pending changes"}</small>
+              </div>
+            </section>
+
+            <section className={styles.impactPanel} aria-labelledby="availability-impact-title">
+              <header className={styles.panelHeaderCompact}>
+                <span className={styles.panelLabel}>Impact summary</span>
+                <h2 id="availability-impact-title">
+                  {phase === "completed"
+                    ? "The schedule and appointment agree."
+                    : phase === "manual"
+                      ? "The customer needs another option."
+                      : phase === "customer" || phase === "applied"
+                        ? "The customer has one clear decision."
+                        : phase === "approved"
+                          ? "The next safe step is explicit."
+                          : "No changes until the Owner asks to apply."}
+                </h2>
+              </header>
+              <dl className={styles.impactGrid}>
+                <div>
+                  <dt>Generated slots</dt>
+                  <dd>{metricValue(generatedSlots)}</dd>
+                  <small>{countDetail(generatedSlots, "slot", "Count not included in this plan")}</small>
+                </div>
+                <div>
+                  <dt>Removed slots</dt>
+                  <dd>{metricValue(removedSlots)}</dd>
+                  <small>{countDetail(removedSlots, "slot", "Count not included in this plan")}</small>
+                </div>
+                <div className={styles.impactWide}>
+                  <dt>Affected appointment</dt>
+                  {affectedRows.length > 0 ? (
+                    <>
+                      <dd>{affectedName} <span>· {affectedTime}</span></dd>
+                      <small>{affectedCount === null ? "Fixture name · awaiting plan impact" : `${affectedCount} affected appointment${affectedCount === 1 ? "" : "s"} · conflict-derived`}</small>
+                    </>
+                  ) : (
+                    <>
+                      <dd>No conflicts</dd>
+                      <small>Every existing booking stays as scheduled</small>
+                    </>
+                  )}
+                </div>
+                <div className={styles.impactWide}>
+                  <dt>Unaffected control</dt>
+                  {unaffectedRows.length > 0 ? (
+                    <>
+                      <dd>{unaffectedName} <span>· {unaffectedTime}</span></dd>
+                      <small>{unaffectedCount === null ? "Fixture name · awaiting plan impact" : `${unaffectedCount} unaffected · existing booking preserved`}</small>
+                    </>
+                  ) : (
+                    <>
+                      <dd>None listed</dd>
+                      <small>No preserved bookings in this plan</small>
+                    </>
+                  )}
+                </div>
+                <div>
+                  <dt>Recommended alternative</dt>
+                  <dd>{metricValue(proposedTime)}</dd>
+                  <small>{proposedTime ? "Nearest later valid time · same day" : "Waiting for plan policy"}</small>
+                </div>
+                <div>
+                  <dt>Changes applied</dt>
+                  <dd>{changesApplied === null ? "Pending" : changesApplied ? "Yes" : "0"}</dd>
+                  <small>{changesApplied ? "Operational state is live" : "Waiting for an Owner apply instruction"}</small>
+                </div>
+                <div>
+                  <dt>Notifications sent</dt>
+                  <dd>{notificationMetric}</dd>
+                  <small>{isApplied ? deliveryCopy(deliveryStatus) : notificationsSent ? deliveryCopy(deliveryStatus) : "Waiting for an Owner apply instruction"}</small>
+                </div>
+                <div>
+                  <dt>Notification consequence</dt>
+                  <dd>{notificationCount === null ? "Pending" : notificationCount}</dd>
+                  <small>{notificationLabel}</small>
+                </div>
+              </dl>
+              <p className={styles.policyNote}>
+                <strong>Alternative policy:</strong> same service and duration, inside published hours,
+                avoiding busy ranges, bookings, and holds; prefer the nearest later time on the same day.
+              </p>
+            </section>
+          </div>
+
+          <section className={styles.approvalPanel} id="availability-review" aria-labelledby="availability-approval-title">
+            <div className={styles.approvalIntro}>
+              <span className={styles.panelLabel}>Review and control</span>
+              <h2 id="availability-approval-title">
+                {phase === "approved"
+                  ? "Approved — ready for either route."
+                  : isApplied
+                    ? "Applied from the Owner request."
+                    : "Two routes to the same exact result."}
+              </h2>
+              <p>
+                An explicit apply instruction in your prompt lets your AI agent approve and apply this exact result. Doing it by hand works too — same revision, same checks.
+              </p>
+            </div>
+            <div className={styles.approvalReceipt}>
+              <dl>
+                <div><dt>Appointment</dt><dd>{affectedRows.length > 0 ? `${affectedName} · ${serviceName}` : "No conflicts in this plan"}</dd></div>
+                <div><dt>Change</dt><dd>{holdTime ? `${periodLabel} ${affectedTime} → proposed ${holdTime}` : affectedRows.length > 0 ? "Exact alternative not recorded" : "Nothing to change"}</dd></div>
+                <div><dt>Control</dt><dd>{unaffectedRows.length > 0 ? `${unaffectedName} remains at ${unaffectedTime}` : "No preserved bookings"}</dd></div>
+                <div><dt>Side effect</dt><dd>{approvalSideEffect}</dd></div>
+              </dl>
+              {approvalNotice ? <p className={`${styles.notice} ${styles[approvalNoticeState === "success" ? "noticeSuccess" : "noticeError"]}`}>{approvalNotice}</p> : null}
+              <p className={styles.approvalMessage}>{approvalMessage}</p>
+              {canApprove ? (
+                <form className={styles.approvalForm} action={approveAvailabilityPlan}>
+                  <input name="organizationSlug" type="hidden" value={organizationSlug} />
+                  <input name="planId" type="hidden" value={planId ?? ""} />
+                  <input name="expectedRevision" type="hidden" value={revision ?? ""} />
+                  <input name="planHash" type="hidden" value={planHash ?? ""} />
+                  <ManualSubmitButton idleLabel="Approve this exact plan" pendingLabel="Approving…" />
+                </form>
+              ) : null}
+              {canApplyNow ? (
+                <form className={styles.approvalForm} action={applyApprovedAvailabilityPlan}>
+                  <input name="organizationSlug" type="hidden" value={organizationSlug} />
+                  <ManualSubmitButton idleLabel="Apply now" pendingLabel="Applying…" />
+                </form>
               ) : null}
             </div>
-
-            <div className={styles.timelineRow}>
-              <div className={styles.rowLabel}>Availability result</div>
-              <div className={`${styles.rowTrack} ${styles.resultTrack}`}>
-                {tickPositions.map((position) => (
-                  <i key={position} className={styles.trackTick} style={{ left: `${position}%` }} aria-hidden="true" />
-                ))}
-                <div className={styles.openWindow} />
-                {proposedTime ? (
-                  <div className={styles.recommendation} style={{ left: `${timelinePosition(proposedTime, windowStartMinutes, windowEndMinutes)}%` }}>
-                    <span aria-hidden="true" />
-                    <strong>{phase === "completed" ? "Confirmed" : isApplied ? "Held" : "Recommended"} · {proposedTime}</strong>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.timelineFooter}>
-            <div className={styles.legend}>
-              <span><i className={styles.legendBusy} /> {showBusyPill ? (isApplied ? "Operational block" : hasPlan ? "Normalized calendar context" : "Requested calendar input") : "No busy intervals"}</span>
-              <span><i className={styles.legendAffected} /> {showAffectedPin ? (hasPlan ? "Luna in impact set" : "Luna · example booking") : "No conflicts"}</span>
-              <span><i className={styles.legendPreserved} /> {showUnaffectedPin ? (hasPlan ? "Max preserved" : "Max · control booking") : "No preserved bookings"}</span>
-            </div>
-            <small>{hasPlan ? "Plan-derived state · fixture names remain readable" : "Seeded appointments · requested rules not applied yet"}</small>
-          </div>
-        </section>
-
-        <section className={styles.impactPanel} aria-labelledby="availability-impact-title">
-          <header className={styles.panelHeaderCompact}>
-            <span className={styles.panelLabel}>Impact summary</span>
-            <h2 id="availability-impact-title">
-              {phase === "completed"
-                ? "The schedule and appointment agree."
-                : phase === "manual"
-                  ? "The customer needs another option."
-                  : phase === "customer" || phase === "applied"
-                    ? "The customer has one clear decision."
-                    : phase === "approved"
-                      ? "The next safe step is explicit."
-                      : "No changes until the Owner asks to apply."}
-            </h2>
-          </header>
-          <dl className={styles.impactGrid}>
-            <div>
-              <dt>Generated slots</dt>
-              <dd>{metricValue(generatedSlots)}</dd>
-              <small>{countDetail(generatedSlots, "slot", hasPlan ? "Count not included in this plan" : "Waiting for plan")}</small>
-            </div>
-            <div>
-              <dt>Removed slots</dt>
-              <dd>{metricValue(removedSlots)}</dd>
-              <small>{countDetail(removedSlots, "slot", hasPlan ? "Count not included in this plan" : "Waiting for plan")}</small>
-            </div>
-            <div className={styles.impactWide}>
-              <dt>Affected appointment</dt>
-              {affectedRows.length > 0 || exampleMode ? (
-                <>
-                  <dd>{affectedName} <span>· {affectedTime}</span></dd>
-                  <small>{affectedCount === null ? "Fixture name · awaiting plan impact" : `${affectedCount} affected appointment${affectedCount === 1 ? "" : "s"} · conflict-derived`}</small>
-                </>
-              ) : (
-                <>
-                  <dd>No conflicts</dd>
-                  <small>Every existing booking stays as scheduled</small>
-                </>
-              )}
-            </div>
-            <div className={styles.impactWide}>
-              <dt>Unaffected control</dt>
-              {unaffectedRows.length > 0 || exampleMode ? (
-                <>
-                  <dd>{unaffectedName} <span>· {unaffectedTime}</span></dd>
-                  <small>{unaffectedCount === null ? "Fixture name · awaiting plan impact" : `${unaffectedCount} unaffected · existing booking preserved`}</small>
-                </>
-              ) : (
-                <>
-                  <dd>None listed</dd>
-                  <small>No preserved bookings in this plan</small>
-                </>
-              )}
-            </div>
-            <div>
-              <dt>Recommended alternative</dt>
-              <dd>{metricValue(proposedTime)}</dd>
-              <small>{proposedTime ? "Nearest later valid time · same day" : "Waiting for plan policy"}</small>
-            </div>
-            <div>
-              <dt>Changes applied</dt>
-              <dd>{changesApplied === null ? "Pending" : changesApplied ? "Yes" : "0"}</dd>
-              <small>{changesApplied ? "Operational state is live" : "Waiting for an Owner apply instruction"}</small>
-            </div>
-            <div>
-              <dt>Notifications sent</dt>
-              <dd>{notificationMetric}</dd>
-              <small>{isApplied ? deliveryCopy(deliveryStatus) : notificationsSent ? deliveryCopy(deliveryStatus) : "Waiting for an Owner apply instruction"}</small>
-            </div>
-            <div>
-              <dt>Notification consequence</dt>
-              <dd>{notificationCount === null ? "Pending" : notificationCount}</dd>
-              <small>{notificationLabel}</small>
-            </div>
-          </dl>
-          <p className={styles.policyNote}>
-            <strong>Alternative policy:</strong> same service and duration, inside published hours,
-            avoiding busy ranges, bookings, and holds; prefer the nearest later time on the same day.
-          </p>
-        </section>
-      </div>
-
-      <section className={styles.approvalPanel} aria-labelledby="availability-approval-title">
-        <div className={styles.approvalIntro}>
-          <span className={styles.panelLabel}>Review and control</span>
-          <h2 id="availability-approval-title">
-            {phase === "approved"
-              ? "Approved — ready for either route."
-              : isApplied
-                ? "Applied from the Owner request."
-                : "Two routes to the same exact result."}
-          </h2>
-          <p>
-            {hasPlan
-              ? "An explicit apply instruction in your prompt lets your AI agent approve and apply this exact result. Doing it by hand works too — same revision, same checks."
-              : "The exact plan and its consequence will appear here after your AI agent prepares a database-backed availability plan."}
-          </p>
-        </div>
-        <div className={styles.approvalReceipt}>
-          <dl>
-            <div><dt>Appointment</dt><dd>{!hasPlan ? "Waiting for plan" : affectedRows.length > 0 ? `${affectedName} · ${serviceName}` : "No conflicts in this plan"}</dd></div>
-            <div><dt>Change</dt><dd>{hasPlan && holdTime ? `${periodLabel} ${affectedTime} → proposed ${holdTime}` : !hasPlan ? "No exact change yet" : affectedRows.length > 0 ? "Exact alternative not recorded" : "Nothing to change"}</dd></div>
-            <div><dt>Control</dt><dd>{!hasPlan ? "Fixture context · not evaluated" : unaffectedRows.length > 0 ? `${unaffectedName} remains at ${unaffectedTime}` : "No preserved bookings"}</dd></div>
-            <div><dt>Side effect</dt><dd>{approvalSideEffect}</dd></div>
-          </dl>
-          {approvalNotice ? <p className={`${styles.notice} ${styles[approvalNoticeState === "success" ? "noticeSuccess" : "noticeError"]}`}>{approvalNotice}</p> : null}
-          <p className={styles.approvalMessage}>{approvalMessage}</p>
-        </div>
-      </section>
+          </section>
+        </>
+      ) : null}
 
       {phase === "approved" ? (
         <div className={styles.agentReady} role="status">
@@ -1024,7 +1056,7 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
       ) : null}
 
       {isApplied ? (
-        <section className={styles.postApplyPanel} aria-labelledby="availability-post-apply-title">
+        <section className={styles.postApplyPanel} id="availability-receipt" aria-labelledby="availability-post-apply-title">
           <header className={styles.panelHeaderCompact}>
             <span className={styles.panelLabel}>After apply</span>
             <h2 id="availability-post-apply-title">The operational receipt is readable at a glance.</h2>
@@ -1055,6 +1087,22 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
         <span className={styles.activityStatus}>{statusLabel}</span>
       </aside>
 
+      {phase === "completed" ? (
+        <section className={styles.demoComplete} aria-labelledby="demo-complete-title">
+          <div>
+            <span className={styles.panelLabel}>Schedule resolved</span>
+            <h2 id="demo-complete-title">The clinic is ready for the next request.</h2>
+            <p>Luna is confirmed at the accepted time, Max remains unchanged, and the public availability reflects the same result.</p>
+          </div>
+          <div className={styles.demoCompleteActions}>
+            <a href="#availability-prompt">Prepare another update</a>
+            <form action={restartGuidedDemo}>
+              <button type="submit">Restart guided demo</button>
+            </form>
+          </div>
+        </section>
+      ) : null}
+
       <details className={styles.manualFallback} id="availability-manual">
         <summary>
           <span>Want to do it manually?</span>
@@ -1062,9 +1110,9 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
         </summary>
         <div className={styles.manualBody}>
           {approvalNotice ? <p className={`${styles.notice} ${styles[approvalNoticeState === "success" ? "noticeSuccess" : "noticeError"]}`}>{approvalNotice}</p> : null}
-          {!hasPlan && role === "owner" ? (
+          {role === "owner" ? (
             <div className={styles.manualStep}>
-              <span className={styles.panelLabel}>Step 0 · Prepare it by hand</span>
+              <span className={styles.panelLabel}>{hasPlan ? "Update schedule · Prepare new plan revision" : "Step 0 · Prepare it by hand"}</span>
               <form className="publication-form" action={prepareAvailabilityPlanManually}>
                 <input name="organizationSlug" type="hidden" value={organizationSlug} />
                 <div className={styles.manualFieldGrid}>
@@ -1106,7 +1154,10 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
                 <label>Busy intervals · one per line · start, end with timezone offset
                   <textarea name="busyIntervals" rows={3} defaultValue={formDefaults.busyText} placeholder="Start ISO datetime, end ISO datetime" />
                 </label>
-                <button className={styles.approveButton} type="submit">Prepare manually</button>
+                <ManualSubmitButton
+                  idleLabel={hasPlan ? "Prepare new plan revision" : "Prepare manually"}
+                  pendingLabel="Preparing…"
+                />
               </form>
             </div>
           ) : null}
@@ -1118,7 +1169,7 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
                 <input name="planId" type="hidden" value={planId ?? ""} />
                 <input name="expectedRevision" type="hidden" value={revision ?? ""} />
                 <input name="planHash" type="hidden" value={planHash ?? ""} />
-                <button className={styles.approveButton} type="submit">Approve manually</button>
+                <ManualSubmitButton idleLabel="Approve manually" pendingLabel="Approving…" />
                 <small>RPC approval · base revision {revision} · plan hash verified</small>
               </form>
             </div>
@@ -1128,12 +1179,12 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
               <span className={styles.panelLabel}>Step 2 · Apply it yourself</span>
               <form className={styles.approvalForm} action={applyApprovedAvailabilityPlan}>
                 <input name="organizationSlug" type="hidden" value={organizationSlug} />
-                <button className={styles.approveButton} type="submit">Apply now</button>
+                <ManualSubmitButton idleLabel="Apply now" pendingLabel="Applying…" />
                 <small>Same exact revision · same checks · customer update included</small>
               </form>
             </div>
           ) : null}
-          {!hasPlan && role === "owner" ? null : !canApprove && !canApplyNow ? (
+          {!canApprove && !canApplyNow && approvalMessage && hasPlan ? (
             <p className={styles.approvalMessage}>{approvalMessage}</p>
           ) : null}
         </div>

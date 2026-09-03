@@ -19,6 +19,9 @@
 
 .workflowSteps {
   display: grid;
+  position: sticky;
+  top: 12px;
+  z-index: 5;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0 0 24px;
   padding: 6px;
@@ -59,6 +62,8 @@
 .workflowSteps .workflowCurrent > span { border-color: var(--room-forest); color: var(--room-forest); background: #fff; }
 .workflowSteps .workflowComplete { color: var(--room-forest); }
 .workflowSteps .workflowComplete > span { border-color: var(--room-forest); color: var(--room-forest); background: var(--room-lime); }
+.workflowSteps .workflowError { color: #8f1d17; background: rgba(179, 38, 30, .08); }
+.workflowSteps .workflowError > span { border-color: #b3261e; color: #fff; background: #b3261e; }
 
 .roomTop {
   display: grid;
@@ -152,6 +157,7 @@
   margin: 0;
   padding: 24px;
   border-radius: 4px 28px 28px 28px;
+  scroll-margin-top: 24px;
   color: #fff;
   border: 1px solid rgba(255, 255, 255, .08);
   background: var(--room-forest);
@@ -198,7 +204,14 @@
 }
 
 .promptCard :global(.clinic-agent-request textarea) {
-  padding-right: 44px;
+  padding-right: 48px;
+  overflow: hidden;
+  resize: none;
+  scrollbar-width: none;
+}
+
+.promptCard :global(.clinic-agent-request textarea::-webkit-scrollbar) {
+  display: none;
 }
 
 .promptCopyCorner {
@@ -1073,6 +1086,80 @@
   border-color: rgba(33, 76, 58, .3);
 }
 
+.demoComplete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin-top: 24px;
+  padding: 28px;
+  border: 1px solid rgba(33, 76, 58, .28);
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(216, 241, 122, .25), rgba(255, 255, 255, .92));
+}
+
+.demoComplete > div {
+  display: grid;
+  gap: 7px;
+  max-width: 720px;
+}
+
+.demoComplete h2,
+.demoComplete p {
+  margin: 0;
+}
+
+.demoComplete h2 {
+  color: var(--room-ink);
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: clamp(25px, 3vw, 36px);
+  font-weight: 400;
+  letter-spacing: -.035em;
+  line-height: 1.05;
+}
+
+.demoComplete p {
+  color: var(--room-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.demoCompleteActions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 10px;
+}
+
+.demoCompleteActions a,
+.demoCompleteActions button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font: 700 12px/1 var(--font-manrope), Manrope, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.demoCompleteActions a {
+  border: 1px solid var(--room-forest);
+  color: #fff;
+  background: var(--room-forest);
+}
+
+.demoCompleteActions button {
+  border: 1px solid var(--room-line);
+  color: var(--room-muted);
+  background: rgba(255, 255, 255, .72);
+}
+
+.demoCompleteActions form {
+  flex: 0 0 auto;
+}
+
 .manualFallback {
   margin-top: 24px;
   border: 1px solid var(--room-line);
@@ -1359,6 +1446,22 @@
   .activity {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .demoComplete {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .demoCompleteActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .demoCompleteActions form,
+  .demoCompleteActions button,
+  .demoCompleteActions a {
+    width: 100%;
   }
 
   .ruleStrip {

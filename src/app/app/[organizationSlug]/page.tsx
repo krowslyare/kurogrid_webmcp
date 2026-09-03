@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
@@ -11,6 +12,7 @@ import { updateAppointmentFromOwner } from "@/features/appointments/server/actio
 import { KuroBrand } from "@/components/KuroBrand";
 import { getViewer } from "@/features/auth/server/get-viewer";
 import { AvailabilityControlRoom } from "@/features/availability/ui/AvailabilityControlRoom";
+import { AvailabilityNoticeToast } from "@/features/availability/ui/AvailabilityNoticeToast";
 import {
   approveSiteDraft,
   publishSiteDraft,
@@ -24,8 +26,11 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = {
   title: "Mimo clinic workspace · Kuro Agent",
   icons: {
-    icon: [{ url: "/mimo-icon.svg", type: "image/svg+xml" }],
-    shortcut: "/mimo-icon.svg",
+    icon: [
+      { url: "/mimo-icon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/mimo-icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/mimo-icon-32.png",
   },
 };
 
@@ -378,7 +383,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
         ) : null}
         <div className="workspace-nav-meta">
           {isMimoDemo && firstSite ? (
-            <Link href={`/sites/${firstSite.slug}`}>
+            <Link href={`/sites/${firstSite.slug}`} rel="noreferrer" target="_blank">
               View customer site
               <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
@@ -406,6 +411,9 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
             </section>
           ) : null}
 
+          <Suspense fallback={null}>
+            <AvailabilityNoticeToast />
+          </Suspense>
           <AvailabilityControlRoom
             organizationSlug={organizationSlug}
             role={membership.role}
@@ -490,6 +498,8 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
                           <Link
                             className="appointment-customer-link"
                             href={`/sites/${firstSite.slug}?appointment=${request.id}&access=${request.access_token}`}
+                            rel="noreferrer"
+                            target="_blank"
                           >
                             Open customer update
                             <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -529,7 +539,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
               <div className="appointment-empty-state">
                 <p>No appointment requests yet. When customers book on the website or via an AI agent, their requests will appear here for review.</p>
                 {firstSite ? (
-                  <Link className="secondary-action" href={`/sites/${firstSite.slug}`}>
+                  <Link className="secondary-action" href={`/sites/${firstSite.slug}`} rel="noreferrer" target="_blank">
                     View customer site
                   </Link>
                 ) : null}
@@ -853,7 +863,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
 
               {siteVersions.length ? (
                 <div className="version-list">
-                  <Link href={`/sites/${site.slug}`}>
+                  <Link href={`/sites/${site.slug}`} rel="noreferrer" target="_blank">
                     View the live website
                     <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
@@ -897,7 +907,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
             <li>AI agents read the same current availability</li>
             <li>Customer requests return to this workspace</li>
           </ol>
-          <Link href={`/sites/${firstSite.slug}`}>
+          <Link href={`/sites/${firstSite.slug}`} rel="noreferrer" target="_blank">
             Continue on the customer site
             <span className="inline-arrow" aria-hidden="true">
               <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

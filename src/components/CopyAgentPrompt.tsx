@@ -60,18 +60,55 @@ export function AgentMark({ icon }: { icon: (typeof agentOptions)[number]["icon"
   );
 }
 
+export function agentLauncherHref(
+  icon: (typeof agentOptions)[number]["icon"] | "other",
+  payload: string,
+): string {
+  const trimmed = payload.trim();
+  const encoded = encodeURIComponent(trimmed);
+
+  if (icon === "openai") {
+    return trimmed ? `https://chatgpt.com/?q=${encoded}` : "https://chatgpt.com/";
+  }
+
+  if (icon === "claude") {
+    return trimmed ? `https://claude.ai/new?q=${encoded}` : "https://claude.ai/new";
+  }
+
+  if (icon === "gemini") {
+    return "https://gemini.google.com/app";
+  }
+
+  return "https://chatgpt.com/";
+}
+
 export function CopyAgentPrompt({ prompt }: CopyAgentPromptProps) {
   const [editablePrompt, setEditablePrompt] = useState(prompt);
   const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
   const [destination, setDestination] = useState("your AI agent");
   const [errorMessage, setErrorMessage] = useState("We couldn't copy that. Try again.");
   const resetTimer = useRef<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const feedbackId = useId();
   const promptId = useId();
 
   useEffect(() => () => {
     if (resetTimer.current) window.clearTimeout(resetTimer.current);
   }, []);
+
+  const [prevPrompt, setPrevPrompt] = useState(prompt);
+
+  if (prevPrompt !== prompt) {
+    setPrevPrompt(prompt);
+    setEditablePrompt(prompt);
+  }
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [editablePrompt]);
 
   async function copyPrompt(nextDestination = "your AI agent") {
     const request = editablePrompt.trim();
@@ -84,8 +121,8 @@ export function CopyAgentPrompt({ prompt }: CopyAgentPromptProps) {
 
     try {
       const currentUrl = new URL(window.location.href);
-      const pageUrl = `${currentUrl.origin}${currentUrl.pathname}`;
-      await navigator.clipboard.writeText(`${request}\n\nPage: ${pageUrl}`);
+      const urlToUse = `${currentUrl.origin}${currentUrl.pathname}`;
+      await navigator.clipboard.writeText(`${request}\n\nPage: ${urlToUse}`);
       setDestination(nextDestination);
       setStatus("copied");
     } catch {
@@ -95,6 +132,27 @@ export function CopyAgentPrompt({ prompt }: CopyAgentPromptProps) {
 
     if (resetTimer.current) window.clearTimeout(resetTimer.current);
     resetTimer.current = window.setTimeout(() => setStatus("idle"), 2600);
+  }
+
+  function handleLauncherClick(
+    event: React.MouseEvent<HTMLAnchorElement>,
+    agent: (typeof agentOptions)[number],
+  ) {
+    event.preventDefault();
+    const request = editablePrompt.trim();
+    if (!request) {
+      setErrorMessage("Add a request first.");
+      setStatus("error");
+      return;
+    }
+
+    const currentUrl = new URL(window.location.href);
+    const pageUrl = `${currentUrl.origin}${currentUrl.pathname}`;
+    const payload = `${request}\n\nPage: ${pageUrl}`;
+
+    void copyPrompt(agent.label);
+    const targetUrl = agentLauncherHref(agent.icon, payload);
+    window.open(targetUrl, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -107,7 +165,8 @@ export function CopyAgentPrompt({ prompt }: CopyAgentPromptProps) {
             setEditablePrompt(event.target.value);
             setStatus("idle");
           }}
-          rows={4}
+          ref={textareaRef}
+          rows={3}
           spellCheck="true"
           value={editablePrompt}
         />
@@ -119,10 +178,7 @@ export function CopyAgentPrompt({ prompt }: CopyAgentPromptProps) {
           <a
             href={agent.href}
             key={agent.label}
-            onClick={(event) => {
-              if (!editablePrompt.trim()) event.preventDefault();
-              void copyPrompt(agent.label);
-            }}
+            onClick={(event) => handleLauncherClick(event, agent)}
             rel="noreferrer"
             target="_blank"
           >

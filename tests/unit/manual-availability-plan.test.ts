@@ -221,3 +221,34 @@ test("Owner prompt is generated from the current configuration", () => {
     + "authenticated Owner session. Send the customer update.",
   );
 });
+
+test("Demo request prefers the persisted configuration over hardcoded values", () => {
+  const configured = demoPlanDefaults(
+    {
+      configured: true,
+      period_start: "2026-09-03",
+      period_end: "2026-09-30",
+      timezone: "America/Lima",
+      slot_duration_minutes: 30,
+      weekly_ranges: [{ day_of_week: 1, starts_at: "09:00", ends_at: "18:00" }],
+      recurring_blocks: [],
+      busy_intervals: [],
+    },
+    "2026-09-03",
+  );
+
+  assert.deepEqual(configured.weekly, { 1: ["09:00", "18:00"] });
+  assert.ok(!("2" in configured.weekly), "hardcoded Tuesday hours are not asserted");
+
+  const fallback = demoPlanDefaults(null, "2026-09-01");
+
+  assert.deepEqual(fallback.weekly[2], ["09:00", "13:00"]);
+});
+
+test("Owner prompt stays clean — tooling travels with the paste, not the text", () => {
+  const prompt = availabilityPromptFor(demoPlanDefaults(null, "2026-09-01"), "dermatology");
+
+  for (const leaked of ["WebMCP", "computer-use", "prepare_availability_plan", "apply_availability_plan"]) {
+    assert.ok(!prompt.includes(leaked), `prompt does not leak ${leaked}`);
+  }
+});

@@ -1,12 +1,14 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import {
   findSlotsForBooking,
   prepareAppointmentFromPage,
   type BookingSlotOption,
 } from "@/features/appointments/server/actions";
+import { nextSevenDays } from "@/features/appointments/lib/booking-days";
 
 type BookingService = {
   slug: string;
@@ -75,6 +77,7 @@ export function TraditionalBooking({
   const requestId = useRef(0);
   const panelId = `traditional-booking-${siteSlug}`;
   const serviceName = services.find((option) => option.slug === service)?.name ?? service;
+  const weekDays = nextSevenDays(defaultDate);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -100,6 +103,9 @@ export function TraditionalBooking({
       setSlotsError(true);
       setSlots([]);
       setSelectedSlot("");
+      toast.error("Times could not be loaded.", {
+        description: "Try another service or date.",
+      });
       return;
     }
 
@@ -192,9 +198,9 @@ export function TraditionalBooking({
             ) : null}
             <fieldset>
               <legend>Service</legend>
-              <div className="clinic-slot-options">
+              <div className="clinic-slot-options clinic-service-options">
                 {services.map((option) => (
-                  <label key={option.slug}>
+                  <label className={service === option.slug ? "is-selected" : undefined} key={option.slug}>
                     <input
                       checked={service === option.slug}
                       name="serviceSlug"
@@ -213,21 +219,28 @@ export function TraditionalBooking({
                 ))}
               </div>
             </fieldset>
-            <div className="clinic-booking-fields">
-              <label>
-                Date
-                <input
-                  min={todayInput()}
-                  onChange={(event) => {
-                    const nextDate = event.target.value;
-                    setDate(nextDate);
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(nextDate)) void reloadSlots(service, nextDate);
-                  }}
-                  type="date"
-                  value={date}
-                />
-              </label>
-            </div>
+            <fieldset>
+              <legend>Date</legend>
+              <div className="clinic-day-options" role="radiogroup" aria-label="Choose a day">
+                {weekDays.map((day) => (
+                  <label className={date === day.iso ? "is-selected" : undefined} key={day.iso}>
+                    <input
+                      checked={date === day.iso}
+                      name="bookingDay"
+                      onChange={() => {
+                        setDate(day.iso);
+                        void reloadSlots(service, day.iso);
+                      }}
+                      type="radio"
+                      value={day.iso}
+                    />
+                    <span>{day.weekday}</span>
+                    <small>{day.dayNum}</small>
+                    <i aria-hidden="true">✓</i>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             {slotsError ? (
               <p className="clinic-booking-error">Times could not be loaded. Try another service or date.</p>
             ) : slots.length || loadingSlots ? (
@@ -238,7 +251,7 @@ export function TraditionalBooking({
                   <legend>Available times{loadingSlots ? " · updating…" : ""}</legend>
                   <div className="clinic-slot-options" style={{ opacity: loadingSlots ? 0.55 : 1 }}>
                     {slots.map((slot) => (
-                      <label key={slot.slot_id}>
+                      <label className={selectedSlot === slot.slot_id ? "is-selected" : undefined} key={slot.slot_id}>
                         <input
                           checked={selectedSlot === slot.slot_id}
                           name="slotId"
@@ -308,16 +321,4 @@ export function TraditionalBooking({
       </dialog>
     </section>
   );
-}
-
-function todayInput() {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: "America/Lima",
-    year: "numeric",
-  }).formatToParts(new Date());
-
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${values.year}-${values.month}-${values.day}`;
 }

@@ -9,8 +9,11 @@ import { getViewer } from "@/features/auth/server/get-viewer";
 export const metadata: Metadata = {
   title: "Mimo clinic workspace · Kuro Agent",
   icons: {
-    icon: [{ url: "/mimo-icon.svg", type: "image/svg+xml" }],
-    shortcut: "/mimo-icon.svg",
+    icon: [
+      { url: "/mimo-icon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/mimo-icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/mimo-icon-32.png",
   },
 };
 

@@ -295,29 +295,35 @@ export function planFormDefaults(configuration: unknown, referenceDate?: string)
   };
 }
 
-// The seeded database represents the current schedule. This separate rolling
-// request is the change the Owner demonstrates: four weeks of operating rules,
-// with one normalized busy interval on the seeded appointment day.
+// The seeded database represents the current schedule. This rolling request
+// prefers the persisted configuration and only falls back to the hardcoded
+// demo scenario when nothing is configured yet — the chips, prompt, and Step 0
+// form must never assert values the database does not hold.
 export function demoPlanDefaults(configuration: unknown, referenceDate?: string): PlanFormDefaults {
   const current = planFormDefaults(configuration, referenceDate);
   const anchor = current.periodStart;
+  const configured = hasConfiguredRanges(configuration);
 
   return {
     periodStart: anchor,
     periodEnd: addDays(anchor, 27),
     timezone: current.timezone,
-    slotDuration: 30,
-    weekly: {
-      2: ["09:00", "13:00"],
-      4: ["09:00", "13:00"],
-      6: ["09:00", "14:00"],
-    },
-    blocks: {
-      2: ["12:00", "13:00"],
-      4: ["12:00", "13:00"],
-      6: ["12:00", "13:00"],
-    },
-    busyText: `${anchor}T10:00:00-05:00, ${anchor}T11:30:00-05:00`,
+    slotDuration: configured ? current.slotDuration : 30,
+    weekly: configured
+      ? current.weekly
+      : {
+        2: ["09:00", "13:00"],
+        4: ["09:00", "13:00"],
+        6: ["09:00", "14:00"],
+      },
+    blocks: configured
+      ? current.blocks
+      : {
+        2: ["12:00", "13:00"],
+        4: ["12:00", "13:00"],
+        6: ["12:00", "13:00"],
+      },
+    busyText: current.busyText || `${anchor}T10:00:00-05:00, ${anchor}T11:30:00-05:00`,
   };
 }
 

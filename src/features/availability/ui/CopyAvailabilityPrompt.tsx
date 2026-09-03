@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { AgentMark, agentOptions } from "@/components/CopyAgentPrompt";
+import { AgentMark, agentLauncherHref, agentOptions } from "@/components/CopyAgentPrompt";
 
 import styles from "./availability-control-room.module.css";
 
@@ -14,10 +14,25 @@ export function CopyAvailabilityPrompt({ prompt }: Props) {
   const [editablePrompt, setEditablePrompt] = useState(prompt);
   const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
   const resetTimer = useRef<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => () => {
     if (resetTimer.current) window.clearTimeout(resetTimer.current);
   }, []);
+
+  const [prevPrompt, setPrevPrompt] = useState(prompt);
+
+  if (prevPrompt !== prompt) {
+    setPrevPrompt(prompt);
+    setEditablePrompt(prompt);
+  }
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [editablePrompt]);
 
   async function copyPrompt() {
     const request = editablePrompt.trim();
@@ -40,6 +55,26 @@ export function CopyAvailabilityPrompt({ prompt }: Props) {
     resetTimer.current = window.setTimeout(() => setStatus("idle"), 2600);
   }
 
+  function handleLauncherClick(
+    event: React.MouseEvent<HTMLAnchorElement>,
+    agent: (typeof agentOptions)[number],
+  ) {
+    event.preventDefault();
+    const request = editablePrompt.trim();
+    if (!request) {
+      setStatus("error");
+      return;
+    }
+
+    const currentUrl = new URL(window.location.href);
+    const pageUrl = `${currentUrl.origin}${currentUrl.pathname}`;
+    const payload = `${request}\n\nWorkspace: ${pageUrl}`;
+
+    void copyPrompt();
+    const targetUrl = agentLauncherHref(agent.icon, payload);
+    window.open(targetUrl, "_blank", "noopener,noreferrer");
+  }
+
   return (
     <div className="clinic-copy-action">
       <div className="clinic-agent-request">
@@ -50,7 +85,8 @@ export function CopyAvailabilityPrompt({ prompt }: Props) {
             setEditablePrompt(event.target.value);
             setStatus("idle");
           }}
-          rows={5}
+          ref={textareaRef}
+          rows={3}
           spellCheck="true"
           value={editablePrompt}
         />
@@ -71,7 +107,7 @@ export function CopyAvailabilityPrompt({ prompt }: Props) {
           <a
             href={agent.href}
             key={agent.label}
-            onClick={() => void copyPrompt()}
+            onClick={(event) => handleLauncherClick(event, agent)}
             rel="noreferrer"
             target="_blank"
           >
