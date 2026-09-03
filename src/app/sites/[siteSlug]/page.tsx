@@ -198,7 +198,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
       })
     : null;
   const editHref = editSearch
-    ? `/sites/${siteSlug}?${editSearch}#agent-booking`
+    ? `/sites/${siteSlug}?${editSearch}`
     : `/sites/${siteSlug}#agent-booking`;
   const schedule = Object.entries(content.opening_hours).sort(([first], [second]) => {
     const firstIndex = scheduleOrder.indexOf(first as (typeof scheduleOrder)[number]);
@@ -339,6 +339,7 @@ export default async function PublishedSitePage({ params, searchParams }: PagePr
 
           {!appointment ? (
             <TraditionalBooking
+              key={editingAppointment ? "editing" : "normal"}
               bookingError={customerContext.bookingError}
               defaultDate={nextSaturdayInLima()}
               defaultServiceSlug={defaultBookingService}
