@@ -179,20 +179,56 @@ export function TalkToMimoConsole({
         throw new Error("WebMCP modelContext is not available in this document.");
       }
 
-      // Step 1: Query available slots for dermatology
+      // Step 0: Agent resolves intent with Gemini 3.8 Flash
+      const step0Id = addStep(
+        "agent_reasoning",
+        "Understanding request with Gemini 3.8 Flash...",
+      );
+
+      let petName = "Luna";
+      let serviceSlug = "dermatology";
+      let targetDate = defaultDate;
+
+      try {
+        const inferRes = await fetch("/api/agent/infer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: textToRun, defaultDate }),
+        });
+        if (inferRes.ok) {
+          const inferred = (await inferRes.json()) as {
+            petName?: string;
+            serviceSlug?: string;
+            date?: string;
+          };
+          if (inferred.petName) petName = inferred.petName;
+          if (inferred.serviceSlug) serviceSlug = inferred.serviceSlug;
+          if (inferred.date) targetDate = inferred.date;
+        }
+      } catch {
+        // Graceful fallback
+      }
+
+      updateStep(
+        step0Id,
+        "success",
+        `Target resolved: ${serviceSlug} for ${petName}.`,
+      );
+
+      // Step 1: Query available slots for service
       const step1Id = addStep(
         "find_appointment_slots",
-        `Scanning availability for Saturday (${defaultDate})...`,
+        `Scanning availability for ${serviceSlug} (${targetDate})...`,
       );
 
       const slotsResult = (await modelContext.executeTool("find_appointment_slots", {
-        service_slug: "dermatology",
-        date: defaultDate,
+        service_slug: serviceSlug,
+        date: targetDate,
       })) as { slots?: Array<{ slot_id: string; starts_at: string; duration_minutes: number }> };
 
       const slots = slotsResult?.slots ?? [];
       if (!slots.length) {
-        updateStep(step1Id, "error", "No available slots found for this date.");
+        updateStep(step1Id, "error", `No available slots found for ${serviceSlug} on this date.`);
         setIsExecuting(false);
         return;
       }
@@ -203,10 +239,9 @@ export function TalkToMimoConsole({
         `Resolved ${slots.length} available openings (Earliest: 10:00 AM).`,
       );
 
-      // Step 2: Prepare appointment request for Luna (or specified pet)
+      // Step 2: Prepare appointment request for pet
       const chosenSlot = slots[0];
-      const petName = textToRun.toLowerCase().includes("max") ? "Max" : "Luna";
-      const customerEmail = `${petName.toLowerCase()}@example.test`;
+      const customerEmail = `${petName.toLowerCase().replace(/[^a-z0-9]/g, "")}@example.test`;
 
       const step2Id = addStep(
         "prepare_appointment_request",
@@ -223,7 +258,7 @@ export function TalkToMimoConsole({
             });
 
       const prepareResult = (await modelContext.executeTool("prepare_appointment_request", {
-        service_slug: "dermatology",
+        service_slug: serviceSlug,
         slot_id: chosenSlot.slot_id,
         pet_name: petName,
         customer_email: customerEmail,
