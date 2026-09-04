@@ -212,17 +212,39 @@ Never use emojis. Keep tone concise, professional, and clear.`;
       },
     };
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(geminiPayload),
-      },
-    );
+    const candidateModels = [
+      "gemini-3.5-flash",
+      "gemini-3.5-flash-lite",
+      "gemini-flash-latest",
+    ];
 
-    if (!geminiRes.ok) {
-      console.warn("Gemini API returned status:", geminiRes.status);
+    let activeModel = candidateModels[0];
+    let geminiRes: globalThis.Response | null = null;
+
+    for (const model of candidateModels) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(geminiPayload),
+          },
+        );
+
+        if (res.ok) {
+          activeModel = model;
+          geminiRes = res;
+          break;
+        } else {
+          console.warn(`Model ${model} returned status: ${res.status}`);
+        }
+      } catch (fetchErr) {
+        console.warn(`Model ${model} fetch error:`, fetchErr);
+      }
+    }
+
+    if (!geminiRes || !geminiRes.ok) {
       // Resilient fallback
       if (role === "customer") {
         const petName = text.toLowerCase().includes("max") ? "Max" : "Luna";
@@ -285,7 +307,7 @@ Never use emojis. Keep tone concise, professional, and clear.`;
           args: firstPart.functionCall.args || {},
         },
         extractedPet,
-        model: "gemini-3.5-flash",
+        model: activeModel,
       });
     }
 
@@ -294,7 +316,7 @@ Never use emojis. Keep tone concise, professional, and clear.`;
         success: false,
         type: "clarification",
         message: firstPart.text.trim(),
-        model: "gemini-3.5-flash",
+        model: activeModel,
       });
     }
 
