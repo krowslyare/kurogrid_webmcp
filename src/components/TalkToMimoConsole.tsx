@@ -378,8 +378,8 @@ export function TalkToMimoConsole({
     <div className="talk-to-mimo-container" id="talk-to-mimo">
       <div className="talk-to-mimo-header">
         <div className="talk-to-mimo-title-group">
-          <span className="talk-to-mimo-badge">WebMCP In-Browser Agent</span>
           <h3>Talk to Mimo</h3>
+          <span className="talk-to-mimo-badge">WebMCP In-Browser Agent</span>
         </div>
         <p>Speak or type what you need to coordinate your appointment live via WebMCP.</p>
       </div>
@@ -465,34 +465,6 @@ export function TalkToMimoConsole({
             )}
           </button>
         </div>
-      </div>
-
-      <div className="talk-to-mimo-pills">
-        <span className="pills-label">Suggestions:</span>
-        <button
-          type="button"
-          className="talk-pill"
-          onClick={() => void handlePromptSubmit("Book dermatology for Luna this Saturday morning")}
-          disabled={isExecuting}
-        >
-          Book dermatology for Luna this Saturday
-        </button>
-        <button
-          type="button"
-          className="talk-pill"
-          onClick={() => void handlePromptSubmit("Book vaccination for Max this Saturday")}
-          disabled={isExecuting}
-        >
-          Book vaccination for Max
-        </button>
-        <button
-          type="button"
-          className="talk-pill"
-          onClick={() => void handlePromptSubmit("Book an appointment")}
-          disabled={isExecuting}
-        >
-          Book an appointment
-        </button>
       </div>
 
       {steps.length > 0 ? (

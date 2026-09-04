@@ -703,15 +703,56 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .clinic-agent-request textarea::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .clinic-agent-request > small { display: block; margin-top: 8px; color: #aebdb3; font-size: 8px; line-height: 1.35; }
 .clinic-copy-action { display: grid; gap: 9px; margin-top: 16px; }
-.clinic-agent-launchers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.clinic-agent-launchers > a,
-.clinic-agent-launchers > button { min-width: 0; min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; cursor: pointer; text-align: left; background: rgba(255,255,255,.045); color: #fff; transition: border-color .18s ease, background .18s ease, transform .18s ease; }
-.clinic-agent-launchers > a:hover,
-.clinic-agent-launchers > button:hover { border-color: rgba(216,241,122,.5); background: rgba(255,255,255,.08); transform: translateY(-1px); }
+.clinic-agent-launchers { display: grid; grid-template-columns: repeat(3, 44px) 1fr; gap: 8px; }
+.clinic-agent-launchers > a.clinic-launcher-icon-btn {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #fff;
+  transition: all 0.18s ease;
+}
+.clinic-agent-launchers > a.clinic-launcher-icon-btn:hover {
+  border-color: rgba(216, 241, 122, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+.clinic-agent-launchers > button.clinic-launcher-other-btn {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.045);
+  color: #fff;
+  font-family: var(--font-manrope), Manrope, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  transition: all 0.18s ease;
+}
+.clinic-agent-launchers > button.clinic-launcher-other-btn:hover {
+  border-color: rgba(216, 241, 122, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+.clinic-agent-launchers > button.clinic-launcher-other-btn.is-copied {
+  border-color: var(--clinic-lime);
+  background: rgba(190, 242, 100, 0.15);
+  color: var(--clinic-lime);
+}
 .clinic-agent-launchers svg { width: 18px; height: 18px; flex-shrink: 0; fill: var(--clinic-lime); }
-.clinic-agent-launchers span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.clinic-agent-launchers small { overflow: hidden; color: #9fb0a5; font-size: 8px; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
-.clinic-agent-launchers strong { overflow: hidden; font-size: 9px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.clinic-launcher-other-btn svg { fill: none; stroke: var(--clinic-lime); }
 .clinic-copy-prompt { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 6px 8px 6px 16px; border: 0; border-radius: 14px; cursor: pointer; background: var(--clinic-lime); color: var(--clinic-ink); font-family: var(--font-manrope), Manrope, sans-serif; font-size: 11px; font-weight: 750; letter-spacing: -.01em; transition: background .2s ease, transform .2s ease, box-shadow .2s ease; }
 .clinic-copy-prompt:hover { background: #e4f88e; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(23,37,30,.12); }
 .clinic-copy-prompt > span { display: inline-grid; width: 18px; place-items: center; font-size: 14px; }
@@ -1249,7 +1290,7 @@ body:has(dialog[open]) .agent-activity-receipt {
   .clinic-booking-intro h2 { font-size: 42px; }
   .clinic-agent-prompt { padding: 21px; }
   .clinic-agent-request textarea { font-size: 20px; }
-  .clinic-agent-launchers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clinic-agent-launchers { grid-template-columns: repeat(3, 40px) 1fr; }
   .clinic-copy-feedback { min-height: 13px; }
   .clinic-booking-fields { grid-template-columns: 1fr; }
   .clinic-slot-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1494,7 +1535,7 @@ body:has(.clinic-workspace-shell) {
 
 /* Talk to Mimo Console & Floating Button */
 .talk-to-mimo-container {
-  margin: 28px 0 0;
+  margin: 0;
   padding: 24px;
   border-radius: 20px;
   background: rgba(22, 40, 30, 0.95);
@@ -1511,20 +1552,22 @@ body:has(.clinic-workspace-shell) {
 
 .talk-to-mimo-title-group {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .talk-to-mimo-badge {
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: var(--clinic-lime);
-  color: var(--clinic-ink);
-  font-family: var(--font-manrope), Manrope, sans-serif;
-  font-size: 9px;
-  font-weight: 800;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--clinic-lime);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
+  opacity: 0.9;
 }
 
 .talk-to-mimo-header h3 {
