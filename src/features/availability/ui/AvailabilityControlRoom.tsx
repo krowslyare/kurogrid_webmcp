@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { approveAvailabilityPlan, applyApprovedAvailabilityPlan, prepareAvailabilityPlanManually } from "../server/actions";
 import { availabilityPromptFor, demoPlanDefaults, groupedDayRanges, hasConfiguredRanges } from "../lib/manual-plan";
 import { restartGuidedDemo } from "@/features/demo/server/actions";
+import { simulateCustomerBookingFromOwner } from "@/features/appointments/server/actions";
 
 import styles from "./availability-control-room.module.css";
 import { CopyAvailabilityPrompt } from "./CopyAvailabilityPrompt";
@@ -1111,18 +1112,76 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
         <span className={styles.activityStatus}>{statusLabel}</span>
       </aside>
 
-      {phase === "completed" ? (
-        <section className={styles.demoComplete} aria-labelledby="demo-complete-title">
-          <div>
-            <span className={styles.panelLabel}>Schedule resolved</span>
-            <h2 id="demo-complete-title">The clinic is ready for the next request.</h2>
-            <p>Luna is confirmed at the accepted time, Max remains unchanged, and the public availability reflects the same result.</p>
+      {phase === "completed" || isApplied ? (
+        <section className={styles.operationsHub} aria-labelledby="operations-hub-title">
+          <div className={styles.operationsHubHeader}>
+            <div className={styles.operationsHubTitleGroup}>
+              <span className={styles.panelLabel}>Continuous Operations</span>
+              <h2 id="operations-hub-title">
+                {phase === "completed"
+                  ? "Schedule active and operational · Customer confirmed"
+                  : "Schedule active and operational · Revision applied"}
+              </h2>
+              <p>
+                {phase === "completed"
+                  ? "Luna is confirmed at the accepted 11:30 AM slot, Max remains at 12:00 PM, and doctor calendar busy blocks are enforced."
+                  : "Doctor calendar busy block 10:00–11:30 AM is active, Luna's 11:30 AM alternative is held, and Max remains unchanged."}
+              </p>
+            </div>
+            <div className={styles.operationsHubBadge}>
+              <span>Live Parity Active</span>
+            </div>
           </div>
-          <div className={styles.demoCompleteActions}>
-            <a href="#availability-prompt">Prepare another update</a>
-            <form action={restartGuidedDemo}>
-              <button type="submit">Restart guided demo</button>
-            </form>
+
+          <div className={styles.operationsMetricsGrid}>
+            <div className={styles.operationsMetricCard}>
+              <span className={styles.operationsMetricLabel}>Saturday Capacity</span>
+              <strong>10 slots</strong>
+              <small>09:00 – 14:00 (30m visits)</small>
+            </div>
+            <div className={styles.operationsMetricCard}>
+              <span className={styles.operationsMetricLabel}>Booked & Confirmed</span>
+              <strong>{phase === "completed" ? "2 visits" : "1 visit, 1 held"}</strong>
+              <small>{phase === "completed" ? "Luna (11:30) · Max (12:00)" : "Luna (held 11:30) · Max (12:00)"}</small>
+            </div>
+            <div className={styles.operationsMetricCard}>
+              <span className={styles.operationsMetricLabel}>Doctor Calendar Block</span>
+              <strong>10:00 – 11:30</strong>
+              <small>External busy interval enforced</small>
+            </div>
+            <div className={styles.operationsMetricCard}>
+              <span className={styles.operationsMetricLabel}>Remaining Public Slots</span>
+              <strong>4 open slots</strong>
+              <small>09:00, 09:30, 13:00, 13:30</small>
+            </div>
+          </div>
+
+          <div className={styles.operationsActionsContainer}>
+            <span className={styles.panelLabel}>Next operational actions</span>
+            <div className={styles.operationsActionButtons}>
+              <form action={simulateCustomerBookingFromOwner}>
+                <input type="hidden" name="organizationSlug" value={organizationSlug} />
+                <input type="hidden" name="petName" value="Bella" />
+                <input type="hidden" name="customerEmail" value="bella@example.test" />
+                <button type="submit" className={styles.simulateActionBtn}>
+                  + Simulate incoming customer booking (Bella)
+                </button>
+              </form>
+
+              <a href="?tab=appointments" className={styles.viewAppointmentsBtn}>
+                Review appointment inbox & audit lineage
+              </a>
+
+              <a href="/sites/mimo-01" target="_blank" rel="noopener noreferrer" className={styles.viewPublicSiteBtn}>
+                Verify public availability on customer site
+              </a>
+
+              <form action={restartGuidedDemo}>
+                <button type="submit" className={styles.restartBtn}>
+                  Restart guided demo
+                </button>
+              </form>
+            </div>
           </div>
         </section>
       ) : null}
