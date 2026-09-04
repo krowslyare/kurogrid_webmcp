@@ -94,6 +94,12 @@ export default async function DemoPage({ searchParams }: PageProps) {
               <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
             </svg>
           </Link>
+          <Link className="demo-public-link" href="/demo/simulator" style={{ marginTop: "8px" }}>
+            <span>Open Dual-Screen Live Parity Simulator</span>
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+            </svg>
+          </Link>
           <Link className="auth-back-link" href="/">Back to product overview</Link>
         </section>
       </div>

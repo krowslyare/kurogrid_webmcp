@@ -24,6 +24,7 @@ export default function Home() {
         <nav aria-label="Primary navigation">
           <a href="#workflow">How it works</a>
           <a href="#why-webmcp">Why it matters</a>
+          <Link href="/demo/simulator">Dual simulator</Link>
           <Link href="/sites/mimo-01">Customer site preview</Link>
           <Link className="landing-nav-cta" href="/demo">Run the full demo</Link>
         </nav>
@@ -49,8 +50,8 @@ export default function Home() {
                 </svg>
               </span>
             </Link>
-            <Link className="landing-secondary-link" href="/sites/mimo-01">
-              Explore the customer site
+            <Link className="landing-secondary-link" href="/demo/simulator">
+              Live parity simulator
               <span className="landing-inline-arrow" aria-hidden="true">
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
