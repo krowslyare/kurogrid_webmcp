@@ -1647,7 +1647,8 @@ body:has(.clinic-workspace-shell) {
   font-size: 13px;
 }
 
-.webmcp-disclaimer-pop p {
+.webmcp-disclaimer-text {
+  display: block;
   margin: 0;
   color: #b3c2b7;
 }

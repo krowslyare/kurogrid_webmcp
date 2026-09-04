@@ -66,17 +66,17 @@ export function WebMcpDisclaimer({ variant, siteSlug, organizationSlug }: WebMcp
       {open ? (
         <span className="webmcp-disclaimer-pop" role="tooltip" id={popId}>
           <strong>Work with an agent</strong>
-          <p>
+          <span className="webmcp-disclaimer-text">
             In a browser that supports WebMCP, an assistant such as ChatGPT or
             Claude discovers this page&apos;s tools and acts here directly.
-          </p>
-          <p className="webmcp-disclaimer-status">
+          </span>
+          <span className="webmcp-disclaimer-text webmcp-disclaimer-status">
             {isNative === null
               ? "Checking this browser's model context…"
               : isNative
                 ? "Native WebMCP model context detected in this browser."
                 : "This browser doesn't expose a native model context (demo shim active). Open this page in one that does, or paste a question below into any assistant with a page link."}
-          </p>
+          </span>
           <span className="webmcp-disclaimer-questions-label">Questions to try</span>
           <span className="webmcp-disclaimer-questions">
             {questions.map((question, index) => (

@@ -465,10 +465,10 @@ export function TalkToMimoConsole({
         </div>
       ) : null}
 
-      <p className="talk-to-mimo-footnote">
+      <div className="talk-to-mimo-footnote">
         <span className="talk-to-mimo-badge">Demo booking assistant</span>
         <WebMcpDisclaimer variant="customer" siteSlug={siteSlug} />
-      </p>
+      </div>
     </div>
   );
 }
