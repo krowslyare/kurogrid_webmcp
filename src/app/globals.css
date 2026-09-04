@@ -1718,3 +1718,99 @@ body:has(.clinic-workspace-shell) {
   border-color: var(--clinic-lime);
   background: #1e382a;
 }
+
+/* Owner Mimo Copilot */
+.owner-copilot-container {
+  margin: 0 0 28px;
+  padding: 20px 24px;
+  border-radius: 16px;
+  background: #151d18;
+  border: 1px solid rgba(216, 241, 122, 0.2);
+  color: #e5ede7;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.owner-copilot-header {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.owner-copilot-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.owner-copilot-badge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--clinic-lime);
+  color: var(--clinic-ink);
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.owner-copilot-header h3 {
+  margin: 0;
+  font-family: "Iowan Old Style", Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: #f1f7f3 !important;
+}
+
+.owner-copilot-header p {
+  margin: 0;
+  color: #8c9e92;
+  font-size: 12px;
+}
+
+.owner-copilot-input-shell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  transition: border-color 0.15s ease;
+}
+
+.owner-copilot-input-shell:focus-within {
+  border-color: var(--clinic-lime);
+}
+
+.owner-copilot-input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.owner-copilot-input::placeholder {
+  color: #64756a;
+}
+
+.owner-copilot-submit-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 0;
+  background: var(--clinic-lime);
+  color: var(--clinic-ink);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.owner-copilot-submit-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
