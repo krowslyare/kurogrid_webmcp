@@ -1572,6 +1572,14 @@ body:has(.clinic-workspace-shell) {
   opacity: 0.9;
 }
 
+.talk-to-mimo-footnote {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+
 .talk-to-mimo-header h3 {
   margin: 0;
   color: #ffffff;
@@ -1639,7 +1647,8 @@ body:has(.clinic-workspace-shell) {
   font-size: 13px;
 }
 
-.webmcp-disclaimer-pop p {
+.webmcp-disclaimer-text {
+  display: block;
   margin: 0;
   color: #b3c2b7;
 }
