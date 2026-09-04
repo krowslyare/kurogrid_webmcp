@@ -254,6 +254,15 @@
   color: var(--room-ink);
 }
 
+.externalDivider {
+  margin: 20px 0 10px;
+  color: #9eb2a6;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
 .promptCardFooter {
   display: grid;
 }

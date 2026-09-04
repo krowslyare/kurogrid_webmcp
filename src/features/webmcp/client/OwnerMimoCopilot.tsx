@@ -293,10 +293,9 @@ export function OwnerMimoCopilot({ organizationSlug, siteSlug }: OwnerMimoCopilo
     <section className="owner-copilot-container" aria-label="Owner Mimo Copilot">
       <div className="owner-copilot-header">
         <div className="owner-copilot-title-group">
-          <span className="owner-copilot-badge">WebMCP Copilot</span>
           <h3>Mimo Owner Copilot</h3>
+          <span className="owner-copilot-badge">WebMCP In-Browser Agent</span>
         </div>
-        <p>Direct WebMCP operational assistant powered by Gemini 3.5 Flash.</p>
       </div>
 
       <div className="owner-copilot-input-shell">

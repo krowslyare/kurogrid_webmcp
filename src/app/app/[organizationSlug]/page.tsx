@@ -24,7 +24,6 @@ import {
   saveSiteDraft,
 } from "@/features/publication/server/actions";
 import { WebMcpRegistrar } from "@/features/webmcp/client/webmcp-registrar";
-import { OwnerMimoCopilot } from "@/features/webmcp/client/OwnerMimoCopilot";
 import type { Json } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -399,8 +398,6 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
         </div>
       </header>
 
-      <OwnerMimoCopilot organizationSlug={organizationSlug} siteSlug={firstSite?.slug} />
-
       {currentTab === "schedule" ? (
         <>
           {isMimoDemo ? (
@@ -428,6 +425,7 @@ export default async function OrganizationWorkspacePage({ params, searchParams }
           />
           <AvailabilityControlRoom
             organizationSlug={organizationSlug}
+            siteSlug={firstSite?.slug}
             role={membership.role}
             plan={availabilityPlan}
             defaultConfiguration={availabilityConfiguration ?? null}
