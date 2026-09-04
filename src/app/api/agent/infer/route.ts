@@ -224,6 +224,8 @@ Never use emojis. Keep tone professional, direct, and factual.`
 Current date: ${today}. The upcoming Saturday is ${upcomingSaturday}.
 Your task is to analyze the customer's booking or inquiry request and invoke the appropriate WebMCP tool from the available tools.
 When the customer wants to book or schedule an appointment (or mentions symptoms/services), directly invoke find_appointment_slots to search for available appointment times on the requested date.
+Always include every required argument: service_slug matching a published service name from the request, and date (use the upcoming Saturday above when the user says Saturday or gives no date).
+Never return a tool call with empty or missing arguments. If the service cannot be determined from the request, reply with one short clarifying question instead of calling a tool.
 Only invoke get_clinic_services if the customer solely asks what services or treatments are available in general.
 If the user specifies a pet name, extract it so it can be used in the booking process.
 If required information is missing, respond with a single brief, helpful sentence asking the customer for the missing details.
