@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import type { WebMcpToolDefinition } from "../contracts";
 import { ensureWebMcpModelContext } from "./webmcp-polyfill";
+import { WebMcpInspector } from "./WebMcpInspector";
 
 type Props = {
   organizationSlug?: string;
@@ -321,6 +322,12 @@ export function WebMcpRegistrar({
             </p>
           )}
         </details>
+        <WebMcpInspector
+          scope="authenticated"
+          organizationSlug={organizationSlug}
+          siteSlug={siteSlug}
+          activeToolNames={state.names}
+        />
       </>
     );
   }
@@ -348,6 +355,11 @@ export function WebMcpRegistrar({
           >×</button>
         </aside>
       ) : null}
+      <WebMcpInspector
+        scope="public"
+        siteSlug={siteSlug}
+        activeToolNames={state.names}
+      />
     </>
   );
 }
