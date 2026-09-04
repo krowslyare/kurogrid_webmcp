@@ -1587,6 +1587,116 @@ body:has(.clinic-workspace-shell) {
   line-height: 1.5;
 }
 
+.webmcp-disclaimer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.webmcp-disclaimer-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  color: #b3c2b7;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  padding: 0;
+  transition: color .15s ease, border-color .15s ease;
+}
+
+.webmcp-disclaimer-btn:hover {
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+.webmcp-disclaimer-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  width: min(320px, 80vw);
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #101815;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  color: #d7e0d9;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.webmcp-disclaimer-pop strong {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.webmcp-disclaimer-pop p {
+  margin: 0;
+  color: #b3c2b7;
+}
+
+.webmcp-disclaimer-status {
+  color: var(--clinic-lime);
+}
+
+.webmcp-disclaimer-questions-label {
+  color: #8fa397;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.webmcp-disclaimer-questions {
+  display: grid;
+  gap: 6px;
+}
+
+.webmcp-disclaimer-question {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.webmcp-disclaimer-question button {
+  justify-self: start;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.webmcp-disclaimer-question button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.webmcp-disclaimer-links {
+  display: flex;
+  gap: 12px;
+}
+
+.webmcp-disclaimer-links a {
+  color: var(--clinic-lime);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .talk-to-mimo-input-shell {
   display: flex;
   align-items: center;

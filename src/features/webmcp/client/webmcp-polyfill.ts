@@ -2,6 +2,8 @@
 
 class InMemoryModelContext extends EventTarget implements WebMcpModelContext {
   private tools = new Map<string, WebMcpTool>();
+  /** Marker so UI can distinguish this demo shim from a native host context. */
+  readonly __kurogridWebMcpShim = true;
 
   async registerTool(
     tool: WebMcpTool,

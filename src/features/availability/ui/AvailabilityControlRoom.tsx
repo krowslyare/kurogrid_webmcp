@@ -8,7 +8,7 @@ import { simulateCustomerBookingFromOwner } from "@/features/appointments/server
 import styles from "./availability-control-room.module.css";
 import { CopyAvailabilityPrompt } from "./CopyAvailabilityPrompt";
 import { ManualSubmitButton } from "./ManualSubmitButton";
-import { OwnerMimoCopilot } from "@/features/webmcp/client/OwnerMimoCopilot";
+import { WebMcpDisclaimer } from "@/components/WebMcpDisclaimer";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -766,12 +766,8 @@ export function AvailabilityControlRoom({ organizationSlug, siteSlug, role, plan
         </div>
         <div className={styles.roomGrid}>
           <div className={styles.promptCard} id="availability-prompt">
-            <OwnerMimoCopilot
-              organizationSlug={organizationSlug}
-              siteSlug={siteSlug}
-            />
             <p className={styles.externalDivider}>
-              Or launch your own external AI assistant:
+              Work with your AI assistant <WebMcpDisclaimer variant="workspace" organizationSlug={organizationSlug} siteSlug={siteSlug} />
             </p>
             <div className={styles.promptCardFooter}>
               <CopyAvailabilityPrompt prompt={availabilityPrompt} />

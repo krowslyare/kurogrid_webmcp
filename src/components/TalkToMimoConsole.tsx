@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { WebMcpDisclaimer } from "@/components/WebMcpDisclaimer";
 import {
   safeJsonStringify,
   sanitizeToolForInference,
@@ -206,7 +207,7 @@ export function TalkToMimoConsole({
           tools: registeredTools,
           context: {
             role: "customer",
-            today: "2026-09-03",
+            today: new Date().toISOString().slice(0, 10),
             siteSlug,
           },
         }),
@@ -256,7 +257,12 @@ export function TalkToMimoConsole({
           const name = (s.service_name || s.name || "").toLowerCase();
           return (slug && lowerText.includes(slug)) || (name && lowerText.includes(name));
         });
-        const derivedSlug = matched?.service_slug || matched?.slug || "dermatology";
+        const derivedSlug = matched?.service_slug || matched?.slug || "";
+        if (!derivedSlug) {
+          updateStep(servicesStepId, "error", "No matching service found. Please name a published clinic service.");
+          setIsExecuting(false);
+          return;
+        }
         call.name = "find_appointment_slots";
         call.args = {
           service_slug: derivedSlug,
@@ -265,14 +271,25 @@ export function TalkToMimoConsole({
       }
 
       if (call.name === "find_appointment_slots") {
+        const serviceSlug = typeof call.args.service_slug === "string" && call.args.service_slug
+          ? call.args.service_slug
+          : "";
+        if (!serviceSlug) {
+          updateStep(inferStepId, "error", "No service specified. Please name a published clinic service.");
+          setIsExecuting(false);
+          return;
+        }
+        const slotDate = typeof call.args.date === "string" && call.args.date
+          ? call.args.date
+          : defaultDate;
         const slotsStepId = addStep(
           "find_appointment_slots",
-          `Scanning availability for ${String(call.args.service_slug ?? "dermatology")} on ${String(call.args.date ?? defaultDate)}...`,
+          `Scanning availability for ${serviceSlug} on ${slotDate}...`,
         );
 
         const slotsResult = (await modelContext.executeTool("find_appointment_slots", {
-          service_slug: call.args.service_slug || "dermatology",
-          date: call.args.date || defaultDate,
+          service_slug: serviceSlug,
+          date: slotDate,
         })) as { slots?: Array<{ slot_id: string; starts_at: string; duration_minutes: number }> };
 
         const slots = slotsResult?.slots ?? [];
@@ -296,7 +313,7 @@ export function TalkToMimoConsole({
 
         const prepStepId = addStep(
           "prepare_appointment_request",
-          `Preparing draft booking request for ${petName}...`,
+          `Preparing draft booking request for ${petName} (${customerEmail}, demo address)...`,
         );
 
         const idempotencyKey =
@@ -308,7 +325,7 @@ export function TalkToMimoConsole({
               });
 
         const prepareResult = (await modelContext.executeTool("prepare_appointment_request", {
-          service_slug: call.args.service_slug || "dermatology",
+          service_slug: serviceSlug,
           slot_id: chosenSlot.slot_id,
           pet_name: petName,
           customer_email: customerEmail,
@@ -365,7 +382,7 @@ export function TalkToMimoConsole({
       <div className="talk-to-mimo-header">
         <div className="talk-to-mimo-title-group">
           <h3>Talk to Mimo</h3>
-          <span className="talk-to-mimo-badge">WebMCP In-Browser Agent</span>
+          <span className="talk-to-mimo-badge">Demo booking assistant <WebMcpDisclaimer variant="customer" siteSlug={siteSlug} /></span>
         </div>
         <p>Speak or type what you need to coordinate your appointment live via WebMCP.</p>
       </div>
