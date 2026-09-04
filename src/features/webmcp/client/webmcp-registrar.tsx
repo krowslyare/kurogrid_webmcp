@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import type { WebMcpToolDefinition } from "../contracts";
+import { safeJsonStringify } from "./tool-sanitizer";
 import { ensureWebMcpModelContext } from "./webmcp-polyfill";
 import { WebMcpInspector } from "./WebMcpInspector";
 
@@ -193,7 +194,7 @@ export function WebMcpRegistrar({
                       method: "POST",
                       headers: { "content-type": "application/json" },
                       credentials: "same-origin",
-                      body: JSON.stringify({
+                      body: safeJsonStringify({
                         name: definition.name,
                         input,
                         organizationSlug,

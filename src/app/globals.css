@@ -1802,6 +1802,13 @@ body:has(.clinic-workspace-shell) {
   gap: 8px;
 }
 
+.steps-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
 .steps-heading {
   color: var(--clinic-lime);
   font-family: var(--font-mono), monospace;
@@ -1809,6 +1816,23 @@ body:has(.clinic-workspace-shell) {
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
+}
+
+.steps-dismiss-btn {
+  border: none;
+  background: transparent;
+  color: #8fa397;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color .15s ease, background .15s ease;
+}
+
+.steps-dismiss-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .talk-step {
