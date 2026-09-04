@@ -241,17 +241,21 @@ export function TalkToMimoConsole({
       if (call.name === "get_clinic_services") {
         const servicesStepId = addStep("get_clinic_services", "Reading published clinic services...");
         const servicesResult = (await modelContext.executeTool("get_clinic_services", {})) as {
-          services?: Array<{ slug: string; name: string }>;
+          services?: Array<{ service_slug?: string; slug?: string; service_name?: string; name?: string }>;
         };
         const services = servicesResult?.services ?? [];
         updateStep(servicesStepId, "success", `Verified ${services.length} published clinic services.`);
 
-        const matched = services.find((s) =>
-          textToRun.toLowerCase().includes(s.slug) || textToRun.toLowerCase().includes(s.name.toLowerCase()),
-        );
+        const lowerText = textToRun.toLowerCase();
+        const matched = services.find((s) => {
+          const slug = (s.service_slug || s.slug || "").toLowerCase();
+          const name = (s.service_name || s.name || "").toLowerCase();
+          return (slug && lowerText.includes(slug)) || (name && lowerText.includes(name));
+        });
+        const derivedSlug = matched?.service_slug || matched?.slug || "dermatology";
         call.name = "find_appointment_slots";
         call.args = {
-          service_slug: matched?.slug ?? "dermatology",
+          service_slug: derivedSlug,
           date: defaultDate,
         };
       }
