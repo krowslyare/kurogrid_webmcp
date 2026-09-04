@@ -135,35 +135,65 @@ export function WebMcpInspector({
             <div className="webmcp-inspector-tools-section">
               <div className="webmcp-section-header">
                 <h3>Registered Capabilities ({tools.length || activeToolNames.length})</h3>
-                <button
-                  type="button"
-                  className="webmcp-copy-snippet-btn"
-                  onClick={copyConsoleSnippet}
-                  title="Copy DevTools command to inspect in Chrome Console"
-                >
-                  {copied ? "Copied snippet" : "Copy console test snippet"}
-                </button>
+                <div className="webmcp-section-actions">
+                  <button
+                    type="button"
+                    className="webmcp-expand-all-btn"
+                    onClick={() => {
+                      setExpandedTool((prev) => (prev === "ALL" ? null : "ALL"));
+                    }}
+                  >
+                    {expandedTool === "ALL" ? "Collapse all" : "Expand all schemas"}
+                  </button>
+                  <button
+                    type="button"
+                    className="webmcp-copy-snippet-btn"
+                    onClick={copyConsoleSnippet}
+                    title="Copy DevTools command to inspect in Chrome Console"
+                  >
+                    {copied ? "Copied snippet" : "Copy console test snippet"}
+                  </button>
+                </div>
               </div>
 
               <div className="webmcp-tools-list">
                 {(tools.length ? tools : activeToolNames.map((n): InspectorTool => ({ name: n, description: "Active WebMCP tool" }))).map((tool) => {
-                  const isExpanded = expandedTool === tool.name;
+                  const isQuery =
+                    tool.name.startsWith("get_") ||
+                    tool.name.startsWith("find_") ||
+                    tool.name.startsWith("list_") ||
+                    tool.name.startsWith("preview_");
+                  const isExpanded = expandedTool === "ALL" || expandedTool === tool.name;
+                  const schemaProperties = tool.inputSchema?.properties
+                    ? Object.keys(tool.inputSchema.properties as Record<string, unknown>).length
+                    : 0;
+
                   return (
-                    <div key={tool.name} className="webmcp-tool-card">
+                    <div key={tool.name} className={`webmcp-tool-card ${isExpanded ? "is-open" : ""}`}>
                       <div
                         className="webmcp-tool-summary"
-                        onClick={() => setExpandedTool(isExpanded ? null : tool.name)}
+                        onClick={() => setExpandedTool(isExpanded && expandedTool !== "ALL" ? null : tool.name)}
                       >
                         <div className="webmcp-tool-title-row">
-                          <code className="webmcp-tool-name">{tool.name}</code>
-                          <span className="webmcp-expand-indicator">{isExpanded ? "Hide schema" : "View schema"}</span>
+                          <div className="webmcp-tool-tag-wrap">
+                            <span className={`webmcp-kind-badge ${isQuery ? "is-query" : "is-mutation"}`}>
+                              {isQuery ? "Query" : "Mutation"}
+                            </span>
+                            <code className="webmcp-tool-name">{tool.name}</code>
+                          </div>
+                          <span className="webmcp-expand-indicator">
+                            {schemaProperties > 0 ? `${schemaProperties} param${schemaProperties === 1 ? "" : "s"}` : "No params"} · {isExpanded ? "Hide" : "Schema"}
+                          </span>
                         </div>
                         <p className="webmcp-tool-desc">{tool.description}</p>
                       </div>
 
                       {isExpanded && tool.inputSchema ? (
                         <div className="webmcp-schema-box">
-                          <span className="webmcp-schema-label">Input JSON Schema:</span>
+                          <div className="webmcp-schema-box-header">
+                            <span className="webmcp-schema-label">Input JSON Schema:</span>
+                            <span className="webmcp-schema-type">type: {(tool.inputSchema as { type?: string }).type || "object"}</span>
+                          </div>
                           <pre>{JSON.stringify(tool.inputSchema, null, 2)}</pre>
                         </div>
                       ) : null}

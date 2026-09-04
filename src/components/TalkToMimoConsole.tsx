@@ -422,6 +422,15 @@ export function TalkToMimoConsole({
           )}
         </button>
 
+        {isListening || isSpeaking ? (
+          <div className="talk-to-mimo-waveform" aria-hidden="true" title={isListening ? "Listening..." : "Speaking response..."}>
+            <span className="waveform-bar wave-1" />
+            <span className="waveform-bar wave-2" />
+            <span className="waveform-bar wave-3" />
+            <span className="waveform-bar wave-4" />
+          </div>
+        ) : null}
+
         <input
           ref={inputRef}
           type="text"
@@ -438,21 +447,24 @@ export function TalkToMimoConsole({
           disabled={isExecuting}
         />
 
-        <button
-          type="button"
-          className="talk-to-mimo-submit-btn"
-          onClick={() => void handlePromptSubmit()}
-          disabled={isExecuting || !prompt.trim()}
-          aria-label="Run WebMCP agent"
-        >
-          {isExecuting ? (
-            <span className="talk-spinner" />
-          ) : (
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 8h10M9 4l4 4-4 4" />
-            </svg>
-          )}
-        </button>
+        <div className="talk-to-mimo-submit-wrap">
+          <span className="talk-key-hint" aria-hidden="true">↵</span>
+          <button
+            type="button"
+            className="talk-to-mimo-submit-btn"
+            onClick={() => void handlePromptSubmit()}
+            disabled={isExecuting || !prompt.trim()}
+            aria-label="Run WebMCP agent"
+          >
+            {isExecuting ? (
+              <span className="talk-spinner" />
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 8h10M9 4l4 4-4 4" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="talk-to-mimo-pills">

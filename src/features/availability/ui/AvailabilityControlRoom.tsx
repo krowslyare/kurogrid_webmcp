@@ -1133,6 +1133,22 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
             </div>
           </div>
 
+          <div className={styles.capacityBarContainer}>
+            <div className={styles.capacityBarHeader}>
+              <span className={styles.capacityBarTitle}>Saturday capacity distribution (10 slots)</span>
+              <div className={styles.capacityBarLegend}>
+                <span className={styles.capacityLegendItem}><span className={styles.dotBooked} /> {phase === "completed" ? "2 Booked" : "1 Booked, 1 Held"}</span>
+                <span className={styles.capacityLegendItem}><span className={styles.dotBusy} /> 4 Doctor Block</span>
+                <span className={styles.capacityLegendItem}><span className={styles.dotOpen} /> 4 Open Slots</span>
+              </div>
+            </div>
+            <div className={styles.capacityProgressBar} aria-label="Capacity distribution: 2 booked, 4 doctor busy block, 4 open">
+              <div className={styles.capacitySegmentBooked} style={{ width: "20%" }} title="20% Confirmed or Held visits" />
+              <div className={styles.capacitySegmentBusy} style={{ width: "40%" }} title="40% External Doctor Busy Block" />
+              <div className={styles.capacitySegmentOpen} style={{ width: "40%" }} title="40% Open Public Slots" />
+            </div>
+          </div>
+
           <div className={styles.operationsMetricsGrid}>
             <div className={styles.operationsMetricCard}>
               <span className={styles.operationsMetricLabel}>Saturday Capacity</span>

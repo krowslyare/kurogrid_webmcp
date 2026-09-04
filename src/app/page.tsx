@@ -163,6 +163,35 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="landing-innovations" aria-labelledby="innovations-title">
+        <div className="landing-innovations-header">
+          <p className="landing-kicker"><span aria-hidden="true" /> Beyond static tooling</p>
+          <h2 id="innovations-title">Built for the WebMCP standard.</h2>
+        </div>
+        <div className="landing-innovations-grid">
+          <div className="landing-innovation-card">
+            <span className="innovation-tag">Runtime Transparency</span>
+            <h3>WebMCP Capability Inspector</h3>
+            <p>Direct in-browser drawer querying document.modelContext with full JSON Schemas and copyable DevTools test snippets.</p>
+          </div>
+          <div className="landing-innovation-card">
+            <span className="innovation-tag">Dual-Persona Parity</span>
+            <h3>50/50 Live Parity Simulator</h3>
+            <p>Synchronized split-screen experience testing Customer voice booking on the left and Clinic Owner Copilot on the right.</p>
+          </div>
+          <div className="landing-innovation-card">
+            <span className="innovation-tag">Zero-Latency Voice</span>
+            <h3>Bidirectional Speech Synthesis</h3>
+            <p>Native browser audio synthesis with automated text sanitization stripping raw JSON and markdown before speaking.</p>
+          </div>
+          <div className="landing-innovation-card">
+            <span className="innovation-tag">Living Operations</span>
+            <h3>Continuous Operations Hub</h3>
+            <p>Real-time slot telemetry and incoming customer simulations preventing the dead-end feeling of static single-turn demos.</p>
+          </div>
+        </div>
+      </section>
+
       <section className="landing-close" aria-labelledby="close-title">
         <div>
           <p>One fictional clinic. One real agent interaction.</p>
