@@ -226,8 +226,8 @@ export function TalkToMimoConsole({
         .filter((t): t is NonNullable<typeof t> => t !== null);
 
       const inferStepId = addStep(
-        "gemini-3.5-flash",
-        `Analyzing intent via Gemini 3.5 Flash and ${registeredTools.length} registered WebMCP tools...`,
+        "understanding request",
+        `Understanding your request across ${registeredTools.length} registered WebMCP tools...`,
       );
 
       const inferResponse = await fetch("/api/agent/infer", {
@@ -270,7 +270,7 @@ export function TalkToMimoConsole({
       updateStep(
         inferStepId,
         "success",
-        `Gemini 3.5 Flash selected WebMCP tool "${call.name}".`,
+        `Selected WebMCP tool "${call.name}".`,
       );
 
       // Step 2: Execute selected tool
