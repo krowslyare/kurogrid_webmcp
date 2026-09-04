@@ -1517,6 +1517,35 @@ body:has(.clinic-workspace-shell) {
   color: #ffffff;
 }
 
+.talk-to-mimo-speaker-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2ede5;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.talk-to-mimo-speaker-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--clinic-lime);
+}
+
+.talk-to-mimo-speaker-btn.is-muted {
+  opacity: 0.45;
+  color: #94a3b8;
+}
+
+.talk-to-mimo-speaker-btn.is-speaking {
+  color: var(--clinic-lime);
+  background: rgba(190, 242, 100, 0.18);
+}
+
 .mic-pulse {
   position: absolute;
   inset: -4px;
