@@ -407,6 +407,14 @@ export function OwnerMimoCopilot({ organizationSlug, siteSlug }: OwnerMimoCopilo
         >
           Ask question (clarification)
         </button>
+        <button
+          type="button"
+          className="talk-pill"
+          onClick={() => void handlePromptSubmit("Check Saturday dermatology availability slots")}
+          disabled={isExecuting}
+        >
+          Check slot capacity
+        </button>
       </div>
 
       {steps.length > 0 ? (
