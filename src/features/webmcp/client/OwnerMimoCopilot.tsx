@@ -3,9 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-type TalkToMimoConsoleProps = {
-  siteSlug: string;
-  defaultDate: string;
+type OwnerMimoCopilotProps = {
+  organizationSlug: string;
+  siteSlug?: string;
 };
 
 type ExecutionStep = {
@@ -42,10 +42,7 @@ interface SpeechRecognitionLike extends EventTarget {
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
 }
 
-export function TalkToMimoConsole({
-  siteSlug,
-  defaultDate,
-}: TalkToMimoConsoleProps) {
+export function OwnerMimoCopilot({ organizationSlug, siteSlug }: OwnerMimoCopilotProps) {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -89,9 +86,7 @@ export function TalkToMimoConsole({
 
         recognition.onerror = (event: unknown) => {
           const err = (event as { error?: string })?.error;
-          if (err === "no-speech" || err === "aborted") {
-            return;
-          }
+          if (err === "no-speech" || err === "aborted") return;
           setIsListening(false);
           shouldListenRef.current = false;
         };
@@ -178,17 +173,17 @@ export function TalkToMimoConsole({
       };
       const modelContext = doc.modelContext;
       if (!modelContext || typeof modelContext.executeTool !== "function") {
-        throw new Error("WebMCP modelContext is not available in this document.");
+        throw new Error("WebMCP modelContext is not available in this workspace.");
       }
 
-      // Step 1: Read registered WebMCP tools from the browser DOM
+      // Step 1: Read real-time registered WebMCP tools for Owner
       const registeredTools = typeof modelContext.getTools === "function"
         ? await modelContext.getTools()
         : [];
 
       const inferStepId = addStep(
         "gemini-3.5-flash",
-        `Analyzing intent via Gemini 3.5 Flash and ${registeredTools.length} registered WebMCP tools...`,
+        `Evaluating owner intent against ${registeredTools.length} WebMCP tools...`,
       );
 
       const inferResponse = await fetch("/api/agent/infer", {
@@ -198,8 +193,9 @@ export function TalkToMimoConsole({
           text: textToRun,
           tools: registeredTools,
           context: {
-            role: "customer",
+            role: "owner",
             today: "2026-09-03",
+            organizationSlug,
             siteSlug,
           },
         }),
@@ -210,15 +206,13 @@ export function TalkToMimoConsole({
         type: "tool_call" | "clarification" | "rate_limit";
         message?: string;
         call?: { name: string; args: Record<string, unknown> };
-        extractedPet?: string;
-        model?: string;
       };
 
       if (!inferResult.success) {
         updateStep(
           inferStepId,
           "error",
-          inferResult.message || "Please provide additional booking details.",
+          inferResult.message || "Clarification needed to execute owner action.",
         );
         setIsExecuting(false);
         return;
@@ -237,133 +231,73 @@ export function TalkToMimoConsole({
         `Gemini 3.5 Flash selected WebMCP tool "${call.name}".`,
       );
 
-      // Step 2: Execute selected tool
-      if (call.name === "get_clinic_services") {
-        const servicesStepId = addStep("get_clinic_services", "Reading published clinic services...");
-        const servicesResult = (await modelContext.executeTool("get_clinic_services", {})) as {
-          services?: Array<{ slug: string; name: string }>;
-        };
-        const services = servicesResult?.services ?? [];
-        updateStep(servicesStepId, "success", `Verified ${services.length} published clinic services.`);
+      // Step 2: Execute Owner WebMCP tool
+      const execStepId = addStep(
+        call.name,
+        `Executing WebMCP tool ${call.name}...`,
+      );
 
-        const matched = services.find((s) =>
-          textToRun.toLowerCase().includes(s.slug) || textToRun.toLowerCase().includes(s.name.toLowerCase()),
-        );
-        call.name = "find_appointment_slots";
-        call.args = {
-          service_slug: matched?.slug ?? "dermatology",
-          date: defaultDate,
-        };
-      }
-
-      if (call.name === "find_appointment_slots") {
-        const slotsStepId = addStep(
-          "find_appointment_slots",
-          `Scanning availability for ${String(call.args.service_slug ?? "dermatology")} on ${String(call.args.date ?? defaultDate)}...`,
-        );
-
-        const slotsResult = (await modelContext.executeTool("find_appointment_slots", {
-          service_slug: call.args.service_slug || "dermatology",
-          date: call.args.date || defaultDate,
-        })) as { slots?: Array<{ slot_id: string; starts_at: string; duration_minutes: number }> };
-
-        const slots = slotsResult?.slots ?? [];
-        if (!slots.length) {
-          updateStep(slotsStepId, "error", "No available slots found for this service and date.");
-          setIsExecuting(false);
-          return;
-        }
-
-        updateStep(
-          slotsStepId,
-          "success",
-          `Found ${slots.length} available opening${slots.length === 1 ? "" : "s"}.`,
-        );
-
-        // Chain to prepare_appointment_request
-        const chosenSlot = slots[0];
-        const petName = inferResult.extractedPet || (textToRun.toLowerCase().includes("max") ? "Max" : "Luna");
-        const customerEmail = `${petName.toLowerCase()}@example.test`;
-
-        const prepStepId = addStep(
-          "prepare_appointment_request",
-          `Preparing draft booking request for ${petName}...`,
-        );
-
-        const idempotencyKey =
+      // Supply default uuid/idempotency_key only if required by mutating tools
+      const toolsNeedingIdempotency = [
+        "prepare_availability_plan",
+        "apply_availability_plan",
+        "apply_approved_availability_plan",
+        "publish_site_draft",
+        "create_action_plan",
+        "prepare_appointment_request",
+      ];
+      const preparedArgs = { ...call.args };
+      if (toolsNeedingIdempotency.includes(call.name) && !preparedArgs.idempotency_key) {
+        preparedArgs.idempotency_key =
           typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
             ? crypto.randomUUID()
             : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
                 const r = (Math.random() * 16) | 0;
                 return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
               });
-
-        const prepareResult = (await modelContext.executeTool("prepare_appointment_request", {
-          service_slug: call.args.service_slug || "dermatology",
-          slot_id: chosenSlot.slot_id,
-          pet_name: petName,
-          customer_email: customerEmail,
-          idempotency_key: idempotencyKey,
-        })) as {
-          appointment?: { request_id: string; access_token: string; confirmation_token: string };
-          navigate_to?: string;
-        };
-
-        if (!prepareResult?.navigate_to) {
-          updateStep(prepStepId, "error", "Unable to generate confirmation token.");
-          setIsExecuting(false);
-          return;
-        }
-
-        updateStep(
-          prepStepId,
-          "success",
-          "Draft prepared with one-shot confirmation token. Loading confirmation view...",
-        );
-
-        router.push(`${prepareResult.navigate_to}#agent-booking`);
-      } else {
-        const genericStepId = addStep(
-          call.name,
-          `Executing WebMCP tool ${call.name}...`,
-        );
-
-        const execResult = (await modelContext.executeTool(call.name, call.args)) as {
-          navigate_to?: string;
-        };
-
-        updateStep(genericStepId, "success", `Tool ${call.name} executed successfully.`);
-
-        if (execResult?.navigate_to) {
-          router.push(execResult.navigate_to);
-        }
       }
+
+      const execResult = (await modelContext.executeTool(call.name, preparedArgs)) as Record<string, unknown>;
+
+      let detail = `Tool ${call.name} executed successfully.`;
+      if (call.name === "get_availability_configuration") {
+        const ranges = Array.isArray(execResult?.weekly_ranges) ? execResult.weekly_ranges.length : 0;
+        const busy = Array.isArray(execResult?.busy_intervals) ? execResult.busy_intervals.length : 0;
+        detail = `Current availability loaded: ${ranges} weekly range(s), ${busy} busy interval(s).`;
+      } else if (call.name === "get_attention") {
+        const items = Array.isArray(execResult?.attention) ? execResult.attention.length : 0;
+        detail = `Attention items loaded: ${items} active business signal(s).`;
+      }
+
+      updateStep(execStepId, "success", detail);
+      router.refresh();
+      setIsExecuting(false);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Execution encountered an error.";
+      const message = err instanceof Error ? err.message : "Owner copilot encountered an error.";
       addStep("error", message);
       setIsExecuting(false);
     }
   };
 
   return (
-    <div className="talk-to-mimo-container" id="talk-to-mimo">
-      <div className="talk-to-mimo-header">
-        <div className="talk-to-mimo-title-group">
-          <span className="talk-to-mimo-badge">WebMCP In-Browser Agent</span>
-          <h3>Talk to Mimo</h3>
+    <section className="owner-copilot-container" aria-label="Owner Mimo Copilot">
+      <div className="owner-copilot-header">
+        <div className="owner-copilot-title-group">
+          <span className="owner-copilot-badge">WebMCP Copilot</span>
+          <h3>Mimo Owner Copilot</h3>
         </div>
-        <p>Speak or type what you need to coordinate your appointment live via WebMCP.</p>
+        <p>Direct WebMCP operational assistant powered by Gemini 3.5 Flash.</p>
       </div>
 
-      <div className="talk-to-mimo-input-shell">
+      <div className="owner-copilot-input-shell">
         <button
           type="button"
           className={`talk-to-mimo-mic-btn ${isListening ? "is-listening" : ""}`}
           onClick={toggleListening}
-          title={isListening ? "Listening... click to stop" : "Click to speak with voice"}
+          title={isListening ? "Listening... click to stop" : "Click to speak"}
           aria-label="Voice input"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
             <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
             <line x1="12" x2="12" y1="19" y2="22" />
@@ -374,7 +308,7 @@ export function TalkToMimoConsole({
         <input
           ref={inputRef}
           type="text"
-          className="talk-to-mimo-input"
+          className="owner-copilot-input"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => {
@@ -383,21 +317,21 @@ export function TalkToMimoConsole({
               void handlePromptSubmit();
             }
           }}
-          placeholder={isListening ? "Listening to your voice..." : "e.g. Book dermatology for Luna this Saturday morning"}
+          placeholder={isListening ? "Listening..." : "e.g. Check our availability configuration and busy intervals"}
           disabled={isExecuting}
         />
 
         <button
           type="button"
-          className="talk-to-mimo-submit-btn"
+          className="owner-copilot-submit-btn"
           onClick={() => void handlePromptSubmit()}
           disabled={isExecuting || !prompt.trim()}
-          aria-label="Run WebMCP agent"
+          aria-label="Run Owner Copilot"
         >
           {isExecuting ? (
             <span className="talk-spinner" />
           ) : (
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 8h10M9 4l4 4-4 4" />
             </svg>
           )}
@@ -405,30 +339,30 @@ export function TalkToMimoConsole({
       </div>
 
       <div className="talk-to-mimo-pills">
-        <span className="pills-label">Suggestions:</span>
+        <span className="pills-label">Owner actions:</span>
         <button
           type="button"
           className="talk-pill"
-          onClick={() => void handlePromptSubmit("Book dermatology for Luna this Saturday morning")}
+          onClick={() => void handlePromptSubmit("Check our availability configuration and busy intervals")}
           disabled={isExecuting}
         >
-          Book dermatology for Luna this Saturday
+          Check availability configuration
         </button>
         <button
           type="button"
           className="talk-pill"
-          onClick={() => void handlePromptSubmit("Book vaccination for Max this Saturday")}
+          onClick={() => void handlePromptSubmit("Review attention items and business evidence")}
           disabled={isExecuting}
         >
-          Book vaccination for Max
+          Review attention items
         </button>
         <button
           type="button"
           className="talk-pill"
-          onClick={() => void handlePromptSubmit("Book an appointment")}
+          onClick={() => void handlePromptSubmit("What operational tools are available?")}
           disabled={isExecuting}
         >
-          Book an appointment
+          Ask question (clarification)
         </button>
       </div>
 
@@ -448,6 +382,6 @@ export function TalkToMimoConsole({
           ))}
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }
