@@ -1007,7 +1007,9 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 @media (prefers-reduced-motion: reduce) { .agent-activity-receipt { animation: none; } }
 
 body:has(dialog[open]) .floating-talk-agent-btn,
-body:has(dialog[open]) .agent-activity-receipt {
+body:has(dialog[open]) .agent-activity-receipt,
+body:has(.webmcp-inspector-overlay) .floating-talk-agent-btn,
+body:has(.webmcp-inspector-overlay) .agent-activity-receipt {
   display: none !important;
   pointer-events: none !important;
 }
@@ -2050,7 +2052,7 @@ body:has(.clinic-workspace-shell) {
   inset: 0;
   background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(4px);
-  z-index: 9999;
+  z-index: 100000;
   display: flex;
   justify-content: flex-end;
 }
