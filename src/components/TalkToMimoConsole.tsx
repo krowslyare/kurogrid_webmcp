@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { speakMessage, stopSpeaking } from "@/lib/speech-synthesis";
 
 type TalkToMimoConsoleProps = {
   siteSlug: string;
@@ -51,6 +52,8 @@ export function TalkToMimoConsole({
   const [isListening, setIsListening] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [steps, setSteps] = useState<ExecutionStep[]>([]);
+  const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -136,6 +139,23 @@ export function TalkToMimoConsole({
     }
   };
 
+  const toggleVoiceOutput = () => {
+    if (isSpeaking) {
+      stopSpeaking();
+      setIsSpeaking(false);
+    }
+    setVoiceOutputEnabled((prev) => !prev);
+  };
+
+  const speakFeedback = (text: string) => {
+    if (!voiceOutputEnabled) return;
+    speakMessage(text, {
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false),
+    });
+  };
+
   const handlePromptSubmit = async (overridePrompt?: string) => {
     const textToRun = (overridePrompt ?? prompt).trim();
     if (!textToRun || isExecuting) return;
@@ -215,11 +235,9 @@ export function TalkToMimoConsole({
       };
 
       if (!inferResult.success) {
-        updateStep(
-          inferStepId,
-          "error",
-          inferResult.message || "Please provide additional booking details.",
-        );
+        const errorMsg = inferResult.message || "Please provide additional booking details.";
+        updateStep(inferStepId, "error", errorMsg);
+        speakFeedback(errorMsg);
         setIsExecuting(false);
         return;
       }
@@ -227,6 +245,7 @@ export function TalkToMimoConsole({
       const call = inferResult.call;
       if (!call) {
         updateStep(inferStepId, "error", "No WebMCP tool selected.");
+        speakFeedback("No WebMCP tool selected.");
         setIsExecuting(false);
         return;
       }
@@ -273,7 +292,9 @@ export function TalkToMimoConsole({
 
         const slots = slotsResult?.slots ?? [];
         if (!slots.length) {
-          updateStep(slotsStepId, "error", "No available slots found for this service and date.");
+          const noSlotMsg = "No available slots found for this service and date.";
+          updateStep(slotsStepId, "error", noSlotMsg);
+          speakFeedback(noSlotMsg);
           setIsExecuting(false);
           return;
         }
@@ -315,6 +336,7 @@ export function TalkToMimoConsole({
 
         if (!prepareResult?.navigate_to) {
           updateStep(prepStepId, "error", "Unable to generate confirmation token.");
+          speakFeedback("Unable to prepare booking request.");
           setIsExecuting(false);
           return;
         }
@@ -325,6 +347,7 @@ export function TalkToMimoConsole({
           "Draft prepared with one-shot confirmation token. Loading confirmation view...",
         );
 
+        speakFeedback(`Found Saturday openings. Prepared your appointment request for ${petName}.`);
         router.push(`${prepareResult.navigate_to}#agent-booking`);
       } else {
         const genericStepId = addStep(
@@ -337,6 +360,7 @@ export function TalkToMimoConsole({
         };
 
         updateStep(genericStepId, "success", `Tool ${call.name} executed successfully.`);
+        speakFeedback(`Tool ${call.name} executed.`);
 
         if (execResult?.navigate_to) {
           router.push(execResult.navigate_to);
@@ -345,6 +369,7 @@ export function TalkToMimoConsole({
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Execution encountered an error.";
       addStep("error", message);
+      speakFeedback(message);
       setIsExecuting(false);
     }
   };
@@ -373,6 +398,28 @@ export function TalkToMimoConsole({
             <line x1="12" x2="12" y1="19" y2="22" />
           </svg>
           {isListening ? <span className="mic-pulse" /> : null}
+        </button>
+
+        <button
+          type="button"
+          className={`talk-to-mimo-speaker-btn ${!voiceOutputEnabled ? "is-muted" : ""} ${isSpeaking ? "is-speaking" : ""}`}
+          onClick={toggleVoiceOutput}
+          title={voiceOutputEnabled ? (isSpeaking ? "Speaking... click to silence" : "Voice replies active (click to mute)") : "Voice replies muted (click to unmute)"}
+          aria-label={voiceOutputEnabled ? "Mute voice replies" : "Enable voice replies"}
+        >
+          {voiceOutputEnabled ? (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+            </svg>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <line x1="23" y1="9" x2="17" y2="15" />
+              <line x1="17" y1="9" x2="23" y2="15" />
+            </svg>
+          )}
         </button>
 
         <input
