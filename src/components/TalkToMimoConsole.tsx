@@ -186,6 +186,37 @@ export function TalkToMimoConsole({
         throw new Error("WebMCP modelContext is not available in this document.");
       }
 
+      // Demo execution helper: prefers the in-page modelContext tool runner,
+      // but native WebMCP hosts expose a different executeTool signature.
+      // On failure it falls back to the exact same same-origin endpoint the
+      // registered tools call, so the demo works in both worlds.
+      const directExecute = async (name: string, input: Record<string, unknown>): Promise<unknown> => {
+        const executeResponse = await fetch("/api/webmcp/execute", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          credentials: "same-origin",
+          body: safeJsonStringify({ name, input, siteSlug }),
+        });
+        const result = (await executeResponse.json()) as Record<string, unknown>;
+        if (!executeResponse.ok) {
+          throw new Error(
+            typeof result.error === "string" ? result.error : "tool_execution_failed",
+          );
+        }
+        if (result.capabilities_changed === true) {
+          router.refresh();
+        }
+        return result;
+      };
+
+      const runTool = async <T>(name: string, input: Record<string, unknown>): Promise<T> => {
+        try {
+          return (await modelContext.executeTool(name, input)) as T;
+        } catch {
+          return (await directExecute(name, input)) as T;
+        }
+      };
+
       // Step 1: Read registered WebMCP tools from browser DOM & sanitize for circular-safety
       const rawTools = typeof modelContext.getTools === "function"
         ? await modelContext.getTools()
@@ -257,7 +288,7 @@ export function TalkToMimoConsole({
 
       if (call.name === "get_clinic_services") {
         const servicesStepId = addStep("get_clinic_services", "Reading published clinic services...");
-        const servicesResult = (await modelContext.executeTool("get_clinic_services", {})) as {
+        const servicesResult = (await runTool("get_clinic_services", {})) as {
           services?: Array<{ service_slug?: string; slug?: string; service_name?: string; name?: string }>;
         };
         const services = servicesResult?.services ?? [];
@@ -285,7 +316,7 @@ export function TalkToMimoConsole({
           // Resolve the service from the user's own words against the
           // published list instead of inventing one.
           const healStepId = addStep("get_clinic_services", "No service in the request — checking published services...");
-          const healResult = (await modelContext.executeTool("get_clinic_services", {})) as {
+          const healResult = (await runTool("get_clinic_services", {})) as {
             services?: Array<{ service_slug?: string; slug?: string; service_name?: string; name?: string }>;
           };
           const healed = matchServiceFromText(healResult?.services ?? []);
@@ -305,7 +336,7 @@ export function TalkToMimoConsole({
           `Scanning availability for ${serviceSlug} on ${slotDate}...`,
         );
 
-        const slotsResult = (await modelContext.executeTool("find_appointment_slots", {
+        const slotsResult = (await runTool("find_appointment_slots", {
           service_slug: serviceSlug,
           date: slotDate,
         })) as { slots?: Array<{ slot_id: string; starts_at: string; duration_minutes: number }> };
@@ -342,7 +373,7 @@ export function TalkToMimoConsole({
                 return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
               });
 
-        const prepareResult = (await modelContext.executeTool("prepare_appointment_request", {
+        const prepareResult = (await runTool("prepare_appointment_request", {
           service_slug: serviceSlug,
           slot_id: chosenSlot.slot_id,
           pet_name: petName,
@@ -372,7 +403,7 @@ export function TalkToMimoConsole({
           `Executing WebMCP tool ${call.name}...`,
         );
 
-        const execResult = (await modelContext.executeTool(call.name, call.args)) as {
+        const execResult = (await runTool(call.name, call.args)) as {
           navigate_to?: string;
         };
 
