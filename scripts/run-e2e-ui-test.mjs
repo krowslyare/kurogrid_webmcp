@@ -21,9 +21,12 @@ async function run() {
   page.on('console', (msg) => console.log('BROWSER CONSOLE:', msg.text()));
   page.on('pageerror', (err) => console.log('BROWSER PAGE ERROR:', err.message));
 
+  const BASE_URL = process.env.TEST_BASE_URL || 'https://webmcp.kurogrid.com';
+  const ACCESS_CODE = BASE_URL.includes('localhost') ? 'local' : 'webmcphackaton';
+
   // 1. Visit Public Site
-  console.log('1. Navigating to http://localhost:3000/sites/mimo-01');
-  await page.goto('http://localhost:3000/sites/mimo-01', { waitUntil: 'networkidle' });
+  console.log(`1. Navigating to ${BASE_URL}/sites/mimo-01`);
+  await page.goto(`${BASE_URL}/sites/mimo-01`, { waitUntil: 'networkidle' });
 
   // Scroll to booking section
   await page.locator('#talk-to-mimo').scrollIntoViewIfNeeded();
@@ -49,7 +52,7 @@ async function run() {
 
   // Wait for navigation / redirect to confirmation card
   console.log('Waiting for navigation to confirmation view...');
-  await page.waitForFunction(() => window.location.search.includes('appointment='), { timeout: 20000 });
+  await page.waitForFunction(() => window.location.search.includes('appointment='), { timeout: 25000 });
   await page.waitForSelector('.customer-appointment-card, #agent-booking', { timeout: 15000 });
   await page.waitForTimeout(1000);
 
@@ -70,12 +73,12 @@ async function run() {
   console.log('Saved screenshot 4: Customer Receipt & Calendar Actions ->', shot4Path);
 
   // 4. Visit Demo Login -> Owner Workspace
-  console.log('4. Navigating to http://localhost:3000/demo');
-  await page.goto('http://localhost:3000/demo', { waitUntil: 'networkidle' });
+  console.log(`4. Navigating to ${BASE_URL}/demo`);
+  await page.goto(`${BASE_URL}/demo`, { waitUntil: 'networkidle' });
 
   // Fill access code
-  console.log('Filling access code "local"...');
-  await page.fill('input[name="accessCode"]', 'local');
+  console.log(`Filling access code "${ACCESS_CODE}"...`);
+  await page.fill('input[name="accessCode"]', ACCESS_CODE);
 
   // If capacity error button is already present, click it to reset
   let releaseBtn = page.locator('button:has-text("Release occupied slots")');
@@ -83,7 +86,7 @@ async function run() {
     console.log('Releasing occupied demo slots...');
     await releaseBtn.click();
     await page.waitForTimeout(1500);
-    await page.fill('input[name="accessCode"]', 'local');
+    await page.fill('input[name="accessCode"]', ACCESS_CODE);
   }
 
   console.log('Submitting Open isolated demo...');
@@ -95,10 +98,10 @@ async function run() {
     console.log('Capacity error encountered, releasing slots and retrying...');
     releaseBtn = page.locator('button:has-text("Release occupied slots")');
     if (await releaseBtn.count() > 0) {
-      await page.fill('input[name="accessCode"]', 'local');
+      await page.fill('input[name="accessCode"]', ACCESS_CODE);
       await releaseBtn.click();
       await page.waitForTimeout(1500);
-      await page.fill('input[name="accessCode"]', 'local');
+      await page.fill('input[name="accessCode"]', ACCESS_CODE);
       await page.click('button[type="submit"]:has-text("Open isolated demo")');
     }
   }
