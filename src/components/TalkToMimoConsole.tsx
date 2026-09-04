@@ -209,7 +209,7 @@ export function TalkToMimoConsole({
         return result;
       };
 
-      const runTool = async <T>(name: string, input: Record<string, unknown>): Promise<T> => {
+      const runTool = async <T,>(name: string, input: Record<string, unknown>): Promise<T> => {
         try {
           return (await modelContext.executeTool(name, input)) as T;
         } catch {
