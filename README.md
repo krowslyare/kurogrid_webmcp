@@ -2,7 +2,7 @@
 
 ### Websites assistants can safely use
 
-Kuro Agent demonstrates two connected WebMCP journeys: a customer assistant can
+Kuro Agent runs two connected WebMCP journeys: a customer assistant can
 complete an appointment outcome from a normal business website, and an Owner's
 assistant can turn operating intent plus normalized calendar conflicts into an
 exact availability plan without silently moving existing bookings.
@@ -21,7 +21,7 @@ exact availability plan without silently moving existing bookings.
 Most websites expose pages. Assistants still have to interpret those pages,
 guess what can be done, and hand users into a separate workflow.
 
-Kuro Agent makes the website itself a contextual capability surface:
+Kuro Agent turns the website itself into a set of tools an assistant can call:
 
 1. A customer asks for a dermatology visit on Saturday morning.
 2. The assistant discovers Mimo's current services and appointment tools.
@@ -43,31 +43,24 @@ booking form.
 
 ## Why this is not a CRUD demo
 
-A booking form creates a record. Kuro Agent demonstrates a broader contract:
-
-- **Contextual discovery:** tools appear only when the current role, resource,
-  and state allow them.
-- **Human authority:** an authenticated Owner may delegate exact application in
-  the prompt or use the manual fallback; customers alone decide proposed times.
-- **One published truth:** the public page and its WebMCP tools resolve the same
-  immutable site version.
-- **Role boundaries:** Members can prepare drafts; only Owners can publish or
-  roll back.
-- **Stateful capability changes:** appointment tools change after preparation,
-  confirmation, acceptance, or rescheduling.
-- **Reversibility and auditability:** publication creates immutable versions;
-  rollback restores an earlier version without rewriting history.
-- **A completed outcome:** the flow ends with a clinic response, private status
-  link, email update, and Calendar handoff.
-- **Derived operational impact:** the agent supplies desired ranges and
-  normalized busy intervals; Mimo derives affected bookings and alternatives
-  server-side instead of trusting agent-authored consequences.
+A booking form creates a record. Kuro Agent holds both sides to more than that.
+Tools only appear when your role, resource, and state allow them. An Owner can
+delegate exact application in the prompt or fall back to manual controls, and
+only customers decide on proposed times. The public page and its WebMCP tools
+read the same immutable site version. Members prepare drafts, only Owners
+publish or roll back. Appointment tools change after preparation, confirmation,
+acceptance, or rescheduling. Publication writes immutable versions, so rollback
+restores an earlier one without rewriting history. Each flow ends with a clinic
+response, a private status link, an email update, and a Calendar handoff. The
+agent sends desired ranges and normalized busy intervals, and Mimo derives the
+affected bookings and alternatives on the server instead of trusting what the
+agent claims the impact is.
 
 WebMCP registration is not treated as authorization. Every execution is
 resolved again on the server against the current session, tenant, role, and
 resource state.
 
-## Two connected product surfaces
+## Two connected product pages
 
 ### Customer: Mimo Veterinary Care
 
@@ -86,10 +79,10 @@ proposes 11:30 to Luna, and preserves Max's existing 12:00 booking even though
 future lunch times are blocked.
 
 The earlier editorial draft, publication, and rollback workflow remains as a
-secondary surface. Neither workflow is a general CRM, calendar sync product,
+secondary demo. Neither workflow is a general CRM, calendar sync product,
 or workflow builder.
 
-## WebMCP surface
+## WebMCP tools
 
 The browser adapter uses the imperative
 `document.modelContext.registerTool()` API. Registrations are refreshed when
@@ -122,7 +115,7 @@ customer-safe capabilities derived from the published site and appointment
 state. See the complete [public scope](docs/public-scope.md) and
 [WebMCP compatibility notes](docs/webmcp-compatibility.md).
 
-### Observe the native capability surface
+### Observe the native tools
 
 Open the [Mimo customer demo](https://webmcp.kurogrid.com/sites/mimo-01)
 in a compatible WebMCP host. The reviewed Chrome setup requires the WebMCP
@@ -180,9 +173,9 @@ Read [architecture](docs/architecture.md), [security](docs/security.md), and
 
 ## Demo and verification
 
-The live customer surface needs no access code. The isolated clinic walkthrough
-uses the code supplied with the challenge submission. Demo sessions are backed
-by a bounded lease pool, separated by organization, and reset for reuse.
+The live customer page needs no access code. The isolated clinic walkthrough
+uses the code supplied with the challenge submission. Demo sessions run on a
+bounded lease pool, separated by organization, and reset for reuse.
 
 The verified release covers:
 
