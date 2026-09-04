@@ -110,20 +110,22 @@ export function CopyAvailabilityPrompt({ prompt }: Props) {
             onClick={(event) => handleLauncherClick(event, agent)}
             rel="noreferrer"
             target="_blank"
+            className="clinic-launcher-icon-btn"
+            title={`Launch in ${agent.label}`}
+            aria-label={`Launch in ${agent.label}`}
           >
             <AgentMark icon={agent.icon} />
-            <span>
-              <small>{agent.brand}</small>
-              <strong>{agent.label}</strong>
-            </span>
           </a>
         ))}
-        <button onClick={() => void copyPrompt()} type="button">
+        <button
+          onClick={() => void copyPrompt()}
+          type="button"
+          className={`clinic-launcher-other-btn ${status === "copied" ? "is-copied" : ""}`}
+          title="Copy prompt for other AI agents"
+          aria-label="Copy prompt for other AI agents"
+        >
           <AgentMark icon="other" />
-          <span>
-            <small>Any app</small>
-            <strong>Other AI agent</strong>
-          </span>
+          <span>{status === "copied" ? "Prompt copied" : "Other AI agents"}</span>
         </button>
       </div>
     </div>

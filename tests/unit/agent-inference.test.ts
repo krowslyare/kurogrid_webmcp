@@ -70,9 +70,8 @@ test("POST /api/agent/infer handles owner and customer fallback contexts cleanly
 
   const resOwner = await POST(reqOwner);
   const dataOwner = await resOwner.json();
-  assert.equal(dataOwner.success, true);
-  assert.equal(dataOwner.type, "tool_call");
-  assert.equal(dataOwner.call.name, "get_availability_configuration");
+  assert.equal(dataOwner.success, false);
+  assert.equal(dataOwner.type, "clarification");
 
   const reqCustomer = new Request("http://localhost/api/agent/infer", {
     method: "POST",

@@ -20,6 +20,8 @@ interface WebMcpModelContext extends EventTarget {
     tool: WebMcpTool,
     options?: { signal?: AbortSignal; exposedTo?: string[] },
   ): Promise<void>;
+  /** Present only on the Kurogrid in-page demo shim; absent on native hosts. */
+  readonly __kurogridWebMcpShim?: boolean;
 }
 
 interface Document {

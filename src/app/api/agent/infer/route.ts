@@ -1,4 +1,33 @@
 
+
+// Local date helpers (mirrors src/features/appointments/lib/booking-days.ts,
+// inlined because the node --test runner cannot resolve path aliases).
+function todayInput(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Lima",
+    year: "numeric",
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function nextSaturdayInLima(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Lima",
+    year: "numeric",
+  }).formatToParts(now);
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const date = new Date(Date.UTC(Number(value.year), Number(value.month) - 1, Number(value.day)));
+  const isoWeekday = date.getUTCDay() === 0 ? 7 : date.getUTCDay();
+  const rawOffset = 6 - isoWeekday;
+  date.setUTCDate(date.getUTCDate() + (rawOffset <= 0 ? rawOffset + 7 : rawOffset));
+  return date.toISOString().slice(0, 10);
+}
+
 // In-memory sliding window rate limiter
 const rateLimitMap = new Map<string, number[]>();
 const WINDOW_MS = 60_000; // 1 minute window
@@ -122,7 +151,8 @@ export async function POST(request: Request) {
     const text = body.text?.trim();
     const incomingTools = Array.isArray(body.tools) ? body.tools : [];
     const role = body.context?.role ?? "customer";
-    const today = body.context?.today ?? "2026-09-03";
+    const today = body.context?.today ?? todayInput();
+    const upcomingSaturday = nextSaturdayInLima();
 
     if (!text) {
       return Response.json(
@@ -152,7 +182,9 @@ export async function POST(request: Request) {
     }));
 
     if (!apiKey || functionDeclarations.length === 0) {
-      // Fallback if no API key or no tools provided
+      // No-inference fallback: customer demo keeps working with an explicit
+      // demo default; owner traffic gets a clarification pointing at the
+      // manual workspace controls (no invented owner action).
       if (role === "customer") {
         const petName = text.toLowerCase().includes("max") ? "Max" : "Luna";
         return Response.json({
@@ -162,23 +194,23 @@ export async function POST(request: Request) {
             name: "find_appointment_slots",
             args: {
               service_slug: "dermatology",
-              date: "2026-09-05",
+              date: upcomingSaturday,
             },
           },
           extractedPet: petName,
-          model: "fallback",
+          model: "fallback-no-key",
         });
       }
 
-      return Response.json({
-        success: true,
-        type: "tool_call",
-        call: {
-          name: "get_availability_configuration",
-          args: {},
+      return Response.json(
+        {
+          success: false,
+          type: "clarification",
+          message: "Owner actions need the workspace review. Use the manual availability controls below.",
+          model: "fallback-no-key",
         },
-        model: "fallback",
-      });
+        { status: 200 },
+      );
     }
 
     const systemPrompt = role === "owner"
@@ -189,7 +221,7 @@ Do not invent tools or parameters.
 If a parameter is required and cannot be inferred, ask a single concise sentence requesting the missing information.
 Never use emojis. Keep tone professional, direct, and factual.`
       : `You are Mimo Vet AI Assistant embedded in the clinic's appointment booking page using the WebMCP standard.
-Current date: ${today} (Thursday). This upcoming Saturday is 2026-09-05.
+Current date: ${today}. The upcoming Saturday is ${upcomingSaturday}.
 Your task is to analyze the customer's booking or inquiry request and invoke the appropriate WebMCP tool from the available tools.
 When the customer wants to book or schedule an appointment (or mentions symptoms/services), directly invoke find_appointment_slots to search for available appointment times on the requested date.
 Only invoke get_clinic_services if the customer solely asks what services or treatments are available in general.
@@ -245,33 +277,16 @@ Never use emojis. Keep tone concise, professional, and clear.`;
     }
 
     if (!geminiRes || !geminiRes.ok) {
-      // Resilient fallback
-      if (role === "customer") {
-        const petName = text.toLowerCase().includes("max") ? "Max" : "Luna";
-        return Response.json({
-          success: true,
-          type: "tool_call",
-          call: {
-            name: "find_appointment_slots",
-            args: {
-              service_slug: "dermatology",
-              date: "2026-09-05",
-            },
-          },
-          extractedPet: petName,
-          model: "fallback-resilience",
-        });
-      }
-
-      return Response.json({
-        success: true,
-        type: "tool_call",
-        call: {
-          name: "get_availability_configuration",
-          args: {},
+      // Honest failure: never invent a tool call when inference is down.
+      return Response.json(
+        {
+          success: false,
+          type: "clarification",
+          message: "The booking assistant is temporarily unavailable. Please try again or use the booking form below.",
+          model: "inference-unavailable",
         },
-        model: "fallback-resilience",
-      });
+        { status: 200 },
+      );
     }
 
     const data = (await geminiRes.json()) as {
@@ -327,18 +342,14 @@ Never use emojis. Keep tone concise, professional, and clear.`;
     });
   } catch (err: unknown) {
     console.error("Agent inference error:", err);
-    return Response.json({
-      success: true,
-      type: "tool_call",
-      call: {
-        name: "find_appointment_slots",
-        args: {
-          service_slug: "dermatology",
-          date: "2026-09-05",
-        },
+    return Response.json(
+      {
+        success: false,
+        type: "clarification",
+        message: "The booking assistant hit an unexpected error. Please try again or use the booking form below.",
+        model: "error-clarification",
       },
-      extractedPet: "Luna",
-      model: "error-fallback",
-    });
+      { status: 200 },
+    );
   }
 }

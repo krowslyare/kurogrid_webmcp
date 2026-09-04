@@ -53,9 +53,9 @@ export function AgentMark({ icon }: { icon: (typeof agentOptions)[number]["icon"
   }
 
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path d="M12 2.75c.4 4.9 2.35 6.85 7.25 7.25-4.9.4-6.85 2.35-7.25 7.25-.4-4.9-2.35-6.85-7.25-7.25 4.9-.4 6.85-2.35 7.25-7.25Z" />
-      <path d="M19 15.5c.18 2.2 1.05 3.07 3.25 3.25-2.2.18-3.07 1.05-3.25 3.25-.18-2.2-1.05-3.07-3.25-3.25 2.2-.18 3.07-1.05 3.25-3.25Z" />
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   );
 }
@@ -181,37 +181,26 @@ export function CopyAgentPrompt({ prompt }: CopyAgentPromptProps) {
             onClick={(event) => handleLauncherClick(event, agent)}
             rel="noreferrer"
             target="_blank"
+            className="clinic-launcher-icon-btn"
+            title={`Launch in ${agent.label}`}
+            aria-label={`Launch in ${agent.label}`}
           >
             <AgentMark icon={agent.icon} />
-            <span>
-              <small>{agent.brand}</small>
-              <strong>{agent.label}</strong>
-            </span>
           </a>
         ))}
-        <button onClick={() => void copyPrompt()} type="button">
+        <button
+          onClick={() => void copyPrompt()}
+          type="button"
+          className={`clinic-launcher-other-btn ${status === "copied" ? "is-copied" : ""}`}
+          title="Copy request for other AI agents"
+          aria-label="Copy request for other AI agents"
+          aria-describedby={feedbackId}
+        >
           <AgentMark icon="other" />
-          <span>
-            <small>Any app</small>
-            <strong>Other AI agent</strong>
-          </span>
+          <span>{status === "copied" ? "Request copied" : "Other AI agents"}</span>
         </button>
       </div>
 
-      <button
-        aria-describedby={feedbackId}
-        className="clinic-copy-prompt"
-        onClick={() => void copyPrompt()}
-        type="button"
-      >
-        <span aria-hidden="true">{status === "copied" ? "✓" : "⧉"}</span>
-        {status === "copied" ? "Request copied" : "Copy request"}
-        <span className="clinic-copy-arrow" aria-hidden="true">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 8h10M9 4l4 4-4 4" />
-          </svg>
-        </span>
-      </button>
       <p id={feedbackId} aria-live="polite" className={`clinic-copy-feedback is-${status}`}>
         {status === "copied"
           ? `Copied for ${destination}. Paste it there to continue.`

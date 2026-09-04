@@ -8,11 +8,13 @@ import { simulateCustomerBookingFromOwner } from "@/features/appointments/server
 import styles from "./availability-control-room.module.css";
 import { CopyAvailabilityPrompt } from "./CopyAvailabilityPrompt";
 import { ManualSubmitButton } from "./ManualSubmitButton";
+import { WebMcpDisclaimer } from "@/components/WebMcpDisclaimer";
 
 type JsonRecord = Record<string, unknown>;
 
 type Props = {
   organizationSlug: string;
+  siteSlug?: string;
   role: "owner" | "member";
   plan: JsonRecord | null;
   defaultConfiguration?: unknown;
@@ -387,24 +389,6 @@ function planStateCopy(phase: PlanPhase, hasPlan: boolean) {
   }
 }
 
-function nextMoveCopy(phase: PlanPhase, hasPlan: boolean) {
-  if (!hasPlan) {
-    return "Copy the request below into your AI agent. It prepares the exact availability plan.";
-  }
-
-  switch (phase) {
-    case "pending": return "Your agent did its part. Review the impact below, then approve.";
-    case "approved": return "Approval is recorded. Your agent — or the button below — applies this exact plan once.";
-    case "applied":
-    case "customer": return "The schedule is applied. Luna decides: she accepts or declines the new time.";
-    case "completed": return "Done. The public site and AI agent tools now show the same availability.";
-    case "manual": return "Follow up with the customer directly to agree on the next step.";
-    case "stale": return "Ask your AI agent to prepare a fresh exact plan for the new schedule.";
-    case "failed": return "Review the plan state before asking your agent to retry.";
-    default: return "Waiting on the latest availability plan state.";
-  }
-}
-
 function stateClass(phase: PlanPhase) {
   switch (phase) {
     case "pending": return styles.statusPending;
@@ -419,7 +403,7 @@ function stateClass(phase: PlanPhase) {
   }
 }
 
-export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultConfiguration = null, services, appointments = [], notice }: Props) {
+export function AvailabilityControlRoom({ organizationSlug, siteSlug, role, plan, defaultConfiguration = null, services, appointments = [], notice }: Props) {
   const hasPlan = Boolean(plan);
   const formDefaults = demoPlanDefaults(defaultConfiguration);
   const usingExampleRules = !hasPlan && !hasConfiguredRanges(defaultConfiguration);
@@ -782,12 +766,9 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
         </div>
         <div className={styles.roomGrid}>
           <div className={styles.promptCard} id="availability-prompt">
-            <div className={styles.promptCardHead}>
-              <div>
-                <span className={styles.panelLabel}>Ask your AI agent</span>
-                <strong>{nextMoveCopy(phase, hasPlan)}</strong>
-              </div>
-            </div>
+            <p className={styles.externalDivider}>
+              Work with your AI assistant <WebMcpDisclaimer variant="workspace" organizationSlug={organizationSlug} siteSlug={siteSlug} />
+            </p>
             <div className={styles.promptCardFooter}>
               <CopyAvailabilityPrompt prompt={availabilityPrompt} />
             </div>
@@ -1130,6 +1111,22 @@ export function AvailabilityControlRoom({ organizationSlug, role, plan, defaultC
             </div>
             <div className={styles.operationsHubBadge}>
               <span>Live Parity Active</span>
+            </div>
+          </div>
+
+          <div className={styles.capacityBarContainer}>
+            <div className={styles.capacityBarHeader}>
+              <span className={styles.capacityBarTitle}>Saturday capacity distribution (10 slots)</span>
+              <div className={styles.capacityBarLegend}>
+                <span className={styles.capacityLegendItem}><span className={styles.dotBooked} /> {phase === "completed" ? "2 Booked" : "1 Booked, 1 Held"}</span>
+                <span className={styles.capacityLegendItem}><span className={styles.dotBusy} /> 4 Doctor Block</span>
+                <span className={styles.capacityLegendItem}><span className={styles.dotOpen} /> 4 Open Slots</span>
+              </div>
+            </div>
+            <div className={styles.capacityProgressBar} aria-label="Capacity distribution: 2 booked, 4 doctor busy block, 4 open">
+              <div className={styles.capacitySegmentBooked} style={{ width: "20%" }} title="20% Confirmed or Held visits" />
+              <div className={styles.capacitySegmentBusy} style={{ width: "40%" }} title="40% External Doctor Busy Block" />
+              <div className={styles.capacitySegmentOpen} style={{ width: "40%" }} title="40% Open Public Slots" />
             </div>
           </div>
 

@@ -147,7 +147,70 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .landing-outcome-visit strong { overflow: hidden; color: var(--l-ink); font-size: 13px; font-weight: 650; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
 .landing-outcome ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .landing-outcome li { display: flex; align-items: center; gap: 8px; color: #5d685f; font-size: 11px; }
-.landing-outcome li span { display: grid; place-items: center; width: 19px; height: 19px; border-radius: 50%; background: #edf1e9; color: var(--l-deep); font-size: 10px; }
+.landing-innovations {
+  width: min(1360px, calc(100% - 40px));
+  margin-inline: auto;
+  margin-top: 32px;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--l-line);
+  border-radius: 18px;
+}
+
+.landing-innovations-header {
+  margin-bottom: 24px;
+}
+
+.landing-innovations-header h2 {
+  font-size: clamp(26px, 3vw, 38px);
+  color: var(--l-ink);
+  margin-top: 6px;
+}
+
+.landing-innovations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.landing-innovation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(17, 21, 16, 0.08);
+  transition: all 0.15s ease;
+}
+
+.landing-innovation-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(17, 21, 16, 0.06);
+  border-color: rgba(33, 76, 58, 0.25);
+}
+
+.innovation-tag {
+  font: 700 9px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--l-deep);
+}
+
+.landing-innovation-card h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--l-ink);
+}
+
+.landing-innovation-card p {
+  margin: 0;
+  font-size: 12.5px;
+  color: #5d685f;
+  line-height: 1.5;
+}
+
 .landing-close { min-height: 240px; display: flex; align-items: center; justify-content: space-between; gap: 40px; margin-top: 24px; padding: 48px 56px; border-radius: 18px; color: #f2f4ed; background: var(--l-ink); }
 .landing-close > div > p { margin: 0 0 10px; color: var(--l-acid); font: 700 9px/1 var(--font-mono), ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
 .landing-close h2 { max-width: 650px; font-size: clamp(34px, 4vw, 54px); line-height: .95; }
@@ -165,7 +228,7 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 @keyframes workspace-node { 0%, 60%, 100% { transform: scale(.82); opacity: .55; } 25%, 45% { transform: scale(1.12); opacity: 1; } }
 
 @media (max-width: 980px) {
-  .landing-nav, .landing-hero, .landing-operating, .landing-close, .landing-footer { width: min(100% - 32px, 1360px); }
+  .landing-nav, .landing-hero, .landing-operating, .landing-innovations, .landing-close, .landing-footer { width: min(100% - 32px, 1360px); }
   .landing-hero { min-height: auto; grid-template-columns: 1fr; gap: 36px; padding-block: 40px 56px; }
   .landing-product { width: min(100%, 520px); margin-inline: auto; }
   .landing-operating-heading { grid-template-columns: 1fr; gap: 18px; }
@@ -175,7 +238,8 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
   .landing-close { padding-inline: 36px; }
 }
 @media (max-width: 620px) {
-  .landing-nav, .landing-hero, .landing-operating, .landing-close, .landing-footer { width: min(100% - 20px, 1360px); }
+  .landing-nav, .landing-hero, .landing-operating, .landing-innovations, .landing-close, .landing-footer { width: min(100% - 20px, 1360px); }
+  .landing-innovations { padding: 24px 16px; }
   .landing-nav { height: 60px; }
   .landing-nav nav > a:not(.landing-nav-cta) { display: none; }
   .landing-nav nav { gap: 0; }
@@ -639,15 +703,56 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 .clinic-agent-request textarea::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .clinic-agent-request > small { display: block; margin-top: 8px; color: #aebdb3; font-size: 8px; line-height: 1.35; }
 .clinic-copy-action { display: grid; gap: 9px; margin-top: 16px; }
-.clinic-agent-launchers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.clinic-agent-launchers > a,
-.clinic-agent-launchers > button { min-width: 0; min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; cursor: pointer; text-align: left; background: rgba(255,255,255,.045); color: #fff; transition: border-color .18s ease, background .18s ease, transform .18s ease; }
-.clinic-agent-launchers > a:hover,
-.clinic-agent-launchers > button:hover { border-color: rgba(216,241,122,.5); background: rgba(255,255,255,.08); transform: translateY(-1px); }
+.clinic-agent-launchers { display: grid; grid-template-columns: repeat(3, 44px) 1fr; gap: 8px; }
+.clinic-agent-launchers > a.clinic-launcher-icon-btn {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #fff;
+  transition: all 0.18s ease;
+}
+.clinic-agent-launchers > a.clinic-launcher-icon-btn:hover {
+  border-color: rgba(216, 241, 122, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+.clinic-agent-launchers > button.clinic-launcher-other-btn {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.045);
+  color: #fff;
+  font-family: var(--font-manrope), Manrope, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  transition: all 0.18s ease;
+}
+.clinic-agent-launchers > button.clinic-launcher-other-btn:hover {
+  border-color: rgba(216, 241, 122, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+.clinic-agent-launchers > button.clinic-launcher-other-btn.is-copied {
+  border-color: var(--clinic-lime);
+  background: rgba(190, 242, 100, 0.15);
+  color: var(--clinic-lime);
+}
 .clinic-agent-launchers svg { width: 18px; height: 18px; flex-shrink: 0; fill: var(--clinic-lime); }
-.clinic-agent-launchers span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.clinic-agent-launchers small { overflow: hidden; color: #9fb0a5; font-size: 8px; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
-.clinic-agent-launchers strong { overflow: hidden; font-size: 9px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.clinic-launcher-other-btn svg { fill: none; stroke: var(--clinic-lime); }
 .clinic-copy-prompt { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 6px 8px 6px 16px; border: 0; border-radius: 14px; cursor: pointer; background: var(--clinic-lime); color: var(--clinic-ink); font-family: var(--font-manrope), Manrope, sans-serif; font-size: 11px; font-weight: 750; letter-spacing: -.01em; transition: background .2s ease, transform .2s ease, box-shadow .2s ease; }
 .clinic-copy-prompt:hover { background: #e4f88e; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(23,37,30,.12); }
 .clinic-copy-prompt > span { display: inline-grid; width: 18px; place-items: center; font-size: 14px; }
@@ -902,7 +1007,9 @@ footer { display: flex; justify-content: space-between; padding: 42px 0 55px; co
 @media (prefers-reduced-motion: reduce) { .agent-activity-receipt { animation: none; } }
 
 body:has(dialog[open]) .floating-talk-agent-btn,
-body:has(dialog[open]) .agent-activity-receipt {
+body:has(dialog[open]) .agent-activity-receipt,
+body:has(.webmcp-inspector-overlay) .floating-talk-agent-btn,
+body:has(.webmcp-inspector-overlay) .agent-activity-receipt {
   display: none !important;
   pointer-events: none !important;
 }
@@ -1185,7 +1292,7 @@ body:has(dialog[open]) .agent-activity-receipt {
   .clinic-booking-intro h2 { font-size: 42px; }
   .clinic-agent-prompt { padding: 21px; }
   .clinic-agent-request textarea { font-size: 20px; }
-  .clinic-agent-launchers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clinic-agent-launchers { grid-template-columns: repeat(3, 40px) 1fr; }
   .clinic-copy-feedback { min-height: 13px; }
   .clinic-booking-fields { grid-template-columns: 1fr; }
   .clinic-slot-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1430,7 +1537,7 @@ body:has(.clinic-workspace-shell) {
 
 /* Talk to Mimo Console & Floating Button */
 .talk-to-mimo-container {
-  margin: 28px 0 0;
+  margin: 0;
   padding: 24px;
   border-radius: 20px;
   background: rgba(22, 40, 30, 0.95);
@@ -1447,20 +1554,22 @@ body:has(.clinic-workspace-shell) {
 
 .talk-to-mimo-title-group {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .talk-to-mimo-badge {
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: var(--clinic-lime);
-  color: var(--clinic-ink);
-  font-family: var(--font-manrope), Manrope, sans-serif;
-  font-size: 9px;
-  font-weight: 800;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--clinic-lime);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
+  opacity: 0.9;
 }
 
 .talk-to-mimo-header h3 {
@@ -1476,6 +1585,116 @@ body:has(.clinic-workspace-shell) {
   color: #b3c2b7;
   font-size: 13px;
   line-height: 1.5;
+}
+
+.webmcp-disclaimer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.webmcp-disclaimer-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  color: #b3c2b7;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  padding: 0;
+  transition: color .15s ease, border-color .15s ease;
+}
+
+.webmcp-disclaimer-btn:hover {
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+.webmcp-disclaimer-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  width: min(320px, 80vw);
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #101815;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  color: #d7e0d9;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.webmcp-disclaimer-pop strong {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.webmcp-disclaimer-pop p {
+  margin: 0;
+  color: #b3c2b7;
+}
+
+.webmcp-disclaimer-status {
+  color: var(--clinic-lime);
+}
+
+.webmcp-disclaimer-questions-label {
+  color: #8fa397;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.webmcp-disclaimer-questions {
+  display: grid;
+  gap: 6px;
+}
+
+.webmcp-disclaimer-question {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.webmcp-disclaimer-question button {
+  justify-self: start;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.webmcp-disclaimer-question button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.webmcp-disclaimer-links {
+  display: flex;
+  gap: 12px;
+}
+
+.webmcp-disclaimer-links a {
+  color: var(--clinic-lime);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .talk-to-mimo-input-shell {
@@ -1559,6 +1778,31 @@ body:has(.clinic-workspace-shell) {
   100% { transform: scale(1.4); opacity: 0; }
 }
 
+.talk-to-mimo-waveform {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 6px;
+}
+
+.waveform-bar {
+  width: 3px;
+  background: var(--clinic-lime);
+  border-radius: 2px;
+  animation: waveMotion 0.8s ease-in-out infinite alternate;
+}
+
+.waveform-bar.wave-1 { height: 6px; animation-delay: 0.1s; }
+.waveform-bar.wave-2 { height: 14px; animation-delay: 0.3s; }
+.waveform-bar.wave-3 { height: 10px; animation-delay: 0.2s; }
+.waveform-bar.wave-4 { height: 16px; animation-delay: 0.4s; }
+
+@keyframes waveMotion {
+  0% { transform: scaleY(0.4); opacity: 0.5; }
+  100% { transform: scaleY(1.3); opacity: 1; }
+}
+
 .talk-to-mimo-input {
   flex: 1;
   border: 0;
@@ -1571,6 +1815,23 @@ body:has(.clinic-workspace-shell) {
 
 .talk-to-mimo-input::placeholder {
   color: #7b8d81;
+}
+
+.talk-to-mimo-submit-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.talk-key-hint {
+  font-family: monospace;
+  font-size: 11px;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 1px 5px;
+  user-select: none;
 }
 
 .talk-to-mimo-submit-btn {
@@ -1651,6 +1912,13 @@ body:has(.clinic-workspace-shell) {
   gap: 8px;
 }
 
+.steps-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
 .steps-heading {
   color: var(--clinic-lime);
   font-family: var(--font-mono), monospace;
@@ -1658,6 +1926,23 @@ body:has(.clinic-workspace-shell) {
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
+}
+
+.steps-dismiss-btn {
+  border: none;
+  background: transparent;
+  color: #8fa397;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color .15s ease, background .15s ease;
+}
+
+.steps-dismiss-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .talk-step {
@@ -1750,51 +2035,46 @@ body:has(.clinic-workspace-shell) {
 
 /* Owner Mimo Copilot */
 .owner-copilot-container {
-  margin: 0 0 28px;
-  padding: 20px 24px;
-  border-radius: 16px;
-  background: #151d18;
-  border: 1px solid rgba(216, 241, 122, 0.2);
+  margin: 0 0 20px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
   color: #e5ede7;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
 
 .owner-copilot-header {
   display: grid;
-  gap: 4px;
-  margin-bottom: 14px;
+  gap: 6px;
+  margin-bottom: 16px;
 }
 
 .owner-copilot-title-group {
   display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.owner-copilot-badge {
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--clinic-lime);
-  color: var(--clinic-ink);
-  font-family: var(--font-mono), monospace;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-transform: uppercase;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .owner-copilot-header h3 {
   margin: 0;
-  font-family: "Iowan Old Style", Georgia, serif;
+  font-family: var(--font-syne), Syne, sans-serif;
   font-size: 20px;
-  font-weight: 500;
+  font-weight: 700;
   color: #f1f7f3 !important;
+  letter-spacing: -.02em;
 }
 
-.owner-copilot-header p {
-  margin: 0;
-  color: #8c9e92;
-  font-size: 12px;
+.owner-copilot-badge {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--clinic-lime);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
 }
 
 .owner-copilot-input-shell {
@@ -1901,7 +2181,7 @@ body:has(.clinic-workspace-shell) {
   inset: 0;
   background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(4px);
-  z-index: 9999;
+  z-index: 100000;
   display: flex;
   justify-content: flex-end;
 }
@@ -2024,32 +2304,56 @@ body:has(.clinic-workspace-shell) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .webmcp-section-header h3 {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.webmcp-copy-snippet-btn {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 6px;
-  color: #cbd5e1;
-  font-size: 11px;
+.webmcp-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.webmcp-expand-all-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  color: #94a3b8;
+  font-size: 10px;
   font-weight: 600;
-  padding: 4px 8px;
+  padding: 3px 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.webmcp-expand-all-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.webmcp-copy-snippet-btn {
+  background: rgba(190, 242, 100, 0.1);
+  border: 1px solid rgba(190, 242, 100, 0.25);
+  border-radius: 5px;
+  color: var(--clinic-lime);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .webmcp-copy-snippet-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
+  background: rgba(190, 242, 100, 0.2);
+  border-color: rgba(190, 242, 100, 0.4);
 }
 
 .webmcp-tools-list {
@@ -2063,15 +2367,20 @@ body:has(.clinic-workspace-shell) {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   overflow: hidden;
-  transition: border-color 0.15s ease;
+  transition: all 0.15s ease;
+}
+
+.webmcp-tool-card.is-open {
+  border-color: rgba(190, 242, 100, 0.35);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .webmcp-tool-card:hover {
-  border-color: rgba(190, 242, 100, 0.35);
+  border-color: rgba(190, 242, 100, 0.3);
 }
 
 .webmcp-tool-summary {
-  padding: 12px 14px;
+  padding: 10px 14px;
   cursor: pointer;
 }
 
@@ -2080,24 +2389,53 @@ body:has(.clinic-workspace-shell) {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 4px;
+  gap: 8px;
+}
+
+.webmcp-tool-tag-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.webmcp-kind-badge {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.webmcp-kind-badge.is-query {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.webmcp-kind-badge.is-mutation {
+  background: rgba(251, 146, 60, 0.18);
+  color: #fb923c;
+  border: 1px solid rgba(251, 146, 60, 0.3);
 }
 
 .webmcp-tool-name {
   font-family: monospace;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--clinic-lime);
 }
 
 .webmcp-expand-indicator {
-  font-size: 11px;
+  font-size: 10px;
   color: #64748b;
   font-weight: 600;
 }
 
 .webmcp-tool-desc {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   color: #94a3b8;
   line-height: 1.4;
 }
@@ -2108,13 +2446,25 @@ body:has(.clinic-workspace-shell) {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.webmcp-schema-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
 .webmcp-schema-label {
   display: block;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   color: #64748b;
-  margin-bottom: 6px;
+}
+
+.webmcp-schema-type {
+  font-family: monospace;
+  font-size: 10px;
+  color: #94a3b8;
 }
 
 .webmcp-schema-box pre {
@@ -2215,12 +2565,42 @@ body:has(.clinic-workspace-shell) {
   border-radius: 50%;
   background: var(--clinic-lime);
   box-shadow: 0 0 6px var(--clinic-lime);
+  transition: all 0.2s ease;
+}
+
+.simulator-sync-dot.is-pulsing {
+  animation: syncPulse 0.6s infinite alternate;
+}
+
+@keyframes syncPulse {
+  from { transform: scale(1); opacity: 0.6; }
+  to { transform: scale(1.6); opacity: 1; box-shadow: 0 0 10px var(--clinic-lime); }
 }
 
 .simulator-top-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.simulator-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(190, 242, 100, 0.12);
+  border: 1px solid rgba(190, 242, 100, 0.25);
+  color: var(--clinic-lime);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.simulator-action-btn:hover {
+  background: rgba(190, 242, 100, 0.22);
+  border-color: rgba(190, 242, 100, 0.45);
 }
 
 .simulator-action-link {
@@ -2280,7 +2660,7 @@ body:has(.clinic-workspace-shell) {
 }
 
 .simulator-pane-bar {
-  height: 34px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2295,6 +2675,7 @@ body:has(.clinic-workspace-shell) {
   display: flex;
   align-items: center;
   gap: 8px;
+  overflow: hidden;
 }
 
 .simulator-pane-tag {
@@ -2304,6 +2685,7 @@ body:has(.clinic-workspace-shell) {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .simulator-pane-tag.customer {
@@ -2320,11 +2702,44 @@ body:has(.clinic-workspace-shell) {
   color: #64748b;
   font-family: monospace;
   font-size: 10px;
+  flex-shrink: 0;
 }
 
 .simulator-pane-role {
   color: #94a3b8;
   font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.simulator-pane-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.simulator-pane-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.simulator-pane-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .simulator-frame {
@@ -2361,5 +2776,6 @@ body:has(.clinic-workspace-shell) {
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 }
+
 
 
