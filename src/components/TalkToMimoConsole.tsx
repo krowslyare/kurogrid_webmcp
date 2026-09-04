@@ -382,7 +382,6 @@ export function TalkToMimoConsole({
       <div className="talk-to-mimo-header">
         <div className="talk-to-mimo-title-group">
           <h3>Talk to Mimo</h3>
-          <span className="talk-to-mimo-badge">Demo booking assistant <WebMcpDisclaimer variant="customer" siteSlug={siteSlug} /></span>
         </div>
         <p>Speak or type what you need to coordinate your appointment live via WebMCP.</p>
       </div>
@@ -465,6 +464,11 @@ export function TalkToMimoConsole({
           ))}
         </div>
       ) : null}
+
+      <p className="talk-to-mimo-footnote">
+        <span className="talk-to-mimo-badge">Demo booking assistant</span>
+        <WebMcpDisclaimer variant="customer" siteSlug={siteSlug} />
+      </p>
     </div>
   );
 }
