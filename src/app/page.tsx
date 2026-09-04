@@ -393,11 +393,6 @@ export default function Home() {
           <div>
             <p>One fictional clinic. One real agent interaction.</p>
             <h2 id="close-title">Ask Mimo for Luna&apos;s next visit.</h2>
-            <p className="landing-close-note">
-              Start on the independent customer site, or run the guided journey
-              — clinic plan, one-shot approval, and the customer&apos;s answer —
-              from the demo workspace.
-            </p>
           </div>
           <div className="landing-close-actions">
             <Link
