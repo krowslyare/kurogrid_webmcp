@@ -243,6 +243,18 @@ export function TalkToMimoConsole({
       );
 
       // Step 2: Execute selected tool
+      const matchServiceFromText = (
+        services: Array<{ service_slug?: string; slug?: string; service_name?: string; name?: string }>,
+      ): string => {
+        const lowerText = textToRun.toLowerCase();
+        const matched = services.find((s) => {
+          const slug = (s.service_slug || s.slug || "").toLowerCase();
+          const name = (s.service_name || s.name || "").toLowerCase();
+          return (slug && lowerText.includes(slug)) || (name && lowerText.includes(name));
+        });
+        return matched?.service_slug || matched?.slug || "";
+      };
+
       if (call.name === "get_clinic_services") {
         const servicesStepId = addStep("get_clinic_services", "Reading published clinic services...");
         const servicesResult = (await modelContext.executeTool("get_clinic_services", {})) as {
@@ -251,13 +263,7 @@ export function TalkToMimoConsole({
         const services = servicesResult?.services ?? [];
         updateStep(servicesStepId, "success", `Verified ${services.length} published clinic services.`);
 
-        const lowerText = textToRun.toLowerCase();
-        const matched = services.find((s) => {
-          const slug = (s.service_slug || s.slug || "").toLowerCase();
-          const name = (s.service_name || s.name || "").toLowerCase();
-          return (slug && lowerText.includes(slug)) || (name && lowerText.includes(name));
-        });
-        const derivedSlug = matched?.service_slug || matched?.slug || "";
+        const derivedSlug = matchServiceFromText(services);
         if (!derivedSlug) {
           updateStep(servicesStepId, "error", "No matching service found. Please name a published clinic service.");
           setIsExecuting(false);
@@ -271,13 +277,25 @@ export function TalkToMimoConsole({
       }
 
       if (call.name === "find_appointment_slots") {
-        const serviceSlug = typeof call.args.service_slug === "string" && call.args.service_slug
+        let serviceSlug = typeof call.args.service_slug === "string" && call.args.service_slug
           ? call.args.service_slug
           : "";
         if (!serviceSlug) {
-          updateStep(inferStepId, "error", "No service specified. Please name a published clinic service.");
-          setIsExecuting(false);
-          return;
+          // Self-heal: the model picked the right tool but left args empty.
+          // Resolve the service from the user's own words against the
+          // published list instead of inventing one.
+          const healStepId = addStep("get_clinic_services", "No service in the request — checking published services...");
+          const healResult = (await modelContext.executeTool("get_clinic_services", {})) as {
+            services?: Array<{ service_slug?: string; slug?: string; service_name?: string; name?: string }>;
+          };
+          const healed = matchServiceFromText(healResult?.services ?? []);
+          if (!healed) {
+            updateStep(healStepId, "error", "No service specified. Please name a published clinic service.");
+            setIsExecuting(false);
+            return;
+          }
+          updateStep(healStepId, "success", `Matched published service "${healed}".`);
+          serviceSlug = healed;
         }
         const slotDate = typeof call.args.date === "string" && call.args.date
           ? call.args.date
