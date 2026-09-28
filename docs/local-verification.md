@@ -59,5 +59,4 @@ native `get_attention` with the three synthetic fixtures. The smoke uncovered
 and fixed a host-compatibility edge: Chrome omitted the optional execution
 context, so the adapter now preserves cancellation when present without
 requiring that argument. Logout left `getTools()` empty. Repository
-visibility/public evidence, the video, and the judging-period freeze remain the
-explicit pre-submission gates.
+This evidence describes the 2026-08-27 build; rerun the checks for current code.

@@ -54,4 +54,4 @@ revoke all on function public.refresh_demo_fixtures() from public;
 grant execute on function public.refresh_demo_fixtures() to service_role;
 
 comment on function public.refresh_demo_fixtures() is
-  'Service-only operational reset for fictional challenge data and ten customer appointment times per sandbox.';
+  'Service-only operational reset for fictional demo data and ten customer appointment times per sandbox.';

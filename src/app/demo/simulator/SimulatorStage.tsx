@@ -130,7 +130,7 @@ export function SimulatorStage() {
           <div className="simulator-pane-bar">
             <div className="simulator-pane-info">
               <span className="simulator-pane-tag clinic">Clinic Workspace</span>
-              <span className="simulator-pane-url">/demo (Code: webmcphackaton)</span>
+              <span className="simulator-pane-url">/demo · isolated workspace</span>
               <span className="simulator-pane-role">Authenticated Owner · Mimo Copilot</span>
             </div>
             <div className="simulator-pane-controls">

@@ -56,7 +56,7 @@ export default async function DemoPage({ searchParams }: PageProps) {
               autoComplete="off"
               maxLength={128}
             />
-            <small id="demo-access-help">Use the code supplied with the submission.</small>
+            <small id="demo-access-help">Enter the access code provided by the demo operator.</small>
           </label>
           <div className="kuro-field demo-role-field">
             <span className="kuro-field-label">Workspace role</span>

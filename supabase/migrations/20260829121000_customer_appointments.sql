@@ -391,7 +391,7 @@ grant execute on function public.respond_to_appointment_proposal(uuid, uuid, boo
 grant execute on function public.owner_update_appointment_request(uuid, text, timestamptz) to authenticated;
 
 comment on table public.appointment_requests is
-  'Synthetic customer appointment journey for the public WebMCP challenge demo.';
+  'Synthetic customer appointment journey for the public WebMCP demo.';
 
 create or replace function private.reset_demo_sandbox(p_sandbox_id uuid)
 returns void

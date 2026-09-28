@@ -21,7 +21,7 @@ mutate organization B through UI routes, Data API requests, or RPC calls.
   resource, and recheck `auth.uid()` plus membership/role internally.
 - Secret and service-role keys never reach browser bundles.
 
-Gate 1 uses one reviewed `SECURITY DEFINER` membership predicate in the
+The schema uses one reviewed `SECURITY DEFINER` membership predicate in the
 unexposed `private` schema to avoid recursive membership policies. It fixes an
 empty `search_path`, resolves `auth.uid()` internally, and is executable only
 by authenticated and service roles.

@@ -1,7 +1,7 @@
 # Demo runtime
 
-The evaluator demo uses a finite pool of synthetic organizations. A lease owns
-one complete sandbox; two simultaneous evaluators never share organization,
+The hosted demo uses a finite pool of synthetic organizations. A lease owns
+one complete sandbox; two simultaneous visitors never share organization,
 draft, version, attention, audit, or authentication state.
 
 ## Allocation contract
@@ -17,7 +17,7 @@ draft, version, attention, audit, or authentication state.
 - the lease is bound to the signed-in Supabase `session_id`; expiration or
   release removes that JWT session's tenant access at the RLS boundary;
 - when no slot is free, `/demo` displays `All isolated demo slots are in use`
-  and never reuses another evaluator's organization.
+  and never reuses another visitor's organization.
 
 The access code, demo-user password, and Supabase secret key are server-only.
 The access code must contain at least 24 bytes and should be randomly generated
