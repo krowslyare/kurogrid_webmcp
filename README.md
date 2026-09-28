@@ -144,6 +144,10 @@ curl 'https://webmcp.kurogrid.com/api/webmcp/capabilities?siteSlug=mimo-01'
 That endpoint proves the schema and contextual profile, while the submission
 video demonstrates native discovery and execution inside the browser.
 
+No terminal needed either. Every page carries a floating WebMCP Inspector
+button showing the registered tools and their live JSON Schemas in a drawer,
+in any modern browser, with no flags.
+
 ## Architecture
 
 ```text
