@@ -1,217 +1,53 @@
 # Kuro Agent
 
-### Websites assistants can safely use
+A public WebMCP testbed built around Mimo, a fictional veterinary clinic. It
+lets you inspect browser tools, try customer appointment flows, and see how an
+authenticated Owner's tools change with the current schedule and session.
 
-Kuro Agent runs two connected WebMCP journeys: a customer assistant can
-complete an appointment outcome from a normal business website, and an Owner's
-assistant can turn operating intent plus normalized calendar conflicts into an
-exact availability plan without silently moving existing bookings.
+[Live site](https://webmcp.kurogrid.com) · [Mimo customer page](https://webmcp.kurogrid.com/sites/mimo-01) · [Demo workspace](https://webmcp.kurogrid.com/demo)
 
-[Live product](https://webmcp.kurogrid.com) ·
-[Customer demo](https://webmcp.kurogrid.com/sites/mimo-01) ·
-[Architecture](docs/architecture.md) ·
-[Security model](docs/security.md) ·
-[Video script](docs/submission-video-script.md)
+The repository uses synthetic data. It contains no private Kurogrid Portal code
+or customer records.
 
-> Mimo is a fictional veterinary clinic built to prove one complete WebMCP
-> interaction. No customer data or private Kurogrid code is included.
+## What to try
 
-## The idea
+1. Open the [Mimo customer page](https://webmcp.kurogrid.com/sites/mimo-01).
+   The public site works as a normal website even without WebMCP support.
+2. Open the floating **WebMCP Inspector** to see the current tool names and
+   schemas. A compatible WebMCP browser host can discover and execute them.
+3. Find a service and an open slot, prepare an appointment, then review the
+   exact details before sending the request. Preparation alone does not send it.
+4. With a code from the demo operator, open the
+   [isolated clinic workspace](https://webmcp.kurogrid.com/demo). The Owner can
+   prepare availability from weekly rules and normalized busy intervals,
+   inspect conflicts and alternatives, and apply an exact plan. Affected
+   customers decide whether to accept proposed times.
+5. Compare the public page with its WebMCP tools. Both resolve the same
+   published service, slot, and appointment state.
 
-Most websites expose pages. Assistants still have to interpret those pages,
-guess what can be done, and hand users into a separate workflow.
+The public page initially exposes `get_site_content`, `get_opening_hours`,
+`get_clinic_services`, `find_appointment_slots`, and
+`prepare_appointment_request`. Available tools change after preparation,
+confirmation, and other state transitions. The workspace has a separate
+role-aware tool set. See [public scope](docs/public-scope.md) and
+[compatibility](docs/webmcp-compatibility.md).
 
-Kuro Agent turns the website itself into a set of tools an assistant can call:
+Native registration uses `document.modelContext.registerTool()`. Tool execution
+is checked again on the server against the current session, tenant, role, and
+resource state. Registration itself grants no permission. The Inspector is
+useful in any modern browser; native execution needs a compatible WebMCP host.
 
-1. A customer asks for a dermatology visit on Saturday morning.
-2. The assistant discovers Mimo's current services and appointment tools.
-3. It reads live availability and prepares an exact request.
-4. The customer reviews the service, time, pet, and email before sending.
-5. The clinic accepts the request or proposes another time.
-6. The customer receives a private update and can add the result to Calendar.
-
-On the clinic side, an Owner can ask an assistant to configure a month of
-service availability in one instruction. Mimo computes the generated slots,
-conflicts, preserved bookings, and nearest valid alternatives. When that same
-Owner instruction explicitly says to apply the matching result, the assistant
-can approve and apply the exact plan from the authenticated session. Asking
-only to prepare still stops for manual review. Each affected customer keeps
-control of the proposed time.
-
-The human website remains fully usable without WebMCP, including a traditional
-booking form.
-
-## Why this is not a CRUD demo
-
-A booking form creates a record. Kuro Agent holds both sides to more than that.
-Tools only appear when your role, resource, and state allow them. An Owner can
-delegate exact application in the prompt or fall back to manual controls, and
-only customers decide on proposed times. The public page and its WebMCP tools
-read the same immutable site version. Members prepare drafts, only Owners
-publish or roll back. Appointment tools change after preparation, confirmation,
-acceptance, or rescheduling. Publication writes immutable versions, so rollback
-restores an earlier one without rewriting history. Each flow ends with a clinic
-response, a private status link, an email update, and a Calendar handoff. The
-agent sends desired ranges and normalized busy intervals, and Mimo derives the
-affected bookings and alternatives on the server instead of trusting what the
-agent claims the impact is.
-
-WebMCP registration is not treated as authorization. Every execution is
-resolved again on the server against the current session, tenant, role, and
-resource state.
-
-## Two connected product pages
-
-### Customer: Mimo Veterinary Care
-
-The public site exposes services, opening hours, availability, traditional
-booking, and customer-safe WebMCP appointment tools. A prepared request always
-returns to a private review page before it can be sent.
-
-### Clinic: Kuro Agent workspace
-
-The primary workspace is an availability control room. The Owner's assistant
-can read the current schedule, prepare a September plan, and apply that exact
-plan when the Owner's instruction explicitly asks it to. The server binds the
-plan ID, revision, and hash and revalidates the schedule and booking impact in
-one transaction. The concrete fixture blocks an external 10:00–11:30 conflict,
-proposes 11:30 to Luna, and preserves Max's existing 12:00 booking even though
-future lunch times are blocked.
-
-The earlier editorial draft, publication, and rollback workflow remains as a
-secondary demo. Neither workflow is a general CRM, calendar sync product,
-or workflow builder.
-
-## WebMCP tools
-
-The browser adapter uses the imperative
-`document.modelContext.registerTool()` API. Registrations are refreshed when
-authentication, role, organization, resource, or appointment state changes.
-Aborting the previous profile removes stale tools before the current profile is
-registered.
-
-Owner capabilities include:
-
-```text
-get_availability_configuration
-prepare_availability_plan
-apply_availability_plan           # exact Owner-delegated path after prepare
-apply_approved_availability_plan  # appears only after exact Owner approval
-
-get_attention
-create_action_plan
-acknowledge_lead_attention
-get_site_content
-create_or_patch_site_draft
-preview_publish_consequences
-publish_site_draft
-get_opening_hours
-list_site_versions
-rollback_site_version
-```
-
-Members receive the read and drafting subset. The public Mimo page exposes only
-customer-safe capabilities derived from the published site and appointment
-state. See the complete [public scope](docs/public-scope.md) and
-[WebMCP compatibility notes](docs/webmcp-compatibility.md).
-
-### Observe the native tools
-
-Open the [Mimo customer demo](https://webmcp.kurogrid.com/sites/mimo-01)
-in a compatible WebMCP host. The reviewed Chrome setup requires the WebMCP
-testing flag described in the compatibility notes. The initial public profile
-registers five tools:
-
-```text
-get_site_content
-get_opening_hours
-get_clinic_services
-find_appointment_slots
-prepare_appointment_request
-```
-
-Preparing an appointment changes the resource state and refreshes the available
-tools. Confirmation is separate and one-time; preparation never submits the
-request silently.
-
-Without a compatible host, the server-resolved public profile remains
-inspectable as JSON:
+You can also inspect the server-resolved public capability profile:
 
 ```bash
 curl 'https://webmcp.kurogrid.com/api/webmcp/capabilities?siteSlug=mimo-01'
 ```
 
-That endpoint proves the schema and contextual profile, while the submission
-video demonstrates native discovery and execution inside the browser.
+That endpoint shows the profile and JSON Schemas. To verify browser-native
+discovery and execution, use a compatible host; the endpoint alone does not
+prove native execution.
 
-No terminal needed either. Every page carries a floating WebMCP Inspector
-button showing the registered tools and their live JSON Schemas in a drawer,
-in any modern browser, with no flags.
-
-## Architecture
-
-```text
-Compatible assistant
-        │
-        ▼
-Browser-native WebMCP registration
-        │ same-origin execution
-        ▼
-Next.js application layer
-        │ identity + role + exact plan + tenant checks
-        ▼
-Supabase Auth + Postgres + RLS + audit log
-        │
-        ├── immutable published version ──► human website
-        └── immutable published version ──► public WebMCP tools
-```
-
-- **Next.js 16 / React 19:** public site, customer review, and clinic workspace.
-- **Supabase:** authentication, Postgres persistence, RLS, RPCs, and audit
-  records.
-- **Resend:** best-effort appointment updates with deterministic idempotency.
-- **Vercel:** hosted product and isolated demo runtime.
-
-Read [architecture](docs/architecture.md), [security](docs/security.md), and
-[dataset provenance](docs/provenance.md) for the reviewed contracts.
-
-## Demo and verification
-
-The live customer page needs no access code. The isolated clinic walkthrough
-uses the code supplied with the challenge submission. Demo sessions run on a
-bounded lease pool, separated by organization, and reset for reuse.
-
-The verified release covers:
-
-- Owner availability planning from weekly rules and normalized busy intervals
-- server-derived conflict detection and deterministic nearest-later alternatives
-- exact Owner approval before availability application
-- customer-controlled proposal acceptance and public slot parity
-- Owner publish and immutable rollback
-- Member draft access without publish or rollback
-- parity between public HTML and public WebMCP data
-- two concurrent isolated demo leases
-- explicit capacity exhaustion, expiry, release, and clean reuse
-- cross-organization Data API and RPC isolation
-- restricted Resend sender and successful delivery request from a verified domain
-
-Run the local quality gates with:
-
-```bash
-npm run check
-npm run supabase:reset
-npm test
-```
-
-`npm test` runs capability-profile unit tests, focused pgTAP policy tests, and
-application-level Data API/RPC tests with valid users from separate
-organizations. It does not require GitHub Actions or a hosted project.
-
-Maintainers can run the destructive synthetic hosted-pool gate explicitly with
-`npm run demo:verify-hosted`. It refuses to run against a busy pool and finishes
-with zero active leases.
-
-## Local development
+## Local setup
 
 Requirements: Node 24 LTS, npm, Docker, and the Supabase CLI.
 
@@ -224,31 +60,34 @@ npm run dev
 ```
 
 Copy the local publishable and secret keys printed by `supabase status` into
-`.env.local`, then configure a demo access code and demo-user password. The
-local stack uses ports `56320` through `56329` to avoid the default Supabase
-range.
+`.env.local`, then configure `DEMO_ACCESS_CODE` and `DEMO_USER_PASSWORD`. Keep
+those values server-side. Local Supabase uses ports `56320` through `56329`.
 
-### Optional email delivery
-
-Without a provider, the demo shows an honest in-product email preview. To send
-the same appointment update through Resend, configure these server-only values:
+Run the focused checks:
 
 ```bash
-APP_BASE_URL=https://your-deployment.example
-RESEND_API_KEY=re_...
-RESEND_FROM_EMAIL="Mimo <appointments@your-verified-domain.example>"
-DEMO_NOTIFICATION_EMAIL=your-demo-inbox@example.com
+npm run check
+npm run supabase:reset
+npm test
 ```
 
-Synthetic `.test` addresses remain in preview mode unless
-`DEMO_NOTIFICATION_EMAIL` is set. Provider failure does not roll back the
-appointment or invalidate its private status link.
+`npm test` covers capability profiles, database policies, and cross-organization
+Data API/RPC behavior with synthetic identities. The hosted pool verifier,
+`npm run demo:verify-hosted`, is a separate destructive check for a dedicated
+synthetic environment; it refuses to start while leases are active.
 
-## Project boundary
+See [architecture](docs/architecture.md), [security](docs/security.md),
+[demo runtime](docs/demo-runtime.md), and
+[local verification evidence](docs/local-verification.md) for implementation
+details. The dated verification document records a past run and should be rerun
+against current code.
 
-This is a greenfield, public-safe implementation. It does not reuse source
-code, migrations, customer data, or internal documentation from the private
-Kurogrid Portal.
+## Boundaries
 
-The MIT license applies only to this repository. It does not grant rights to
-private Kurogrid code, services, datasets, trademarks, or hosted environments.
+Calendar providers are external context. The app stores normalized busy
+intervals, not provider credentials or event details. Publication and
+availability application require exact current revisions and one-shot approval
+where applicable. Demo identities and appointments are synthetic. The project
+is a WebMCP experiment, not a production clinic system.
+
+The MIT license applies to this repository only. It does not grant rights to private Kurogrid code, services, datasets, trademarks, or hosted environments.

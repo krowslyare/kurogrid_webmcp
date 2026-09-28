@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Public-safe WebMCP challenge implementation for Kurogrid.",
+  "description": "Public WebMCP testbed for Kurogrid's Mimo demo.",
   "engines": {
     "node": "24.x"
   },

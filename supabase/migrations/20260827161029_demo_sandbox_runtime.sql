@@ -169,7 +169,7 @@ declare
   v_sandbox public.demo_sandboxes%rowtype;
   v_user_id uuid;
 begin
-  -- Serialize the tiny challenge pool so two simultaneous claims cannot select
+  -- Serialize the small demo pool so two simultaneous claims cannot select
   -- the same free sandbox before either lease becomes visible.
   perform pg_advisory_xact_lock(hashtextextended('kurogrid-demo-pool', 0));
 
@@ -362,6 +362,6 @@ grant execute on function public.bind_demo_sandbox_session(text, uuid, uuid)
   to service_role;
 
 comment on table public.demo_runtime_config is
-  'Submission-time pool capacity. The enforced minimum is two isolated slots.';
+  'Demo pool capacity. The enforced minimum is two isolated slots.';
 comment on function public.claim_demo_sandbox(text, public.organization_role) is
   'Service-only atomic lease allocation with SKIP LOCKED and a clean synthetic reset.';

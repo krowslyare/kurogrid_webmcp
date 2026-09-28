@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Kurogrid WebMCP working contract
 
-This repository is a greenfield, public-safe challenge implementation. Do not
+This repository is a public WebMCP testbed. Do not
 copy source code, migrations, fixtures, secrets, customer data, or internal
 documentation from the private Kurogrid Portal.
 
@@ -25,7 +25,7 @@ documentation from the private Kurogrid Portal.
 - Calendar providers remain external agent context. Store only normalized busy
   intervals, never provider credentials, event titles, attendees, or notes.
 - Editorial drafts, publication versions, and rollback remain a secondary
-  content-operations demonstration, not the primary challenge story.
+  content-operations example. Availability and appointments are the primary path.
 - Do not add billing, calendar OAuth, background synchronization, generic
   workflow engines, multi-resource scheduling, grants frameworks, or private
   Portal compatibility.
