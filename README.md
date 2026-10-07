@@ -1,24 +1,32 @@
 # Kuro Agent
 
+An experiment around a fictional veterinary clinic: exploring how AI agents can
+use a website's tools to find services, prepare appointments, and help with
+availability. The repository uses made-up clinic data.
+
+> Hosted demo status, October 6, 2026: the advertised Mimo customer page returns
+> 404, and its capability endpoint returns 500. The workspace requires an access
+> code. For now, explore the code and local setup below.
+
 A public WebMCP testbed built around Mimo, a fictional veterinary clinic. It
 lets you inspect browser tools, try customer appointment flows, and see how an
 authenticated Owner's tools change with the current schedule and session.
 
-[Live site](https://webmcp.kurogrid.com) · [Mimo customer page](https://webmcp.kurogrid.com/sites/mimo-01) · [Demo workspace](https://webmcp.kurogrid.com/demo)
+[Project landing page](https://webmcp.kurogrid.com) · [Public scope](docs/public-scope.md) · [Local setup](#local-setup)
 
 The repository uses synthetic data. It contains no private Kurogrid Portal code
 or customer records.
 
-## What to try
+## What to try locally
 
-1. Open the [Mimo customer page](https://webmcp.kurogrid.com/sites/mimo-01).
-   The public site works as a normal website even without WebMCP support.
+1. Follow the local setup below, then open `/sites/mimo-01` on your local server.
+   The customer site works as a normal website even without WebMCP support.
 2. Open the floating **WebMCP Inspector** to see the current tool names and
    schemas. A compatible WebMCP browser host can discover and execute them.
 3. Find a service and an open slot, prepare an appointment, then review the
    exact details before sending the request. Preparation alone does not send it.
-4. With a code from the demo operator, open the
-   [isolated clinic workspace](https://webmcp.kurogrid.com/demo). The Owner can
+4. With the access code configured during local setup, open `/demo` on your
+   local server. The Owner can
    prepare availability from weekly rules and normalized busy intervals,
    inspect conflicts and alternatives, and apply an exact plan. Affected
    customers decide whether to accept proposed times.
@@ -40,7 +48,7 @@ useful in any modern browser; native execution needs a compatible WebMCP host.
 You can also inspect the server-resolved public capability profile:
 
 ```bash
-curl 'https://webmcp.kurogrid.com/api/webmcp/capabilities?siteSlug=mimo-01'
+curl 'http://localhost:3000/api/webmcp/capabilities?siteSlug=mimo-01'
 ```
 
 That endpoint shows the profile and JSON Schemas. To verify browser-native
